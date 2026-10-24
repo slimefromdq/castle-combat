@@ -16,6 +16,7 @@ const HEROES: Array[HeroData] = [
 const MINIONS := {
 	&"melee": preload("res://data/minions/melee.tres"),
 	&"ranged": preload("res://data/minions/ranged.tres"),
+	&"siege": preload("res://data/minions/siege.tres"),
 }
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
@@ -52,6 +53,8 @@ func _ready() -> void:
 	hud.debug_toggle_pressed.connect(func() -> void: hud.set_debug_visible(not hud.debug_visible))
 	hud.menu_pressed.connect(func() -> void: exit_requested.emit())
 	hud.restart_pressed.connect(func() -> void: restart_requested.emit())
+	hud.drop_pressed.connect(func() -> void: player.pending_drop = true)
+	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
 	player = LocalPlayerSource.new()
 	player.team = local_seat
 	player.joystick = hud.joystick
@@ -100,6 +103,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_seat()
 	elif event.is_action_pressed("toggle_touch"):
 		toggle_touch()
+	elif event.is_action_pressed("drop_relay"):
+		player.pending_drop = true
 	elif event.is_action_pressed("toggle_debug"):
 		hud.set_debug_visible(not hud.debug_visible)
 	elif event.is_action_pressed("back"):

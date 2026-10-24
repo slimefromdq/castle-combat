@@ -62,7 +62,25 @@ structures wear a translucent dome.
 - [x] Result screen with Play again; respawn countdown
 - [x] 39 tests, incl. Codex acceptance 1, 2 and 7 (bot beats an idle side; bot vs bot soak)
 
-**Next: M2 — the Relay.**
+**M2 — the Relay and hero-hit aggro**
+- [x] `RelayController` state machine DORMANT → SPAWNED → CARRIED ⇄ DROPPED, ending in
+      delivered or expired. First Relay 1:00 with a 10 s warning, then 70 s after each
+      delivery/expiry, alternating pockets; delivery pocket is always the other one
+- [x] Pickup 0.5 s in the 1.3 m ring; carrier at 90% speed; two enemy-hero hits within 3 s
+      knock it loose (minion and tower hits never count); KO or F drops it; 0.75 s lockout;
+      returns home after 8 s; 0.8 s in the delivery pocket delivers unless the enemy hero
+      stands in that pocket; untouched Relay fades after 25 s
+- [x] Reward: one siege minion (750 HP, 3x structure damage) in the next wave
+- [x] Hero-hit aggro (Lucy's rule, replaces the GDD's fixed minion/tower priorities, see below)
+- [x] Bot: carries and delivers, intercepts an enemy carrier, contests a Relay it can reach
+      first, routes around pocket pillars, and only trades with the hero when that won't
+      pull more than one enemy minion or a tower; otherwise taps a minion (ranged first)
+- [x] Visuals: gold gem (overhead while carried), pickup ring + progress fill, drop beacon,
+      warning pulse, pocket outlines, delivery fill, off-screen arrow, "!" over called
+      units, Relay status line + callouts, Drop button
+- [x] 62 tests (aggro 8, Relay 15 added)
+
+**Next: M3 — gold and the six-item deck.**
 
 ## Assumptions (change by editing data)
 
@@ -76,9 +94,20 @@ structures wear a translucent dome.
 - Heroes walk through minions; minions push apart from each other only.
 - **Base healing (not in the GDD):** heroes within 7 m of their own Core heal 12% max HP/s.
   Without it damage is permanent until death, since the GDD has no regen outside an item.
-- The Core shoots like a tower. Towers do not yet switch to a hero who attacks an enemy
-  hero under them (a common MOBA rule worth trying in M4).
-- Pacing: bot vs an idle opponent takes ~14 min to win, mostly the Core. Minions deal 1.5x
+- The Core shoots like a tower.
+- **Hero-hit aggro replaces GDD 5's fixed priorities.** GDD: minions hit minions > heroes >
+  structures; towers hit minions > heroes. Now, when a hero's attack lands on the enemy
+  hero, the victim's minions within 6.5 m of the attacker switch to the attacker for 3 s
+  (refreshed by each hit, dropped if the attacker gets 9 m away), and every victim tower
+  that has the attacker in range switches for 4 s and deals 1.5x damage to them. Outside
+  that, the GDD priorities still apply. All numbers are in `match_config.tres` ("Hero-hit aggro").
+- Relay details the GDD leaves open: pickup progress counts while you are inside the ring
+  (moving is fine) and resets if you leave; if both heroes are inside, neither progresses.
+  Delivery progress pauses while contested and resets if the carrier leaves the pocket.
+  A dropped Relay that returns home gets a fresh 12 s expiry so it never vanishes suddenly.
+- The pockets sit opposite each other at mid-lane, so a clean delivery is a ~3 s walk.
+  That may make the Relay too easy to take; the M4 metrics runner should tell.
+- Pacing: bot vs an idle opponent took ~14 min to win in M1 (~10.5 min with Relay sieges), mostly the Core. Minions deal 1.5x
   to structures and towers deal 70. Real tuning waits for the M4 metrics runner.
 - Hero abilities (Q/E) are not in M1; the buttons stay disabled.
 

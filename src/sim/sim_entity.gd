@@ -30,6 +30,14 @@ var attack_target := 0
 var windup_left := -1.0
 ## Seconds before the next windup may start.
 var cooldown_left := 0.0
+## Hero-hit aggro: a minion or tower "called" by an attack on its hero goes for that
+## attacker (entity id, 0 = none) until called_until.
+var called_target := 0
+var called_until := 0.0
+
+
+func is_called(time: float) -> bool:
+	return called_target != 0 and time < called_until
 
 
 func is_winding_up() -> bool:

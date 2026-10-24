@@ -28,9 +28,16 @@ static func for_hero(sim: MatchSim, hero: HeroState) -> SimEntity:
 	return _nearest_structure(sim, hero, 0.0)
 
 
+## A hero who hit this minion's hero nearby comes first (hero-hit aggro). Otherwise
 ## GDD 5: opposing minions first, then heroes, then the next exposed structure.
 ## search adds to attack range so minions can notice and walk toward things.
 static func for_minion(sim: MatchSim, m: MinionState, search: float) -> SimEntity:
+	if m.is_called(sim.time):
+		var caller := sim.get_entity(m.called_target)
+		if CombatSystem.is_valid_target(sim, m, caller) and m.pos.distance_to(caller.pos) <= sim.config.minion_call_leash \
+				and ArenaGeometry.has_line_of_sight(sim.arena, m.pos, caller.pos):
+			return caller
+		m.called_target = 0
 	var best: SimEntity = null
 	for other in sim.minions:
 		if _in_reach(sim, m, other, search) and (best == null or _closer(m, other, best)):
@@ -45,8 +52,14 @@ static func for_minion(sim: MatchSim, m: MinionState, search: float) -> SimEntit
 	return _nearest_structure(sim, m, search)
 
 
-## Towers prefer hostile minions, then hostile heroes. They stick to a target while it stays valid.
+## A hero who hit this tower's hero while in its range comes first (hero-hit aggro).
+## Otherwise towers prefer hostile minions, then hostile heroes, and stick to a target
+## while it stays valid.
 static func for_structure(sim: MatchSim, s: StructureState, previous_id: int) -> SimEntity:
+	if s.is_called(sim.time):
+		var caller := sim.get_entity(s.called_target)
+		if _ok(sim, s, caller):
+			return caller
 	var previous: SimEntity = sim.get_entity(previous_id)
 	if _ok(sim, s, previous):
 		return previous

@@ -41,3 +41,33 @@ func _draw() -> void:
 		draw_rect(Rect2(r.position, Vector2(size.x * e.hp / e.max_hp, size.y)), color)
 		if e is HeroState and e.is_winding_up():
 			draw_rect(Rect2(r.position + Vector2(0, size.y + 3), Vector2(size.x * e.windup_progress(), 4)), Color(1, 1, 1, 0.9))
+	_draw_relay_pointer(cam)
+
+
+## The Relay is globally visible: when it is off screen, a gold arrow on the edge of
+## the lane area points to it (or to whoever carries it).
+func _draw_relay_pointer(cam: Camera3D) -> void:
+	var relay := view.sim.relay
+	if relay.state == RelayController.State.DORMANT and not relay.warned:
+		return
+	var at := MatchView.to_world(relay.origin if relay.state == RelayController.State.DORMANT else relay.pos, 1.0)
+	var carrier := relay.carrier(view.sim)
+	if carrier != null:
+		at = view.unit_position(carrier.id) + Vector3(0, 2.7, 0)
+	var screen := get_viewport_rect().size
+	var area := Rect2(Vector2(36, 270), Vector2(screen.x - 72, screen.y - 270 - 250))
+	var p := cam.unproject_position(at)
+	if not cam.is_position_behind(at) and area.has_point(p):
+		return
+	var centre := area.get_center()
+	var dir := (p - centre).normalized()
+	if cam.is_position_behind(at):
+		dir = -dir
+	# Walk from the centre to the edge of the area along dir.
+	var half := area.size / 2.0
+	var t := minf(half.x / maxf(absf(dir.x), 0.001), half.y / maxf(absf(dir.y), 0.001))
+	var tip := centre + dir * t
+	var side := Vector2(-dir.y, dir.x)
+	var pts := PackedVector2Array([tip, tip - dir * 30.0 + side * 15.0, tip - dir * 30.0 - side * 15.0])
+	draw_colored_polygon(pts, Palette.RELAY)
+	draw_polyline(PackedVector2Array([pts[0], pts[1], pts[2], pts[0]]), Color(0, 0, 0, 0.7), 2.0)

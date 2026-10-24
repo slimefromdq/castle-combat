@@ -4,7 +4,8 @@ extends RefCounted
 ## so tests and headless bot runs can step it directly. Views only read from it.
 
 ## Fired for things views, HUD and metrics care about: windup_started, windup_cancelled,
-## attack_fired, unit_killed, hero_respawned, wave_spawned, match_over.
+## attack_fired, unit_killed, hero_respawned, wave_spawned, match_over, aggro_called,
+## and the relay_* events from RelayController.
 signal sim_event(type: StringName, data: Dictionary)
 
 const BLUE := 0
@@ -25,6 +26,9 @@ var structures: Array[StructureState] = []
 var minions: Array[MinionState] = []
 var next_wave_time := 0.0
 var waves_spawned := 0
+var relay := RelayController.new()
+## Siege minions each team has earned (Relay deliveries) for its next wave.
+var pending_siege: Array[int] = [0, 0]
 var over := false
 ## Winning team once the match is over, else -1.
 var winner := -1
@@ -44,6 +48,7 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	minions.clear()
 	next_wave_time = cfg.first_wave_time
 	waves_spawned = 0
+	pending_siege = [0, 0]
 	over = false
 	winner = -1
 	_next_id = 1
@@ -57,6 +62,7 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 		h.setup(hero_picks[team], team, to_team_space(team, arena.hero_spawn))
 		_register(h)
 		heroes.append(h)
+	relay.setup(self)
 
 
 ## Advances one fixed tick. commands[team] is that team's PlayerCommand (or null).
@@ -73,6 +79,8 @@ func step(commands: Array) -> void:
 			cmd = PlayerCommand.new()
 		var hero := heroes[team]
 		_apply_target_command(hero, cmd)
+		if cmd.drop_relay:
+			relay.request_drop(self, hero)
 		Movement.move_hero(self, hero, cmd.move, dt)
 	if minion_types.size() > 0 and time + 0.0001 >= next_wave_time:
 		_spawn_wave()
@@ -85,6 +93,7 @@ func step(commands: Array) -> void:
 	for s in structures:
 		var previous := s.attack_target
 		CombatSystem.tick_attack(self, s, s.alive, func() -> SimEntity: return Targeting.for_structure(self, s, previous))
+	relay.tick(self)
 	_remove_dead_minions()
 	tick += 1
 	time = tick * dt
@@ -138,6 +147,36 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity) -> void:
 		_kill(target, source)
 
 
+## Hero-hit aggro. Called when a hero's attack lands on the enemy hero: the victim's
+## minions near the attacker, and the victim's towers that can reach the attacker,
+## switch to the attacker at once (any windup on something else is dropped).
+func on_hero_hit(attacker: HeroState, victim: HeroState) -> void:
+	relay.on_hero_hit(self, attacker, victim)
+	var called: Array[int] = []
+	for m in minions:
+		if m.alive and m.team == victim.team and m.pos.distance_to(attacker.pos) <= config.minion_call_radius:
+			_call_unit(m, attacker, config.minion_call_duration)
+			called.append(m.id)
+	for s in structures:
+		if s.alive and s.team == victim.team and CombatSystem.in_range(self, s, attacker):
+			_call_unit(s, attacker, config.tower_call_duration)
+			called.append(s.id)
+	if not called.is_empty():
+		emit_event(&"aggro_called", {"attacker": attacker.id, "units": called})
+
+
+func _call_unit(u: SimEntity, attacker: HeroState, duration: float) -> void:
+	if u.is_winding_up() and u.attack_target != attacker.id:
+		CombatSystem.cancel(self, u)
+	u.called_target = attacker.id
+	u.called_until = time + duration
+
+
+## A Relay delivery: one siege minion joins this team's next wave.
+func queue_siege(team: int) -> void:
+	pending_siege[team] += 1
+
+
 func spawn_minion(data: MinionData, team: int, at: Vector2) -> MinionState:
 	var m := MinionState.new()
 	m.setup(data, team, at)
@@ -158,6 +197,7 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	emit_event(&"unit_killed", {"id": target.id, "kind": target.kind, "team": target.team, "killer": source.id if source != null else 0, "killer_team": killer_team})
 	if target is HeroState:
 		target.respawn_at = time + config.respawn_time
+		relay.on_hero_killed(self, target)
 	elif target is StructureState:
 		target.blocks_movement = false
 		if target.tier == 2:
@@ -229,6 +269,12 @@ func _spawn_wave() -> void:
 		for i in config.wave_ranged:
 			var x := (float(i) - (config.wave_ranged - 1) / 2.0) * 1.0
 			spawn_minion(ranged, team, to_team_space(team, spawn + Vector2(x, -0.8)))
+		var siege: MinionData = minion_types.get(&"siege")
+		while pending_siege[team] > 0 and siege != null:
+			pending_siege[team] -= 1
+			var m := spawn_minion(siege, team, to_team_space(team, spawn + Vector2(0.0, -1.8)))
+			m.is_siege = true
+			emit_event(&"siege_spawned", {"id": m.id, "team": team})
 	emit_event(&"wave_spawned", {"wave": waves_spawned})
 
 

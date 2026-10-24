@@ -126,6 +126,7 @@ static func make_structure(s: StructureState, is_ally: bool) -> Node3D:
 	var dome_node := part(body, dome, Palette.LOCK_DOME, Vector3(0, 0.2, 0), Vector3.ZERO, true)
 	dome_node.name = "Dome"
 	root.set_meta("bar_height", top + 0.7)
+	_aggro_mark(root)
 	var rubble := Node3D.new()
 	rubble.name = "Rubble"
 	rubble.visible = false
@@ -164,4 +165,13 @@ static func make_minion(m: MinionState, is_ally: bool) -> Node3D:
 			part(body, cylinder(m.radius, m.radius * 1.05, m.radius * 0.9, 16), c, Vector3(0, m.radius * 0.45, 0))
 			part(body, cylinder(m.radius * 0.55, m.radius * 0.55, 0.08, 16), Palette.ACCENT, Vector3(0, m.radius * 0.94, 0))
 	root.set_meta("bar_height", m.radius * 2.6 + 0.3)
+	_aggro_mark(root)
 	return root
+
+
+## Hidden "!" that MatchView shows while the unit is called by hero-hit aggro.
+static func _aggro_mark(root: Node3D) -> void:
+	var mark := label(root, "!", 1.5, 72)
+	mark.name = "Aggro"
+	mark.outline_size = 14
+	mark.visible = false
