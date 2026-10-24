@@ -63,6 +63,17 @@ extends Resource
 ## Expiry timer after a dropped Relay returns home, so it never vanishes without warning.
 @export var relay_return_expire_time := 12.0
 
+@export_group("Levels")
+## Total XP needed to reach each level (index 0 = level 1). Abilities unlock at 1, 3, 5;
+## perks at 2, 4, 6 (the last is the capstone).
+@export var level_xp: Array[int] = [0, 120, 300, 550, 850, 1200]
+@export var passive_xp_per_second := 1.0
+## XP to the opposing hero for a knockout, plus this much per level the victim is above them.
+@export var ko_xp := 90.0
+@export var ko_xp_per_level_above := 25.0
+## Catch-up: a hero behind the enemy hero in level gets this much extra XP per level behind.
+@export var catch_up_per_level := 0.25
+
 @export_group("Economy")
 @export var passive_gold_per_second := 2.0
 @export var starting_gold := 0.0

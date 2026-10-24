@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"recoil"
+display_name = "Recoil"
+summary = "Hop 4 m back; enemies near you slowed 40% for 2 s"
+effect = &"recoil"
+cooldown = 13.0
+is_movement = true
+distance = 4.0
+travel_time = 0.2
+radius = 3.0
+slow = 0.4
+duration = 2.0

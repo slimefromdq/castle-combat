@@ -11,6 +11,7 @@ signal menu_pressed
 signal restart_pressed
 signal drop_pressed
 signal buy_pressed(slot: int)
+signal cast_pressed(slot: int)
 
 const BOTTOM_H := 240.0
 const MARGIN := 12.0
@@ -33,6 +34,9 @@ var _flash: Label
 var _flash_until := 0
 var _drop: Button
 var _cards: Array[Button] = []
+var _ability_buttons: Array[Button] = []
+var _you_xp: ProgressBar
+var _them_xp: ProgressBar
 var _cards_row: Control
 var _them_items: Label
 var _you_items: Label
@@ -72,10 +76,14 @@ func set_debug_visible(on: bool) -> void:
 
 
 func refresh(sim: MatchSim, seat: int, fps: float) -> void:
+	_sim_for_text = sim
 	var me := sim.heroes[seat]
 	var them := sim.heroes[1 - seat]
-	_you_name.text = "You · %s" % me.data.display_name
-	_them_name.text = "Them · %s" % them.data.display_name
+	_you_name.text = "You · %s · Lv %d" % [me.data.display_name, me.level]
+	_them_name.text = "Them · %s · Lv %d" % [them.data.display_name, them.level]
+	_you_xp.value = Leveling.progress(sim, me)
+	_them_xp.value = Leveling.progress(sim, them)
+	_refresh_abilities(sim, me)
 	_you_hp.value = me.hp / me.max_hp
 	_them_hp.value = them.hp / them.max_hp
 	_fill_structs(sim, seat, _you_structs)
@@ -98,6 +106,26 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	if debug_visible:
 		_debug.text = "FPS %d   tick %d   t %.1fs\nyou (%.1f, %.1f) %s" % [
 			fps, sim.tick, sim.time, me.pos.x, me.pos.y, "moving" if me.moving else "stopped"]
+
+
+## Ability buttons: key, name, and either a cooldown, the unlock level, or nothing.
+func _refresh_abilities(sim: MatchSim, me: HeroState) -> void:
+	const KEYS := ["Q", "E", "R"]
+	for i in _ability_buttons.size():
+		var b := _ability_buttons[i]
+		if i >= me.data.abilities.size():
+			b.visible = false
+			continue
+		var a := me.data.abilities[i]
+		var problem := Abilities.cast_problem(sim, me, i)
+		var status := ""
+		if not me.ability_unlocked(i):
+			status = "Lv %d" % (1 + i * 2)
+		elif me.cooldowns[i] > 0.0:
+			status = "%.0f" % ceilf(me.cooldowns[i]) if me.cooldowns[i] >= 1.0 else "%.1f" % me.cooldowns[i]
+		b.text = "%s\n%s\n%s" % [KEYS[i], a.display_name, status]
+		b.disabled = problem != "" and problem != "no enemy hero in reach" and problem != "nothing in reach"
+		b.tooltip_text = "%s (%s)\n%s\nCooldown %.0f s" % [a.display_name, KEYS[i], a.summary, me.ability_cooldown(i)]
 
 
 ## Tab: collapse or open the item cards (gold and owned items stay visible).
@@ -155,9 +183,26 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 		&"item_bought":
 			if data.team == seat:
 				text = "Bought %s" % _item_name(data.item)
+		&"level_up":
+			if data.team == seat:
+				text = _level_text(data.level, seat)
 	if text != "":
 		_flash.text = text
 		_flash_until = Time.get_ticks_msec() + 2600
+
+
+var _sim_for_text: MatchSim
+
+
+func _level_text(lv: int, seat: int) -> String:
+	if _sim_for_text == null:
+		return "Level %d" % lv
+	var h := _sim_for_text.heroes[seat]
+	if lv % 2 == 1:
+		var a := h.data.abilities[(lv - 1) / 2]
+		return "Level %d: %s unlocked (%s)" % [lv, a.display_name, ["Q", "E", "R"][(lv - 1) / 2]]
+	var perk := h.data.perks[lv / 2 - 1]
+	return "Level %d: %s (%s)" % [lv, perk.display_name, perk.summary]
 
 
 func _item_name(id: StringName) -> String:
@@ -237,11 +282,17 @@ func _build_top(inset: float) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	_them_name = UiKit.label("Them", 22, Palette.ENEMY.lightened(0.2))
-	_them_name.custom_minimum_size = Vector2(230, 0)
+	_them_name.custom_minimum_size = Vector2(270, 0)
 	_them_hp = UiKit.bar(Palette.ENEMY, 20)
 	_them_hp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_them_name)
-	row.add_child(_them_hp)
+	var them_bars := VBoxContainer.new()
+	them_bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	them_bars.add_theme_constant_override("separation", 3)
+	them_bars.add_child(_them_hp)
+	_them_xp = UiKit.bar(Color("f5d76e"), 5)
+	them_bars.add_child(_them_xp)
+	row.add_child(them_bars)
 	v.add_child(row)
 	v.add_child(_struct_row(Palette.ENEMY, _them_structs))
 	# GDD 8: you can always see the opponent's equipped items (not their deck).
@@ -305,11 +356,17 @@ func _build_bottom() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	_you_name = UiKit.label("You", 22, Palette.ALLY.lightened(0.25))
-	_you_name.custom_minimum_size = Vector2(230, 0)
+	_you_name.custom_minimum_size = Vector2(270, 0)
 	_you_hp = UiKit.bar(Palette.ALLY, 20)
 	_you_hp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_you_name)
-	row.add_child(_you_hp)
+	var you_bars := VBoxContainer.new()
+	you_bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	you_bars.add_theme_constant_override("separation", 3)
+	you_bars.add_child(_you_hp)
+	_you_xp = UiKit.bar(Color("f5d76e"), 5)
+	you_bars.add_child(_you_xp)
+	row.add_child(you_bars)
 	v.add_child(row)
 	v.add_child(_struct_row(Palette.ALLY, _you_structs))
 	_you_items = UiKit.label("Items:", 16, Color(1, 1, 1, 0.7))
@@ -350,35 +407,40 @@ func _build_thumbs() -> void:
 	joystick.offset_bottom = -BOTTOM_H - 4
 	joystick.visible = false
 	_root.add_child(joystick)
-	# No basic-attack button by design: stopping is the attack. Abilities arrive in M1.
-	var ability := UiKit.button("Q\nAbility", Vector2(136, 136))
-	ability.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	ability.offset_left = -136 - 28
-	ability.offset_right = -28
-	ability.offset_top = -BOTTOM_H - 136 - 28
-	ability.offset_bottom = -BOTTOM_H - 28
-	ability.disabled = true
-	_root.add_child(ability)
-	var ult := UiKit.button("E\nUlt", Vector2(104, 104))
-	ult.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	ult.offset_left = -136 - 28 - 104 - 20
-	ult.offset_right = -136 - 28 - 20
-	ult.offset_top = -BOTTOM_H - 104 - 92
-	ult.offset_bottom = -BOTTOM_H - 92
-	ult.disabled = true
-	_root.add_child(ult)
+	# No basic-attack button by design: stopping is the attack. Q is the big thumb button,
+	# E sits to its left, R (the ultimate) above it. Keyboard: Q / E / R.
+	_ability_buttons.append(_corner_button(136, 28, 28, 0))
+	_ability_buttons.append(_corner_button(108, 28 + 136 + 18, 28, 1))
+	_ability_buttons.append(_corner_button(108, 28 + 14, 28 + 136 + 18, 2))
 	# Shown only while you carry the Relay (keyboard: F).
-	_drop = UiKit.button("F\nDrop", Vector2(104, 104))
+	_drop = UiKit.button("F\nDrop", Vector2(96, 96))
 	_drop.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_drop.offset_left = -28 - 104 - 16
-	_drop.offset_right = -28 - 16
-	_drop.offset_top = -BOTTOM_H - 136 - 28 - 104 - 24
-	_drop.offset_bottom = -BOTTOM_H - 136 - 28 - 24
+	_drop.offset_right = -(28 + 136 + 18)
+	_drop.offset_left = _drop.offset_right - 96
+	_drop.offset_bottom = -BOTTOM_H - (28 + 108 + 18)
+	_drop.offset_top = _drop.offset_bottom - 96
 	_drop.add_theme_color_override("font_color", Palette.RELAY)
 	_drop.tooltip_text = "F: drop the Relay"
 	_drop.pressed.connect(func() -> void: drop_pressed.emit())
 	_drop.visible = false
 	_root.add_child(_drop)
+
+
+## A square button anchored to the bottom right, `right`/`bottom` px in from the corner
+## (above the bottom band).
+func _corner_button(size: float, right: float, bottom: float, slot: int) -> Button:
+	var b := UiKit.button("", Vector2(size, size))
+	b.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	b.offset_right = -right
+	b.offset_left = -right - size
+	b.offset_bottom = -BOTTOM_H - bottom
+	b.offset_top = -BOTTOM_H - bottom - size
+	b.add_theme_font_size_override("font_size", 14 if slot > 0 else 17)
+	b.autowrap_mode = TextServer.AUTOWRAP_OFF
+	b.clip_text = true
+	b.pressed.connect(func() -> void: cast_pressed.emit(slot))
+	_root.add_child(b)
+	return b
 
 
 func _build_status() -> void:

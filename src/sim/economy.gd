@@ -59,11 +59,13 @@ static func on_kill(sim: MatchSim, target: SimEntity, source: SimEntity) -> void
 			sim.emit_event(&"minion_denied", {"id": target.id, "team": target.team, "hero": source.id})
 		if not hero.alive:
 			return
-		var bounty: float = target.data.gold_bounty * (sim.config.deny_gold_fraction if denied else 1.0)
+		var share: float = sim.config.deny_gold_fraction if denied else 1.0
 		if source == hero:
-			_award(sim, hero, bounty, &"last_hit")
+			_award(sim, hero, target.data.gold_bounty * share, &"last_hit")
+			Leveling.gain(sim, hero, target.data.xp_bounty * share)
 		elif hero.pos.distance_to(target.pos) <= sim.config.minion_gold_radius:
-			_award(sim, hero, bounty, &"denied" if denied else &"nearby")
+			_award(sim, hero, target.data.gold_bounty * share, &"denied" if denied else &"nearby")
+			Leveling.gain(sim, hero, target.data.xp_bounty * share)
 	elif target is HeroState:
 		_award(sim, sim.heroes[1 - target.team], sim.config.hero_ko_gold, &"knockout")
 

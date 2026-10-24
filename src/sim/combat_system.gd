@@ -69,7 +69,7 @@ static func cancel(sim: MatchSim, a: SimEntity) -> void:
 static func fire(sim: MatchSim, a: SimEntity, t: SimEntity) -> void:
 	a.windup_left = -1.0
 	a.attack_target = 0
-	a.cooldown_left = maxf(0.0, a.attack_interval - a.attack_windup)
+	a.cooldown_left = maxf(0.0, a.current_interval(sim.time) - a.attack_windup)
 	var damage := a.attack_damage
 	if a is MinionState and t is StructureState:
 		damage *= a.data.structure_damage_mult * Economy.minion_structure_mult(sim, a)

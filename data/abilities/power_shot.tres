@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"power_shot"
+display_name = "Power Shot"
+summary = "Instant 110-dmg shot, 8.5 m reach"
+effect = &"power_shot"
+cooldown = 9.0
+reach = 8.5
+damage = 110.0
+minion_damage = 80.0

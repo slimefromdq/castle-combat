@@ -1,6 +1,6 @@
 class_name HeroData
 extends Resource
-## Tunable numbers for one hero archetype. Combat values are seeds for M1.
+## Tunable numbers for one hero archetype: body, basic attack, abilities and perks.
 
 @export var id: StringName = &""
 @export var display_name := ""
@@ -18,3 +18,9 @@ extends Resource
 @export var attack_damage := 40.0
 @export var attack_windup := 0.25
 @export var attack_interval := 0.85
+
+@export_group("Kit")
+## Unlocked at levels 1, 3 and 5 (the last is the ultimate).
+@export var abilities: Array[AbilityData] = []
+## Gained at levels 2, 4 and 6 (the last is the capstone).
+@export var perks: Array[PerkData] = []

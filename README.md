@@ -5,9 +5,10 @@ fired basic attack lands, and matches are won through waves, towers and the Rela
 objective as much as through the duel. Working title; the design doc calls it
 UNDERTOW: RELAY ([docs/GDD_v0.1.md](docs/GDD_v0.1.md)).
 
-**Status: Milestone 3** — a full match against a bot with waves, towers, stop-to-attack
+**Status: Milestone 4** — a full match against a bot with waves, towers, stop-to-attack
 combat, hero-hit aggro, the Relay (pick it up, carry it across, deliver it for a siege
-minion), and gold with a six-card item deck you pick before the match (buy up to three).
+minion), gold with a six-card item deck you pick before the match (buy up to three), and
+six hero levels that unlock three abilities and three perks.
 
 ## Play it
 
@@ -25,7 +26,7 @@ minion), and gold with a six-card item deck you pick before the match (buy up to
 | Move | WASD / arrow keys | Floating joystick: drag in the lower left |
 | Attack | Stand still: the nearest valid target is attacked automatically | Same |
 | Focus a target (for last hits) | Left-click an enemy unit; click the ground to clear | Tap an enemy unit |
-| Ability / Ultimate | Q / E (later milestone) | Right-thumb buttons |
+| Abilities (unlock at Lv 1 / 3 / 5) | Q / E / R | Right-thumb buttons |
 | Buy item card | 1–6 | Tap a card |
 | Hide / show the item cards | Tab | — |
 | Pick up / deliver the Relay | Stand in the gold ring / the outlined pocket | Same |
@@ -41,6 +42,10 @@ There is no attack button on purpose: standing still is how you attack.
 gold, whoever killed it. A killing blow from farther away pays too.
 **Denies:** once one of your own minions drops to half health its bar gets a white frame;
 tap it and stand still to finish it yourself, and the enemy only collects half its gold.
+
+**Levels:** you earn XP over time, from enemy minions (same rule as gold) and from
+knockouts. Level 1, 3 and 5 unlock your abilities (5 is the ultimate); 2, 4 and 6 give
+perks. Falling behind in level earns you bonus XP.
 
 **Watch your aggro.** Hitting the enemy hero calls their nearby minions onto you, and if
 you stand inside their tower's range the tower switches to you too and hits harder. A "!"

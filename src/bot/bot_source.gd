@@ -24,6 +24,54 @@ func reset() -> void:
 
 
 func build_command(sim: MatchSim) -> PlayerCommand:
+	var cmd := _decide(sim)
+	var me := sim.heroes[team]
+	if me.alive and not sim.over:
+		cmd.cast_slot = _choose_ability(sim, me, cmd)
+	return cmd
+
+
+## Which ability to use this tick (-1 for none). Simple rules per kit; the bot avoids
+## starting a hero fight that would call the enemy wave or tower, like its basic attacks.
+func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
+	var them := sim.heroes[1 - team]
+	var d := me.pos.distance_to(them.pos) if them.alive else INF
+	var my_hp := me.hp / me.max_hp
+	var their_hp := them.hp / them.max_hp if them.alive else 1.0
+	var their_front := sim.front_structure(1 - team)
+	var safe := _enemy_minions_near(sim, me.pos, sim.config.minion_call_radius) <= 1 \
+			and not (their_front != null and CombatSystem.in_range(sim, their_front, me, 0.5))
+	var fight := them.alive and (safe or their_hp < 0.35)
+	var ready := func(i: int) -> bool: return Abilities.cast_problem(sim, me, i) == ""
+	match me.data.id:
+		&"vanguard":
+			if ready.call(1) and my_hp < 0.6 and d < 6.0:
+				return 1
+			if ready.call(2) and fight and d < 4.0 and (their_hp < 0.6 or my_hp < 0.4):
+				return 2
+			if ready.call(0) and fight and d < 4.5 and my_hp >= their_hp - 0.1:
+				return 0
+		&"scout":
+			if ready.call(0) and _healing and d < 6.0 and cmd.move != Vector2.ZERO:
+				return 0  # Escape toward home.
+			if ready.call(2) and fight and d < 8.0 and (them.hp < 220.0 or (their_hp < 0.5 and my_hp > 0.5)):
+				return 2
+			if ready.call(1) and fight and me.attack_target == them.id:
+				return 1
+			if ready.call(0) and fight and their_hp < 0.35 and d > 3.0 and d < 7.0:
+				cmd.move = (them.pos - me.pos).normalized()
+				return 0
+		&"gunner":
+			if ready.call(1) and them.alive and d < 2.6 and them.attack_range < 3.0:
+				return 1
+			if ready.call(2) and fight and d < 9.0 and (their_hp < 0.7 or them.is_stunned(sim.time)):
+				return 2
+			if ready.call(0) and fight and d < 8.5:
+				return 0
+	return -1
+
+
+func _decide(sim: MatchSim) -> PlayerCommand:
 	var cmd := PlayerCommand.new()
 	_sim = sim
 	var me := sim.heroes[team]

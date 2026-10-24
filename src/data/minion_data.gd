@@ -17,3 +17,5 @@ extends Resource
 @export var structure_damage_mult := 1.0
 ## Gold for the enemy hero who lands the killing blow (a last hit).
 @export var gold_bounty := 20.0
+## XP for the enemy hero, paid by the same rule as gold (nearby or killing blow).
+@export var xp_bounty := 15.0

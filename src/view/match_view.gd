@@ -12,6 +12,7 @@ var _arena_view: ArenaView
 var _fx: CombatFx
 var _bars: UnitBars
 var _relay_view: RelayView
+var _status: StatusFx
 ## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
 var _range_ring: MeshInstance3D
 ## Faint gold circle: enemy minions dying inside it pay you their gold.
@@ -50,6 +51,10 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_fx.view = self
 	add_child(_fx)
 	sim.sim_event.connect(_fx.on_sim_event)
+	_status = StatusFx.new()
+	_status.view = self
+	add_child(_status)
+	sim.sim_event.connect(_status.on_sim_event)
 	var bar_layer := CanvasLayer.new()
 	bar_layer.layer = 0
 	add_child(bar_layer)
@@ -101,6 +106,7 @@ func set_local_seat(seat: int) -> void:
 	local_seat = seat
 	camera_rig.set_seat(seat)
 	_arena_view.build(sim.arena, seat)
+	_status.reset()
 	_rebuild_units()
 	render(1.0, 0.0, true)
 
@@ -127,6 +133,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
 	_update_helpers()
 	_relay_view.render(alpha)
+	_status.render()
 	var me := sim.heroes[local_seat]
 	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
 

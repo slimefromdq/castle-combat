@@ -89,18 +89,45 @@ structures wear a translucent dome.
       it; if you land the kill the enemy collects only half its gold. Auto-targeting never
       picks your own minions; deniable ones get a white bar frame. The bot denies only when
       the enemy hero is close enough to collect
-- [x] Eight items from GDD 8 as `data/items/*.tres`; pick exactly six in the menu (default
+- [x] Eight items (seven since M4) from GDD 8 as `data/items/*.tres`; pick exactly six in the menu (default
       deck pre-selected); one-tap buy (cards or keys 1–6), max three, no duplicates,
       permanent for the match, kept through knockouts
 - [x] Effects: move speed, max HP (also heals the added amount), damage, attack speed,
       range, Siege Banner aura (+12% within 7 m), Recovery Sigil (2%/s after 7 s free of
-      hero damage). Anchor Charm does nothing yet: nothing knocks back until abilities land
+      hero damage). (Anchor Charm was removed in M4 at Lucy's request)
 - [x] HUD: gold, six cards (price / OWNED / full), your and the opponent's three items;
       Tab collapses the cards
 - [x] Bot buys from a per-hero wishlist and saves up for the next item on it
 - [x] 75 tests (13 economy added), incl. Codex criterion 6 rules and "2+ items by 6 min"
 
-**Next: M4 — proof of strategy (metrics runner, tuning).**
+**M4 — levels and abilities (Lucy's request; replaces the GDD's "no levels/XP" rule):**
+
+- [x] Six levels. XP: 1/s passive for both heroes; enemy minions pay XP by the same rule
+      as gold (melee/ranged 15, siege 40, half if denied); a knockout pays 90 + 25 per level
+      the victim is above the killer. Thresholds 0 / 120 / 300 / 550 / 850 / 1200
+- [x] Catch-up: +25% XP per level you are behind the enemy hero
+- [x] Lv 1 first ability, Lv 2 small perk, Lv 3 second ability, Lv 4 larger perk,
+      Lv 5 ultimate, Lv 6 capstone perk (`AbilityData`, `PerkData`, listed on each `HeroData`)
+- [x] Kits:
+      Vanguard: Shield Bash (dash + knockback) · Bulwark (shield) · Earthshaker (ult, AoE stun);
+      perks Thick Hide (+10% HP), Battering Ram (Bash −3 s, more knockback), Bastion (−30% damage while Bulwark is up).
+      Scout: Dash · Flurry (+attack speed) · Blade Rush (ult, gap-close strike);
+      perks Light Feet (+6% speed), Second Wind (Dash −2 s), Finisher (+30% damage to heroes under 35% HP).
+      Gunner: Power Shot (long shot) · Recoil (hop back + slow) · Barrage (ult, channelled 4-pulse zone);
+      perks Long Barrel (+6% range), Hair Trigger (Power Shot −3 s), Siege Battery (Barrage +2 m reach, hits structures)
+- [x] Abilities aim themselves (nearest enemy hero, else the nearest enemy); movement
+      abilities go where you are steering. A Relay carrier cannot use movement abilities.
+      Barrage pulses count as one hit for Relay interception; moving or a stun cancels it
+- [x] Ability hits on the enemy hero trigger hero-hit aggro like basic attacks
+- [x] HUD: level and XP bar per hero, Q/E/R buttons with cooldowns and unlock levels,
+      level-up callouts; shield, stun, slow and zone visuals
+- [x] Bot uses its kit (fights only when not under enemy tower and not outnumbered)
+- [x] 96 tests (18 abilities/levels added)
+- Bot-vs-bot level timings: Lv 2 ~45 s, Lv 3 ~105 s, Lv 4 ~175 s, Lv 5 ~240 s, Lv 6 ~330 s.
+- **Snowball risk:** a knockout now pays gold, XP and lane tempo. Catch-up XP and small,
+  mostly utility perks soften it; watch for one early kill deciding the match.
+
+**Next: M4b — metrics runner and tuning, then M5 iOS.**
 
 ## Assumptions (change by editing data)
 
@@ -133,7 +160,7 @@ structures wear a translucent dome.
   is not in yet. Gold pacing: bots own 2–3 items by 6 min, the GDD's target.
 - Pacing: bot vs an idle opponent took ~14 min to win in M1 (~10.5 min with Relay sieges), mostly the Core. Minions deal 1.5x
   to structures and towers deal 70. Real tuning waits for the M4 metrics runner.
-- Hero abilities (Q/E) are not in M1; the buttons stay disabled.
+- Item pool is 7 after removing Anchor Charm; the GDD asks for at least 8, so a deck of 6 has little choice. Add an item soon.
 
 ## Known gaps
 
