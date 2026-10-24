@@ -9,6 +9,7 @@ signal touch_toggle_pressed
 signal debug_toggle_pressed
 signal menu_pressed
 signal restart_pressed
+signal drop_pressed
 
 const BOTTOM_H := 214.0
 const MARGIN := 12.0
@@ -27,6 +28,9 @@ var _you_hp: ProgressBar
 var _you_structs: Array = []
 var _gold: Label
 var _relay: Label
+var _flash: Label
+var _flash_until := 0
+var _drop: Button
 var _debug: Label
 var _touch_button: Button
 var _seat_button: Button
@@ -79,11 +83,62 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 		_result_title.add_theme_color_override("font_color", Palette.ALLY.lightened(0.3) if sim.winner == seat else Palette.ENEMY.lightened(0.2))
 		_result.visible = true
 	_seat_button.text = "Seat: %s" % ("blue" if seat == MatchSim.BLUE else "red")
-	var until := sim.config.first_relay_time - sim.time
-	_relay.text = "Relay in %d:%02d" % [int(until) / 60, int(until) % 60] if until > 0.0 else "Relay: coming in M2"
+	_relay.text = _relay_text(sim, seat)
+	_flash.visible = Time.get_ticks_msec() < _flash_until
+	_drop.visible = me.carrying_relay
 	if debug_visible:
 		_debug.text = "FPS %d   tick %d   t %.1fs\nyou (%.1f, %.1f) %s" % [
 			fps, sim.tick, sim.time, me.pos.x, me.pos.y, "moving" if me.moving else "stopped"]
+
+
+## Short event callouts under the Relay line ("Relay knocked loose!").
+func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
+	var text := ""
+	match type:
+		&"relay_spawned":
+			text = "The Relay is up!"
+		&"relay_picked_up":
+			text = "You have the Relay" if data.team == seat else "The enemy took the Relay"
+		&"relay_dropped":
+			text = "Relay knocked loose!" if data.reason == &"intercepted" else "Relay dropped"
+		&"relay_returned":
+			text = "Relay went back to its pocket"
+		&"relay_delivered":
+			text = "Delivered! A siege minion joins your next wave" if data.team == seat else "Enemy delivered: their siege minion is coming"
+		&"relay_expired":
+			text = "The Relay faded"
+	if text != "":
+		_flash.text = text
+		_flash_until = Time.get_ticks_msec() + 2600
+
+
+func _relay_text(sim: MatchSim, seat: int) -> String:
+	var relay := sim.relay
+	var me := sim.heroes[seat]
+	match relay.state:
+		RelayController.State.DORMANT:
+			var until := maxf(0.0, relay.next_spawn_time - sim.time)
+			if relay.warned:
+				return "Relay in %d · %s pocket" % [ceili(until), _side(sim, relay.pickup_pocket, seat)]
+			return "Relay in %d:%02d" % [int(until) / 60, int(until) % 60]
+		RelayController.State.SPAWNED:
+			return "Relay up · %s pocket · fades in %d" % [_side(sim, relay.pickup_pocket, seat), ceili(relay.expire_at - sim.time)]
+		RelayController.State.DROPPED:
+			return "Relay dropped · returns in %d" % ceili(relay.return_at - sim.time)
+		RelayController.State.CARRIED:
+			if me.carrying_relay:
+				var where := "Carry it to the %s pocket" % _side(sim, relay.delivery_pocket, seat)
+				return where + (" · blocked!" if relay.contested else "")
+			return "Enemy has the Relay! Two hits knock it loose"
+	return ""
+
+
+## Which side of *your* screen a pocket is on (the red seat sees the map turned 180°).
+func _side(sim: MatchSim, pocket: int, seat: int) -> String:
+	var x := sim.arena.pockets[pocket].get_center().x
+	if seat != MatchSim.BLUE:
+		x = -x
+	return "left" if x < 0.0 else "right"
 
 
 func _fill_structs(sim: MatchSim, team: int, widgets: Array) -> void:
@@ -154,8 +209,17 @@ func _build_tools(inset: float) -> void:
 	_relay.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_relay.offset_top = 186 + inset
 	_root.add_child(_relay)
+	_flash = UiKit.label("", 20, Color(1, 1, 1, 0.95))
+	_flash.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_flash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_flash.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_flash.offset_top = 218 + inset
+	_flash.add_theme_constant_override("outline_size", 8)
+	_flash.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_flash.visible = false
+	_root.add_child(_flash)
 	_debug = UiKit.label("", 18, Color(1, 1, 1, 0.75))
-	_debug.position = Vector2(MARGIN + 4, 226 + inset)
+	_debug.position = Vector2(MARGIN + 4, 254 + inset)
 	_root.add_child(_debug)
 
 
@@ -234,6 +298,18 @@ func _build_thumbs() -> void:
 	ult.offset_bottom = -BOTTOM_H - 92
 	ult.disabled = true
 	_root.add_child(ult)
+	# Shown only while you carry the Relay (keyboard: F).
+	_drop = UiKit.button("F\nDrop", Vector2(104, 104))
+	_drop.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_drop.offset_left = -28 - 104 - 16
+	_drop.offset_right = -28 - 16
+	_drop.offset_top = -BOTTOM_H - 136 - 28 - 104 - 24
+	_drop.offset_bottom = -BOTTOM_H - 136 - 28 - 24
+	_drop.add_theme_color_override("font_color", Palette.RELAY)
+	_drop.tooltip_text = "F: drop the Relay"
+	_drop.pressed.connect(func() -> void: drop_pressed.emit())
+	_drop.visible = false
+	_root.add_child(_drop)
 
 
 func _build_status() -> void:

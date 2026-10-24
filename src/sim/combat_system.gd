@@ -61,5 +61,10 @@ static func fire(sim: MatchSim, a: SimEntity, t: SimEntity) -> void:
 	var damage := a.attack_damage
 	if a is MinionState and t is StructureState:
 		damage *= a.data.structure_damage_mult
-	sim.emit_event(&"attack_fired", {"attacker": a.id, "target": t.id, "damage": damage, "from": a.pos, "to": t.pos})
+	var called := a is StructureState and a.is_called(sim.time) and a.called_target == t.id
+	if called:
+		damage *= sim.config.tower_call_damage_mult
+	sim.emit_event(&"attack_fired", {"attacker": a.id, "target": t.id, "damage": damage, "from": a.pos, "to": t.pos, "called": called})
 	sim.apply_damage(t, damage, a)
+	if a is HeroState and t is HeroState:
+		sim.on_hero_hit(a, t)

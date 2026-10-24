@@ -13,6 +13,10 @@ var preferred_target := 0
 var preferred_lost_time := 0.0
 ## Sim time when a knocked-out hero comes back.
 var respawn_at := 0.0
+## True while this hero carries the Relay (set by RelayController).
+var carrying_relay := false
+## Speed multiplier while carrying (copied from the config by RelayController).
+var carry_speed_mult := 1.0
 
 
 func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
@@ -33,4 +37,4 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 
 
 func move_speed() -> float:
-	return data.move_speed
+	return data.move_speed * (carry_speed_mult if carrying_relay else 1.0)

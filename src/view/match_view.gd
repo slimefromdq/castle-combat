@@ -11,6 +11,7 @@ var _unit_root: Node3D
 var _arena_view: ArenaView
 var _fx: CombatFx
 var _bars: UnitBars
+var _relay_view: RelayView
 ## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
 var _range_ring: MeshInstance3D
 var _windup_ring: MeshInstance3D
@@ -39,6 +40,10 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_unit_root.name = "Units"
 	add_child(_unit_root)
 	_build_helpers()
+	_relay_view = RelayView.new()
+	_relay_view.name = "Relay"
+	_relay_view.view = self
+	add_child(_relay_view)
 	_fx = CombatFx.new()
 	_fx.view = self
 	add_child(_fx)
@@ -100,6 +105,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 		var e: SimEntity = sim.entities[id]
 		var node: Node3D = _units[id]
 		node.position = to_world(e.prev_pos.lerp(e.pos, alpha))
+		_update_aggro_mark(e, node)
 		if e is StructureState:
 			node.get_node("Body").visible = e.alive
 			node.get_node("Rubble").visible = not e.alive
@@ -113,8 +119,22 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			var target_yaw := atan2(-facing.x, facing.y)
 			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
 	_update_helpers()
+	_relay_view.render(alpha)
 	var me := sim.heroes[local_seat]
 	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
+
+
+## A "!" over minions and towers that a hero's attack has called: red when they are
+## coming for you, your team color when they are going for the enemy hero.
+func _update_aggro_mark(e: SimEntity, node: Node3D) -> void:
+	var mark: Label3D = node.get_node_or_null("Aggro")
+	if mark == null:
+		return
+	mark.visible = e.alive and e.is_called(sim.time)
+	if mark.visible:
+		var on_me := e.called_target == sim.heroes[local_seat].id
+		mark.modulate = Color("ff3b30") if on_me else Palette.ALLY.lightened(0.3)
+		mark.position.y = float(node.get_meta("bar_height", 1.5)) + 0.5 + 0.1 * sin(Time.get_ticks_msec() / 90.0)
 
 
 ## Units turn toward whatever they are winding up on; heroes otherwise face where they walk.

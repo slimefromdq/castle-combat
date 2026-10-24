@@ -60,6 +60,9 @@ jobs:
         run: |
           godot --headless --path . --quit-after 600 -- --autoplay 2>&1 | tee smoke.log
           if grep -E "SCRIPT ERROR|Parse Error" smoke.log; then exit 1; fi
+          # Bot-driven run through the first Relay (spawn, pickup, carry, delivery views).
+          godot --headless --path . --quit-after 2400 -- --autoplay --autopilot --skip=55 2>&1 | tee smoke2.log
+          if grep -E "SCRIPT ERROR|Parse Error" smoke2.log; then exit 1; fi
 
       - name: Export Windows and web builds
         run: |

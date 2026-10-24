@@ -6,6 +6,8 @@ extends CommandSource
 var joystick: ThumbStick
 ## Set by a click/tap on the battlefield: entity id to focus, -1 to clear, 0 = no change.
 var pending_target := 0
+## Set by the F key or the Drop button; consumed by the next command.
+var pending_drop := false
 
 
 func build_command(_sim: MatchSim) -> PlayerCommand:
@@ -18,7 +20,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_target = 0
 	cmd.ability = Input.is_action_pressed("ability")
 	cmd.ultimate = Input.is_action_pressed("ultimate")
-	cmd.drop_relay = Input.is_action_pressed("drop_relay")
+	cmd.drop_relay = pending_drop
+	pending_drop = false
 	return cmd
 
 

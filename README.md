@@ -5,7 +5,9 @@ fired basic attack lands, and matches are won through waves, towers and the Rela
 objective as much as through the duel. Working title; the design doc calls it
 UNDERTOW: RELAY ([docs/GDD_v0.1.md](docs/GDD_v0.1.md)).
 
-**Status: Milestone 1** — a full match against a bot: waves, towers, stop-to-attack combat, win or lose. The Relay arrives in M2, gold and items in M3.
+**Status: Milestone 2** — a full match against a bot with waves, towers, stop-to-attack
+combat, hero-hit aggro and the Relay (pick it up, carry it across, deliver it for a siege
+minion). Gold and items arrive in M3.
 
 ## Play it
 
@@ -25,13 +27,19 @@ UNDERTOW: RELAY ([docs/GDD_v0.1.md](docs/GDD_v0.1.md)).
 | Focus a target (for last hits) | Left-click an enemy unit; click the ground to clear | Tap an enemy unit |
 | Ability / Ultimate | Q / E (later milestone) | Right-thumb buttons |
 | Buy item card | 1–6 | Tap a card (M3) |
-| Drop the Relay | F | Button while carrying (M2) |
+| Pick up / deliver the Relay | Stand in the gold ring / the outlined pocket | Same |
+| Drop the Relay | F | Drop button while carrying |
 | Swap seat (debug) | F2 | Seat button |
 | Touch mode (mouse drives the joystick) | F3 | Touch button |
 | Debug readout | F1 | Debug button |
 | Back to hero select | Esc | Menu button |
 
 There is no attack button on purpose: standing still is how you attack.
+
+**Watch your aggro.** Hitting the enemy hero calls their nearby minions onto you, and if
+you stand inside their tower's range the tower switches to you too and hits harder. A "!"
+over a minion or tower means it has been called (red = coming for you). Tap a minion to
+farm next to their hero without starting a fight.
 
 ## Developing
 
