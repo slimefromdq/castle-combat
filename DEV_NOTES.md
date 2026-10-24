@@ -51,8 +51,9 @@ that fights.
 
 ## Assumptions (change by editing data)
 
-- Map: 10 m wide lane, 60 m long; pockets 5 × 12 m at the centre; pillars split each
-  pocket mouth into two 4.5 m entrances. Structures at y = -12, -19, -26 (blue).
+- Map: 10 m wide lane, 84 m long; pockets 5 × 12 m at the centre; pillars split each
+  pocket mouth into two 4.5 m entrances. Structures at y = -16, -27, -37 (blue): 11 m from
+  Outer to Inner, 10 m from Inner to Core, 32 m between the two Outer Towers.
 - Hero speeds 4.2–5.4 m/s, radius 0.5 m. Combat numbers in `data/heroes/*.tres` are seeds for M1.
 - Walls block movement and sight; units block neither sight nor each other (yet).
 - The local human is always shown as blue at the bottom; F2 tests the other seat.
