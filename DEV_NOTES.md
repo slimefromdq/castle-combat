@@ -45,9 +45,24 @@ structures wear a translucent dome.
 - [x] Touch joystick, testable on desktop with the mouse (F3)
 - [x] 18 rule tests, headless smoke run, Windows + web exports in CI
 
-**Next: M1 — combat loop.** Stop-to-attack windup, guaranteed hits, target priority and
-tap/click override, minion waves, tower AI, KO/respawn, structure damage, victory, a bot
-that fights.
+**M1 — combat loop**
+- [x] One attack contract for heroes, minions and structures (`CombatSystem`): stand still,
+      wind up, fire; moving/death/target loss cancels; a fired attack lands instantly on its
+      locked target (projectiles are cosmetic)
+- [x] Hero targeting: tapped target > enemy hero > last-hittable minion > nearest minion >
+      exposed structure, all with range + line of sight (`Targeting`). Tap/click override
+      lasts until the target dies or is out of reach for 2 s
+- [x] Waves every 12 s from 0:03 (2 melee + 1 ranged), mirrored; minions fight minions,
+      then heroes, then structures; towers and Core prefer minions, then heroes
+- [x] Structures take damage only once exposed; Core death ends the match; KO + 7 s respawn
+- [x] Utility bot: heal at base when low, never tank a tower, defend, trade, siege with
+      minions, otherwise hold behind its lead minion, tap last hits
+- [x] Visuals: HP bars, range ring while still, closing windup ring, windup lines,
+      tracers + white hit burst, target bracket (yellow = tapped), tower rubble, minion shapes
+- [x] Result screen with Play again; respawn countdown
+- [x] 39 tests, incl. Codex acceptance 1, 2 and 7 (bot beats an idle side; bot vs bot soak)
+
+**Next: M2 — the Relay.**
 
 ## Assumptions (change by editing data)
 
@@ -58,6 +73,14 @@ that fights.
 - Walls block movement and sight; units block neither sight nor each other (yet).
 - The local human is always shown as blue at the bottom; F2 tests the other seat.
 - No Godot physics or navigation server: circles and rectangles on a plane.
+- Heroes walk through minions; minions push apart from each other only.
+- **Base healing (not in the GDD):** heroes within 7 m of their own Core heal 12% max HP/s.
+  Without it damage is permanent until death, since the GDD has no regen outside an item.
+- The Core shoots like a tower. Towers do not yet switch to a hero who attacks an enemy
+  hero under them (a common MOBA rule worth trying in M4).
+- Pacing: bot vs an idle opponent takes ~14 min to win, mostly the Core. Minions deal 1.5x
+  to structures and towers deal 70. Real tuning waits for the M4 metrics runner.
+- Hero abilities (Q/E) are not in M1; the buttons stay disabled.
 
 ## Known gaps
 

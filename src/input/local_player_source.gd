@@ -4,6 +4,8 @@ extends CommandSource
 ## Input arrives in screen space (up = toward the enemy) and is turned into sim space here.
 
 var joystick: ThumbStick
+## Set by a click/tap on the battlefield: entity id to focus, -1 to clear, 0 = no change.
+var pending_target := 0
 
 
 func build_command(_sim: MatchSim) -> PlayerCommand:
@@ -12,6 +14,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	if joystick != null and joystick.output != Vector2.ZERO:
 		screen = joystick.output
 	cmd.move = screen_to_sim(screen, team)
+	cmd.target_id = pending_target
+	pending_target = 0
 	cmd.ability = Input.is_action_pressed("ability")
 	cmd.ultimate = Input.is_action_pressed("ultimate")
 	cmd.drop_relay = Input.is_action_pressed("drop_relay")

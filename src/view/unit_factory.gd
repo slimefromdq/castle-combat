@@ -90,38 +90,78 @@ static func make_hero(hero: HeroState, is_ally: bool) -> Node3D:
 			# Vanguard: chunky block with a shield slab in front.
 			part(body, box(Vector3(0.95, 0.9, 0.75)), c, Vector3(0, 0.45, 0))
 			part(body, box(Vector3(1.2, 0.85, 0.14)), Palette.ACCENT, Vector3(0, 0.47, -0.5))
-	label(root, hero.data.display_name, 1.9, 34)
+	root.set_meta("bar_height", 2.0)
 	return root
 
 
-## Root holds the pillar or gem plus a "Dome" child shown while the structure is locked.
+## Root holds "Body" (pillar or gem plus the lock "Dome") and "Rubble", shown once destroyed.
 static func make_structure(s: StructureState, is_ally: bool) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Structure%d" % s.id
 	base_decal(root, s.radius, is_ally)
+	var body := Node3D.new()
+	body.name = "Body"
+	root.add_child(body)
 	var c := Palette.team_color(is_ally)
 	var top := 0.0
 	if s.tier == 2:
 		# Core: faceted gem on a hex plinth.
-		part(root, cylinder(s.radius, s.radius + 0.15, 0.5, 6), Palette.STONE, Vector3(0, 0.25, 0))
+		part(body, cylinder(s.radius, s.radius + 0.15, 0.5, 6), Palette.STONE, Vector3(0, 0.25, 0))
 		var gem := SphereMesh.new()
 		gem.radius = s.radius * 0.8
 		gem.height = s.radius * 2.4
 		gem.radial_segments = 6
 		gem.rings = 2
-		part(root, gem, c, Vector3(0, 0.5 + s.radius * 1.2, 0))
+		part(body, gem, c, Vector3(0, 0.5 + s.radius * 1.2, 0))
 		top = 0.5 + s.radius * 2.4
 	else:
 		# Towers: hex pillar with a team-colored crown; the inner tower is taller.
 		var h := s.data.height
-		part(root, cylinder(s.radius * 0.8, s.radius * 0.95, h, 6), Palette.STONE, Vector3(0, h / 2.0, 0))
-		part(root, cylinder(s.radius, s.radius * 0.85, 0.35, 6), c, Vector3(0, h + 0.17, 0))
+		part(body, cylinder(s.radius * 0.8, s.radius * 0.95, h, 6), Palette.STONE, Vector3(0, h / 2.0, 0))
+		part(body, cylinder(s.radius, s.radius * 0.85, 0.35, 6), c, Vector3(0, h + 0.17, 0))
 		top = h + 0.35
 	var dome := SphereMesh.new()
 	dome.radius = s.radius + 0.7
 	dome.height = (s.radius + 0.7) * 2.0
-	var dome_node := part(root, dome, Palette.LOCK_DOME, Vector3(0, 0.2, 0), Vector3.ZERO, true)
+	var dome_node := part(body, dome, Palette.LOCK_DOME, Vector3(0, 0.2, 0), Vector3.ZERO, true)
 	dome_node.name = "Dome"
-	var tag := label(root, s.data.display_name, top + 0.9, 30)
-	tag.name = "Tag"
+	root.set_meta("bar_height", top + 0.7)
+	var rubble := Node3D.new()
+	rubble.name = "Rubble"
+	rubble.visible = false
+	root.add_child(rubble)
+	for i in 6:
+		var a := TAU * i / 6.0
+		var size := 0.35 + 0.1 * (i % 3)
+		part(rubble, box(Vector3(size, size * 0.7, size)), Palette.STONE.darkened(0.25), Vector3(cos(a) * s.radius * 0.6, size * 0.3, sin(a) * s.radius * 0.6), Vector3(0, i * 37, 0))
+	return root
+
+
+## Minions: small and low so they never read as heroes. Melee = puck, ranged = diamond.
+static func make_minion(m: MinionState, is_ally: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Minion%d" % m.id
+	var c := Palette.team_color(is_ally)
+	if is_ally:
+		part(root, cylinder(m.radius + 0.12, m.radius + 0.12, 0.03, 20), Color(c, 0.5), Vector3(0, 0.02, 0), Vector3.ZERO, true)
+	else:
+		part(root, cylinder(m.radius + 0.22, m.radius + 0.22, 0.03, 4), Color(c.darkened(0.45), 0.85), Vector3(0, 0.015, 0), Vector3.ZERO, true)
+	var body := Node3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	match m.data.shape:
+		"ranged":
+			var d := SphereMesh.new()
+			d.radius = m.radius
+			d.height = m.radius * 2.6
+			d.radial_segments = 4
+			d.rings = 2
+			part(body, d, c, Vector3(0, m.radius * 1.4, 0))
+		"siege":
+			part(body, cylinder(m.radius, m.radius, m.radius * 1.4, 16), c, Vector3(0, m.radius * 0.7, 0), Vector3(0, 0, 90))
+			part(body, cylinder(m.radius * 0.5, m.radius * 0.5, m.radius * 1.5, 12), Palette.RELAY, Vector3(0, m.radius * 0.7, 0), Vector3(0, 0, 90), true)
+		_:
+			part(body, cylinder(m.radius, m.radius * 1.05, m.radius * 0.9, 16), c, Vector3(0, m.radius * 0.45, 0))
+			part(body, cylinder(m.radius * 0.55, m.radius * 0.55, 0.08, 16), Palette.ACCENT, Vector3(0, m.radius * 0.94, 0))
+	root.set_meta("bar_height", m.radius * 2.6 + 0.3)
 	return root

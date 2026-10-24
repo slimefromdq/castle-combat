@@ -5,7 +5,7 @@ extends RefCounted
 
 ## Desired movement in sim space, length 0..1.
 var move := Vector2.ZERO
-## Tap-to-target override: entity id, or 0 for none. (M1)
+## Tap-to-target override: entity id to focus, -1 to clear it, 0 for no change.
 var target_id := 0
 var ability := false
 var ultimate := false

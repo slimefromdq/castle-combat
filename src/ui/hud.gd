@@ -8,6 +8,7 @@ signal seat_toggle_pressed
 signal touch_toggle_pressed
 signal debug_toggle_pressed
 signal menu_pressed
+signal restart_pressed
 
 const BOTTOM_H := 214.0
 const MARGIN := 12.0
@@ -29,6 +30,9 @@ var _relay: Label
 var _debug: Label
 var _touch_button: Button
 var _seat_button: Button
+var _respawn: Label
+var _result: PanelContainer
+var _result_title: Label
 
 
 func _ready() -> void:
@@ -42,6 +46,7 @@ func _ready() -> void:
 	_build_tools(inset)
 	_build_bottom()
 	_build_thumbs()
+	_build_status()
 
 
 func set_touch_mode(on: bool, mouse_emulation: bool) -> void:
@@ -66,6 +71,13 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_fill_structs(sim, seat, _you_structs)
 	_fill_structs(sim, 1 - seat, _them_structs)
 	_gold.text = "Gold 0"
+	_respawn.visible = not me.alive and not sim.over
+	if _respawn.visible:
+		_respawn.text = "Respawning in %d" % ceili(me.respawn_at - sim.time)
+	if sim.over and not _result.visible:
+		_result_title.text = "Victory!" if sim.winner == seat else "Defeat"
+		_result_title.add_theme_color_override("font_color", Palette.ALLY.lightened(0.3) if sim.winner == seat else Palette.ENEMY.lightened(0.2))
+		_result.visible = true
 	_seat_button.text = "Seat: %s" % ("blue" if seat == MatchSim.BLUE else "red")
 	var until := sim.config.first_relay_time - sim.time
 	_relay.text = "Relay in %d:%02d" % [int(until) / 60, int(until) % 60] if until > 0.0 else "Relay: coming in M2"
@@ -143,7 +155,7 @@ func _build_tools(inset: float) -> void:
 	_relay.offset_top = 186 + inset
 	_root.add_child(_relay)
 	_debug = UiKit.label("", 18, Color(1, 1, 1, 0.75))
-	_debug.position = Vector2(MARGIN + 4, 186 + inset)
+	_debug.position = Vector2(MARGIN + 4, 226 + inset)
 	_root.add_child(_debug)
 
 
@@ -222,6 +234,37 @@ func _build_thumbs() -> void:
 	ult.offset_bottom = -BOTTOM_H - 92
 	ult.disabled = true
 	_root.add_child(ult)
+
+
+func _build_status() -> void:
+	_respawn = UiKit.label("", 40, Color(1, 1, 1, 0.95))
+	_respawn.set_anchors_preset(Control.PRESET_CENTER)
+	_respawn.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_respawn.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_respawn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_respawn.add_theme_constant_override("outline_size", 10)
+	_respawn.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_respawn.visible = false
+	_root.add_child(_respawn)
+	_result = PanelContainer.new()
+	_result.set_anchors_preset(Control.PRESET_CENTER)
+	_result.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_result.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_result.custom_minimum_size = Vector2(460, 0)
+	_result.visible = false
+	_root.add_child(_result)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 16)
+	_result.add_child(v)
+	_result_title = UiKit.label("", 64)
+	_result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(_result_title)
+	var again := UiKit.button("Play again", Vector2(0, 76))
+	again.pressed.connect(func() -> void: restart_pressed.emit())
+	v.add_child(again)
+	var menu := UiKit.button("Hero select", Vector2(0, 64))
+	menu.pressed.connect(func() -> void: menu_pressed.emit())
+	v.add_child(menu)
 
 
 ## Keeps the top band clear of notches on phones. Desktop windows have no inset.

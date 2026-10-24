@@ -9,6 +9,14 @@ var camera_rig: CameraRig
 var _units: Dictionary = {}
 var _unit_root: Node3D
 var _arena_view: ArenaView
+var _fx: CombatFx
+var _bars: UnitBars
+## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
+var _range_ring: MeshInstance3D
+var _windup_ring: MeshInstance3D
+var _bracket: MeshInstance3D
+var _lines: MeshInstance3D
+var _line_mesh := ImmediateMesh.new()
 
 
 static func to_world(p: Vector2, height := 0.0) -> Vector3:
@@ -30,8 +38,50 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_unit_root = Node3D.new()
 	_unit_root.name = "Units"
 	add_child(_unit_root)
+	_build_helpers()
+	_fx = CombatFx.new()
+	_fx.view = self
+	add_child(_fx)
+	sim.sim_event.connect(_fx.on_sim_event)
+	var bar_layer := CanvasLayer.new()
+	bar_layer.layer = 0
+	add_child(bar_layer)
+	_bars = UnitBars.new()
+	_bars.view = self
+	bar_layer.add_child(_bars)
 	_rebuild_units()
 	render(1.0, 0.0, true)
+
+
+func unit_nodes() -> Dictionary:
+	return _units
+
+
+## World position of a unit's node, or its last sim position if it has no node.
+func unit_position(id: int) -> Vector3:
+	var node: Node3D = _units.get(id)
+	if node != null:
+		return node.global_position
+	var e := sim.get_entity(id)
+	return to_world(e.pos) if e != null else Vector3.ZERO
+
+
+## Nearest enemy unit to a tap/click, within a thumb-sized radius. 0 if none.
+func pick_enemy(screen_pos: Vector2, radius_px := 56.0) -> int:
+	var cam := camera_rig.camera
+	var best := 0
+	var best_d := radius_px
+	for id: int in _units:
+		var e: SimEntity = sim.get_entity(id)
+		if e == null or not e.alive or e.team == local_seat or e.team < 0:
+			continue
+		var node: Node3D = _units[id]
+		var p := cam.unproject_position(node.global_position + Vector3(0, 0.6, 0))
+		var d := p.distance_to(screen_pos)
+		if d < best_d:
+			best_d = d
+			best = id
+	return best
 
 
 ## Switching seats swaps who counts as "ally", so colors and decals are rebuilt.
@@ -45,22 +95,119 @@ func set_local_seat(seat: int) -> void:
 
 ## alpha = how far we are between the previous and current sim tick (0..1).
 func render(alpha: float, delta: float, snap := false) -> void:
+	_sync_unit_nodes()
 	for id: int in _units:
 		var e: SimEntity = sim.entities[id]
 		var node: Node3D = _units[id]
-		node.visible = e.alive
 		node.position = to_world(e.prev_pos.lerp(e.pos, alpha))
-		if e is HeroState:
-			var body: Node3D = node.get_node("Body")
-			var target_yaw := atan2(-e.facing.x, e.facing.y)
-			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
-		elif e is StructureState:
+		if e is StructureState:
+			node.get_node("Body").visible = e.alive
+			node.get_node("Rubble").visible = not e.alive
 			var locked := not sim.is_exposed(e)
-			node.get_node("Dome").visible = locked
-			var tag: Label3D = node.get_node("Tag")
-			tag.text = "%s%s" % [e.data.display_name, "  (locked)" if locked else ""]
+			node.get_node("Body/Dome").visible = locked
+			continue
+		node.visible = e.alive
+		var facing := _facing_of(e)
+		if facing != Vector2.ZERO:
+			var body: Node3D = node.get_node("Body")
+			var target_yaw := atan2(-facing.x, facing.y)
+			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
+	_update_helpers()
 	var me := sim.heroes[local_seat]
 	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
+
+
+## Units turn toward whatever they are winding up on; heroes otherwise face where they walk.
+func _facing_of(e: SimEntity) -> Vector2:
+	if e.is_winding_up():
+		var t := sim.get_entity(e.attack_target)
+		if t != null and t.pos != e.pos:
+			return (t.pos - e.pos).normalized()
+	if e is HeroState:
+		return e.facing
+	if e is MinionState:
+		return e.lane_dir if e.pos == e.prev_pos else (e.pos - e.prev_pos).normalized()
+	return Vector2.ZERO
+
+
+## Creates nodes for new units (minion waves) and frees nodes for removed ones.
+func _sync_unit_nodes() -> void:
+	for id: int in _units.keys():
+		if not sim.entities.has(id):
+			_units[id].queue_free()
+			_units.erase(id)
+	if _units.size() == sim.entities.size():
+		return
+	for e: SimEntity in sim.entities.values():
+		if not _units.has(e.id):
+			_add_unit_node(e)
+
+
+func _build_helpers() -> void:
+	var ring := TorusMesh.new()
+	ring.inner_radius = 0.96
+	ring.outer_radius = 1.0
+	ring.rings = 64
+	ring.ring_segments = 4
+	_range_ring = UnitFactory.part(self, ring, Color(1, 1, 1, 0.35), Vector3.ZERO, Vector3.ZERO, true)
+	var wind := TorusMesh.new()
+	wind.inner_radius = 0.82
+	wind.outer_radius = 1.0
+	wind.rings = 32
+	wind.ring_segments = 4
+	_windup_ring = UnitFactory.part(self, wind, Color(1, 1, 1, 0.8), Vector3.ZERO, Vector3.ZERO, true)
+	var bracket := TorusMesh.new()
+	bracket.inner_radius = 0.85
+	bracket.outer_radius = 1.0
+	bracket.rings = 4
+	bracket.ring_segments = 4
+	_bracket = UnitFactory.part(self, bracket, Color(1, 1, 1, 0.9), Vector3.ZERO, Vector3.ZERO, true)
+	_lines = MeshInstance3D.new()
+	_lines.mesh = _line_mesh
+	_lines.material_override = UnitFactory.material(Color(1, 1, 1, 0.75), true)
+	_lines.material_override.vertex_color_use_as_albedo = true
+	add_child(_lines)
+
+
+func _update_helpers() -> void:
+	var me := sim.heroes[local_seat]
+	var my_pos := unit_position(me.id)
+	# Range ring: only while you stand still, i.e. while you are able to attack.
+	_range_ring.visible = me.alive and not me.moving
+	_range_ring.position = my_pos + Vector3(0, 0.04, 0)
+	_range_ring.scale = Vector3(me.attack_range + 0.4, 0.02, me.attack_range + 0.4)
+	# Windup: a ring that closes in on the hero as the attack charges.
+	_windup_ring.visible = me.alive and me.is_winding_up()
+	var k := me.windup_progress()
+	_windup_ring.position = my_pos + Vector3(0, 0.06, 0)
+	_windup_ring.scale = Vector3(lerpf(1.6, 0.7, k), 0.03, lerpf(1.6, 0.7, k))
+	# Target bracket: yellow for a tapped target, white for the automatic one.
+	var target_id := me.preferred_target if me.preferred_target != 0 else me.attack_target
+	var target := sim.get_entity(target_id)
+	_bracket.visible = me.alive and target != null and target.alive
+	if _bracket.visible:
+		_bracket.position = unit_position(target_id) + Vector3(0, 0.05, 0)
+		var r := target.radius + 0.45
+		_bracket.scale = Vector3(r, 0.04, r)
+		_bracket.rotation.y = Time.get_ticks_msec() / 900.0
+		var mat: StandardMaterial3D = _bracket.material_override
+		mat.albedo_color = Palette.RELAY if me.preferred_target != 0 else Color(1, 1, 1, 0.9)
+	# Windup lines for heroes and structures: who is about to hit whom.
+	_line_mesh.clear_surfaces()
+	var any := false
+	for e: SimEntity in sim.heroes + sim.structures:
+		if not e.alive or not e.is_winding_up() or not sim.entities.has(e.attack_target):
+			continue
+		if not any:
+			_line_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+			any = true
+		var c := Palette.team_color(e.team == local_seat).lightened(0.4)
+		_line_mesh.surface_set_color(c)
+		_line_mesh.surface_add_vertex(unit_position(e.id) + Vector3(0, 0.9 if e is HeroState else 2.0, 0))
+		_line_mesh.surface_set_color(c)
+		_line_mesh.surface_add_vertex(unit_position(e.attack_target) + Vector3(0, 0.6, 0))
+	if any:
+		_line_mesh.surface_end()
 
 
 func _rebuild_units() -> void:
@@ -68,16 +215,23 @@ func _rebuild_units() -> void:
 		child.queue_free()
 	_units.clear()
 	for e: SimEntity in sim.entities.values():
-		var is_ally := e.team == local_seat
-		var node: Node3D
-		if e is HeroState:
-			node = UnitFactory.make_hero(e, is_ally)
-		elif e is StructureState:
-			node = UnitFactory.make_structure(e, is_ally)
-		else:
-			continue
-		_unit_root.add_child(node)
-		_units[e.id] = node
+		_add_unit_node(e)
+
+
+func _add_unit_node(e: SimEntity) -> void:
+	var is_ally := e.team == local_seat
+	var node: Node3D
+	if e is HeroState:
+		node = UnitFactory.make_hero(e, is_ally)
+	elif e is StructureState:
+		node = UnitFactory.make_structure(e, is_ally)
+	elif e is MinionState:
+		node = UnitFactory.make_minion(e, is_ally)
+	else:
+		return
+	node.position = to_world(e.pos)
+	_unit_root.add_child(node)
+	_units[e.id] = node
 
 
 func _build_environment() -> void:

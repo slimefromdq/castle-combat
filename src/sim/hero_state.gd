@@ -5,9 +5,14 @@ extends SimEntity
 var data: HeroData
 var spawn_pos := Vector2.ZERO
 ## Unit vector the hero faces, in sim space.
-var facing := Vector2.UP
-## True on ticks where the hero moved. Basic attacks (M1) only wind up while false.
+var facing := MatchSim.BLUE_FORWARD
+## True on ticks where the hero moved. Basic attacks only wind up while false.
 var moving := false
+## Tap-to-target override (entity id, 0 = none) and how long it has been out of reach.
+var preferred_target := 0
+var preferred_lost_time := 0.0
+## Sim time when a knocked-out hero comes back.
+var respawn_at := 0.0
 
 
 func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
@@ -20,7 +25,11 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 	spawn_pos = at
 	pos = at
 	prev_pos = at
-	facing = Vector2.UP if hero_team == MatchSim.BLUE else Vector2.DOWN
+	facing = MatchSim.forward(hero_team)
+	attack_range = hero_data.attack_range
+	attack_damage = hero_data.attack_damage
+	attack_windup = hero_data.attack_windup
+	attack_interval = hero_data.attack_interval
 
 
 func move_speed() -> float:
