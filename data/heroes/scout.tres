@@ -1,6 +1,14 @@
-[gd_resource type="Resource" script_class="HeroData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HeroData" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/dash.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/flurry.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/blade_rush.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/light_feet.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/second_wind.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/finisher.tres" id="p2"]
 
 [resource]
 script = ExtResource("1_hero")
@@ -15,3 +23,5 @@ attack_range = 2.4
 attack_damage = 34.0
 attack_windup = 0.25
 attack_interval = 0.75
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2")])

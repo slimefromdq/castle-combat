@@ -26,6 +26,29 @@ var items: Array[ItemData] = []
 var last_hero_damage_time := -1000.0
 var _move_speed_mult := 1.0
 
+## Levels and abilities. cooldowns[i] is seconds until ability i is ready.
+var level := 1
+var xp := 0.0
+var cooldowns: Array[float] = [0.0, 0.0, 0.0]
+var stun_until := 0.0
+var slow_until := 0.0
+var slow_amount := 0.0
+var shield_hp := 0.0
+var shield_until := 0.0
+var flurry_until := 0.0
+var flurry_bonus := 0.0
+## Forced movement (dashes and knockbacks): velocity for forced_ticks more ticks, then
+## forced_action (a Callable, may be empty) resolves the ability's hit.
+var forced_vel := Vector2.ZERO
+var forced_ticks := 0
+var forced_action := Callable()
+## A channelled ability (Barrage): pulses left, time of the next one, where it lands.
+var channel: AbilityData
+var channel_point := Vector2.ZERO
+var channel_pulses_left := 0
+var channel_next := 0.0
+var channel_key := 0
+
 
 func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 	kind = Kind.HERO
@@ -45,7 +68,77 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 
 
 func move_speed() -> float:
-	return data.move_speed * _move_speed_mult * (carry_speed_mult if carrying_relay else 1.0)
+	var slowed := 1.0 - (slow_amount if _now < slow_until else 0.0)
+	return data.move_speed * _move_speed_mult * (carry_speed_mult if carrying_relay else 1.0) * slowed
+
+
+## Set by MatchSim each tick so speed and attack-rate queries can check timed effects.
+var _now := 0.0
+
+
+func current_interval(time: float) -> float:
+	return attack_interval / (1.0 + (flurry_bonus if time < flurry_until else 0.0))
+
+
+func is_stunned(time: float) -> bool:
+	return time < stun_until
+
+
+func is_forced() -> bool:
+	return forced_ticks > 0
+
+
+func is_channeling() -> bool:
+	return channel != null
+
+
+## Perks owned at the current level: levels 2, 4 and 6 each add the next one.
+func owned_perks() -> Array[PerkData]:
+	var out: Array[PerkData] = []
+	for i in data.perks.size():
+		if level >= 2 + i * 2:
+			out.append(data.perks[i])
+	return out
+
+
+func has_special(special: StringName) -> float:
+	for p in owned_perks():
+		if p.special == special:
+			return p.special_value
+	return 0.0
+
+
+## Ability i unlocks at level 1, 3, 5.
+func ability_unlocked(i: int) -> bool:
+	return i < data.abilities.size() and level >= 1 + i * 2
+
+
+func ability_cooldown(i: int) -> float:
+	var cd := data.abilities[i].cooldown
+	for p in owned_perks():
+		if p.ability_index == i:
+			cd -= p.cooldown_cut
+	return maxf(1.0, cd)
+
+
+func perk_total(property: StringName) -> float:
+	var sum := 0.0
+	for p in owned_perks():
+		sum += float(p.get(property))
+	return sum
+
+
+## Ends every timed effect (knockouts and respawns).
+func clear_effects() -> void:
+	stun_until = 0.0
+	slow_until = 0.0
+	shield_hp = 0.0
+	shield_until = 0.0
+	flurry_until = 0.0
+	forced_ticks = 0
+	forced_vel = Vector2.ZERO
+	forced_action = Callable()
+	channel = null
 
 
 func owns(item: ItemData) -> bool:
@@ -62,10 +155,10 @@ func item_total(property: StringName) -> float:
 ## Base stats from HeroData plus every owned item. Extra max HP is added to current HP.
 func recompute_stats() -> void:
 	var old_max := max_hp
-	max_hp = data.max_hp * (1.0 + item_total(&"max_hp_bonus"))
+	max_hp = data.max_hp * (1.0 + item_total(&"max_hp_bonus") + perk_total(&"max_hp_bonus"))
 	if alive:
 		hp = minf(max_hp, hp + max_hp - old_max)
-	attack_damage = data.attack_damage * (1.0 + item_total(&"damage_bonus"))
-	attack_interval = data.attack_interval / (1.0 + item_total(&"attack_speed_bonus"))
-	attack_range = data.attack_range * (1.0 + item_total(&"range_bonus"))
-	_move_speed_mult = 1.0 + item_total(&"move_speed_bonus")
+	attack_damage = data.attack_damage * (1.0 + item_total(&"damage_bonus") + perk_total(&"damage_bonus"))
+	attack_interval = data.attack_interval / (1.0 + item_total(&"attack_speed_bonus") + perk_total(&"attack_speed_bonus"))
+	attack_range = data.attack_range * (1.0 + item_total(&"range_bonus") + perk_total(&"range_bonus"))
+	_move_speed_mult = 1.0 + item_total(&"move_speed_bonus") + perk_total(&"move_speed_bonus")

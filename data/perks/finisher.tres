@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"finisher"
+display_name = "Finisher"
+summary = "+30% damage to heroes below 35% health"
+special = &"finisher"
+special_value = 0.3

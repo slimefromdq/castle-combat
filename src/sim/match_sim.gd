@@ -33,6 +33,7 @@ var over := false
 ## Winning team once the match is over, else -1.
 var winner := -1
 var _next_id := 1
+var _next_cast_key := 1
 
 
 ## decks[team] is that hero's six-card item deck (an empty deck means no shopping).
@@ -53,6 +54,7 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	over = false
 	winner = -1
 	_next_id = 1
+	_next_cast_key = 1
 	for team in [BLUE, RED]:
 		for tier in tiers.size():
 			var s := StructureState.new()
@@ -78,6 +80,7 @@ func step(commands: Array) -> void:
 	_respawn_heroes()
 	_heal_at_base()
 	Economy.tick(self)
+	Leveling.tick(self)
 	for team in [BLUE, RED]:
 		var cmd: PlayerCommand = commands[team] if team < commands.size() else null
 		if cmd == null:
@@ -88,7 +91,16 @@ func step(commands: Array) -> void:
 			relay.request_drop(self, hero)
 		if cmd.buy_slot >= 0:
 			Economy.try_buy(self, hero, cmd.buy_slot)
-		Movement.move_hero(self, hero, cmd.move, dt)
+		hero._now = time
+		if cmd.cast_slot >= 0:
+			Abilities.try_cast(self, hero, cmd.cast_slot, cmd.move)
+		if Abilities.move_forced(self, hero):
+			hero.moving = true  # Dashing or knocked back: no attacking meanwhile.
+		elif hero.is_stunned(time):
+			hero.moving = false
+		else:
+			Movement.move_hero(self, hero, cmd.move, dt)
+	Abilities.tick(self)
 	if minion_types.size() > 0 and time + 0.0001 >= next_wave_time:
 		_spawn_wave()
 	for m in minions:
@@ -96,7 +108,8 @@ func step(commands: Array) -> void:
 	MinionAI.separate(self)
 	for hero in heroes:
 		_update_preferred_target(hero)
-		CombatSystem.tick_attack(self, hero, hero.alive and not hero.moving, Targeting.for_hero.bind(self, hero))
+		var may_attack := hero.alive and not hero.moving and not hero.is_stunned(time) and not hero.is_channeling()
+		CombatSystem.tick_attack(self, hero, may_attack, Targeting.for_hero.bind(self, hero))
 	for s in structures:
 		var previous := s.attack_target
 		CombatSystem.tick_attack(self, s, s.alive, func() -> SimEntity: return Targeting.for_structure(self, s, previous))
@@ -149,8 +162,12 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity) -> void:
 		return
 	if target is StructureState and not is_exposed(target):
 		return
-	if target is HeroState and source is HeroState:
-		target.last_hero_damage_time = time
+	if target is HeroState:
+		amount = Abilities.modify_hero_damage(self, source, target, amount)
+		if amount <= 0.0:
+			return
+		if source is HeroState:
+			target.last_hero_damage_time = time
 	target.hp = maxf(0.0, target.hp - amount)
 	if target.hp <= 0.0:
 		_kill(target, source)
@@ -159,8 +176,9 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity) -> void:
 ## Hero-hit aggro. Called when a hero's attack lands on the enemy hero: the victim's
 ## minions near the attacker, and the victim's towers that can reach the attacker,
 ## switch to the attacker at once (any windup on something else is dropped).
-func on_hero_hit(attacker: HeroState, victim: HeroState) -> void:
-	relay.on_hero_hit(self, attacker, victim)
+## key groups hits from one ability cast (Barrage pulses) so the Relay counts them once.
+func on_hero_hit(attacker: HeroState, victim: HeroState, key := -1) -> void:
+	relay.on_hero_hit(self, attacker, victim, key)
 	var called: Array[int] = []
 	for m in minions:
 		if m.alive and m.team == victim.team and m.pos.distance_to(attacker.pos) <= config.minion_call_radius:
@@ -179,6 +197,11 @@ func _call_unit(u: SimEntity, attacker: HeroState, duration: float) -> void:
 		CombatSystem.cancel(self, u)
 	u.called_target = attacker.id
 	u.called_until = time + duration
+
+
+func next_cast_key() -> int:
+	_next_cast_key += 1
+	return _next_cast_key
 
 
 ## A Relay delivery: one siege minion joins this team's next wave.
@@ -207,7 +230,9 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	Economy.on_kill(self, target, source)
 	if target is HeroState:
 		target.respawn_at = time + config.respawn_time
+		target.clear_effects()
 		relay.on_hero_killed(self, target)
+		Leveling.on_knockout(self, target)
 	elif target is StructureState:
 		target.blocks_movement = false
 		if target.tier == 2:
@@ -225,6 +250,7 @@ func _respawn_heroes() -> void:
 			h.prev_pos = h.spawn_pos
 			h.cooldown_left = 0.0
 			h.preferred_target = 0
+			h.clear_effects()
 			emit_event(&"hero_respawned", {"id": h.id, "team": h.team})
 
 

@@ -15,8 +15,6 @@ extends Resource
 @export var damage_bonus := 0.0
 @export var attack_speed_bonus := 0.0
 @export var range_bonus := 0.0
-## Less distance from knockbacks and pulls. No ability displaces yet (abilities are later).
-@export var displacement_reduction := 0.0
 
 @export_group("Triggered effects")
 ## Allied minions within siege_aura_radius of the holder deal this much more to structures.

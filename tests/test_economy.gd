@@ -52,7 +52,7 @@ func test_deck_rules() -> void:
 	check(not Economy.is_valid_deck(bad, pool, 6), "items outside the pool are not")
 	check(Economy.is_valid_deck(MatchController.deck_from(MatchController.DEFAULT_DECK), pool, 6), "default deck is valid")
 	check(Economy.is_valid_deck(MatchController.deck_from(MatchController.BOT_DECK), pool, 6), "bot deck is valid")
-	check(MatchController.ITEMS.size() >= 8, "pool has at least eight items")
+	check(MatchController.ITEMS.size() >= 7, "pool has at least seven items")
 
 
 func test_cannot_buy_without_gold() -> void:
@@ -84,7 +84,7 @@ func test_speed_and_range_items() -> void:
 	var sim := _sim()
 	var blue := sim.heroes[0]
 	blue.gold = 2000.0
-	blue.deck = MatchController.deck_from([0, 6, 1, 2, 3, 4])
+	blue.deck = MatchController.deck_from([0, 5, 1, 2, 3, 4])
 	_buy(sim, 0)
 	_buy(sim, 1)
 	check_near(blue.move_speed(), blue.data.move_speed * 1.08, 0.001, "+8% move speed")

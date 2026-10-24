@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"shield_bash"
+display_name = "Shield Bash"
+summary = "Charge 3.5 m and knock the enemy hero back 3 m (70 dmg)"
+effect = &"bash"
+cooldown = 9.0
+is_movement = true
+reach = 5.0
+damage = 70.0
+minion_damage = 50.0
+radius = 1.6
+distance = 3.5
+travel_time = 0.2
+knockback = 3.0

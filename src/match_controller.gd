@@ -18,20 +18,19 @@ const MINIONS := {
 	&"ranged": preload("res://data/minions/ranged.tres"),
 	&"siege": preload("res://data/minions/siege.tres"),
 }
-## The eight-item pool from GDD 8. Players pick six of them before a match.
+## The item pool (GDD 8 listed eight; Anchor Charm was cut). Players pick six.
 const ITEMS: Array[ItemData] = [
 	preload("res://data/items/fleet_sandals.tres"),
 	preload("res://data/items/iron_shell.tres"),
 	preload("res://data/items/grip_gloves.tres"),
 	preload("res://data/items/quickstring.tres"),
-	preload("res://data/items/anchor_charm.tres"),
 	preload("res://data/items/siege_banner.tres"),
 	preload("res://data/items/watchful_lens.tres"),
 	preload("res://data/items/recovery_sigil.tres"),
 ]
 ## Indices into ITEMS: the deck you start with, and the one the bot always brings.
-const DEFAULT_DECK := [0, 1, 2, 3, 5, 7]
-const BOT_DECK := [0, 1, 2, 3, 6, 7]
+const DEFAULT_DECK := [0, 1, 2, 3, 4, 6]
+const BOT_DECK := [0, 1, 2, 3, 5, 6]
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
 	preload("res://data/structures/inner_tower.tres"),
@@ -73,6 +72,7 @@ func _ready() -> void:
 	hud.restart_pressed.connect(func() -> void: restart_requested.emit())
 	hud.drop_pressed.connect(func() -> void: player.pending_drop = true)
 	hud.buy_pressed.connect(func(slot: int) -> void: player.pending_buy = slot)
+	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
 	player = LocalPlayerSource.new()
 	player.team = local_seat
@@ -125,6 +125,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var id := view.pick_enemy(event.position)
 		player.pending_target = id if id > 0 else -1
 		return
+	for i in 3:
+		if event.is_action_pressed("cast_%d" % (i + 1)):
+			player.pending_cast = i
+			return
 	for i in 6:
 		if event.is_action_pressed("buy_%d" % (i + 1)):
 			player.pending_buy = i

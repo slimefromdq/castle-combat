@@ -32,6 +32,18 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 	if type == &"minion_denied" and data.team == view.local_seat:
 		_spawn_gold_text("Denied!", Color(0.85, 0.92, 1.0))
 		return
+	if type == &"ability_hit":
+		var src: SimEntity = view.sim.get_entity(data.hero)
+		var tgt: SimEntity = view.sim.get_entity(data.target)
+		if src != null and tgt != null:
+			if data.ability == &"power_shot":
+				var from := view.unit_position(src.id) + Vector3(0, 0.9, 0)
+				var dot := UnitFactory.part(self, _tracer_mesh, Color("ffe14d"), from, Vector3.ZERO, true)
+				dot.scale = Vector3.ONE * 2.0
+				_tracers.append({"node": dot, "from": from, "to": view.unit_position(tgt.id), "target": tgt.id, "t": 0.0, "big": true})
+			else:
+				_spawn_puff(view.unit_position(tgt.id) + Vector3(0, 0.6, 0), tgt is HeroState)
+		return
 	if type != &"attack_fired":
 		return
 	var attacker: SimEntity = view.sim.get_entity(data.attacker)

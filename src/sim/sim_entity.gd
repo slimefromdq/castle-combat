@@ -36,6 +36,11 @@ var called_target := 0
 var called_until := 0.0
 
 
+## Seconds between attacks right now (heroes can have temporary attack-speed buffs).
+func current_interval(_time: float) -> float:
+	return attack_interval
+
+
 func is_called(time: float) -> bool:
 	return called_target != 0 and time < called_until
 

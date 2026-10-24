@@ -1,6 +1,14 @@
-[gd_resource type="Resource" script_class="HeroData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="HeroData" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/power_shot.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/recoil.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/barrage.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/long_barrel.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/hair_trigger.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/siege_battery.tres" id="p2"]
 
 [resource]
 script = ExtResource("1_hero")
@@ -15,3 +23,5 @@ attack_range = 6.0
 attack_damage = 42.0
 attack_windup = 0.25
 attack_interval = 0.95
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2")])

@@ -33,6 +33,7 @@ var deliver_progress := 0.0
 var contested := false
 ## Times of enemy-hero hits on the current carrier, for the interception rule.
 var _hits: Array[float] = []
+var _hit_keys: Array[int] = []
 
 
 func setup(sim: MatchSim) -> void:
@@ -42,6 +43,7 @@ func setup(sim: MatchSim) -> void:
 	warned = false
 	carrier_id = 0
 	_hits.clear()
+	_hit_keys.clear()
 	_reset_progress()
 	_choose_pockets(sim)
 	pos = origin
@@ -109,13 +111,18 @@ func on_hero_killed(sim: MatchSim, hero: HeroState) -> void:
 
 ## Interception: enough enemy-hero hits on the carrier inside the rolling window.
 ## Minion and tower hits never count (GDD 7.5).
-func on_hero_hit(sim: MatchSim, attacker: HeroState, victim: HeroState) -> void:
+## key >= 0 groups the pulses of one ability cast: they count as a single hit.
+func on_hero_hit(sim: MatchSim, attacker: HeroState, victim: HeroState, key := -1) -> void:
 	if state != State.CARRIED or victim.id != carrier_id or attacker.team == victim.team:
 		return
 	var window := sim.config.relay_intercept_window
-	_hits.append(sim.time)
 	while not _hits.is_empty() and sim.time - _hits[0] > window + 0.0001:
 		_hits.remove_at(0)
+		_hit_keys.remove_at(0)
+	if key >= 0 and _hit_keys.has(key):
+		return
+	_hits.append(sim.time)
+	_hit_keys.append(key)
 	if _hits.size() >= sim.config.relay_intercept_hits:
 		_drop(sim, &"intercepted")
 
@@ -152,6 +159,7 @@ func _tick_pickup(sim: MatchSim) -> bool:
 	h.carry_speed_mult = sim.config.relay_carrier_speed_mult
 	pos = h.pos
 	_hits.clear()
+	_hit_keys.clear()
 	_reset_progress()
 	sim.emit_event(&"relay_picked_up", {"hero": h.id, "team": h.team})
 	return true
@@ -196,6 +204,7 @@ func _release_carrier(sim: MatchSim) -> void:
 		h.carrying_relay = false
 	carrier_id = 0
 	_hits.clear()
+	_hit_keys.clear()
 
 
 ## Ends this activation (delivered or expired) and schedules the next one on the other side.

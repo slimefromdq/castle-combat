@@ -16,3 +16,4 @@ attack_windup = 0.45
 attack_interval = 1.6
 structure_damage_mult = 3.0
 gold_bounty = 60.0
+xp_bounty = 40.0
