@@ -8,6 +8,7 @@ var local_seat := MatchSim.BLUE
 var camera_rig: CameraRig
 var _units: Dictionary = {}
 var _unit_root: Node3D
+var _arena_view: ArenaView
 
 
 static func to_world(p: Vector2, height := 0.0) -> Vector3:
@@ -18,7 +19,10 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	sim = match_sim
 	local_seat = seat
 	_build_environment()
-	_build_arena()
+	_arena_view = ArenaView.new()
+	_arena_view.name = "Arena"
+	add_child(_arena_view)
+	_arena_view.build(sim.arena, seat)
 	camera_rig = CameraRig.new()
 	camera_rig.half_length = sim.arena.half_length
 	camera_rig.seat = seat
@@ -34,6 +38,7 @@ func build(match_sim: MatchSim, seat: int) -> void:
 func set_local_seat(seat: int) -> void:
 	local_seat = seat
 	camera_rig.set_seat(seat)
+	_arena_view.build(sim.arena, seat)
 	_rebuild_units()
 	render(1.0, 0.0, true)
 
@@ -80,43 +85,14 @@ func _build_environment() -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Palette.BACKGROUND
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.75, 0.8, 0.9)
-	env.ambient_light_energy = 0.55
+	env.ambient_light_color = Color(0.85, 0.88, 1.0)
+	env.ambient_light_energy = 0.6
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55, -35, 0)
-	sun.light_energy = 1.0
+	sun.light_energy = 1.05
+	sun.light_color = Color(1.0, 0.96, 0.88)
 	sun.shadow_enabled = false
 	add_child(sun)
-
-
-func _build_arena() -> void:
-	var arena := sim.arena
-	var root := Node3D.new()
-	root.name = "Arena"
-	add_child(root)
-	UnitFactory.part(root, UnitFactory.box(Vector3(60, 0.1, arena.half_length * 2.0 + 40)), Palette.GROUND, Vector3(0, -0.12, 0))
-	for i in arena.floors.size():
-		var r := arena.floors[i]
-		var color := Palette.LANE if i == 0 else Palette.POCKET
-		UnitFactory.part(root, UnitFactory.box(Vector3(r.size.x, 0.1, r.size.y)), color, to_world(r.get_center(), -0.05))
-	# Cross-lane marks every 6 m make movement easy to read; the centre line is wider.
-	var y := -arena.half_length + 6.0
-	while y < arena.half_length - 1.0:
-		var depth := 0.35 if is_zero_approx(y) else 0.12
-		UnitFactory.part(root, UnitFactory.box(Vector3(arena.lane_half_width * 2.0, 0.02, depth)), Palette.LANE_MARK, to_world(Vector2(0, y), 0.005), Vector3.ZERO, true)
-		y += 6.0
-	# Tiled pocket floors so the Relay pockets read as special places.
-	for pocket in arena.pockets:
-		var tx := pocket.position.x + 0.75
-		while tx < pocket.end.x - 0.4:
-			var ty := pocket.position.y + 0.75
-			while ty < pocket.end.y - 0.4:
-				UnitFactory.part(root, UnitFactory.box(Vector3(0.9, 0.02, 0.9)), Palette.POCKET_TILE, to_world(Vector2(tx, ty), 0.005), Vector3.ZERO, true)
-				ty += 1.5
-			tx += 1.5
-	# Walls stay below hero height so the tilted camera never hides a unit.
-	for w in arena.walls:
-		UnitFactory.part(root, UnitFactory.box(Vector3(w.size.x, 0.7, w.size.y)), Palette.WALL, to_world(w.get_center(), 0.35))
