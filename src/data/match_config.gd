@@ -71,6 +71,11 @@ extends Resource
 ## A dying enemy minion pays its bounty to your hero if you are this close to it (metres),
 ## whoever killed it. Landing the killing blow from farther away still pays.
 @export var minion_gold_radius := 6.0
+## Denies: a hero may tap and attack its own minion once it is at or below this fraction
+## of max HP. If the hero lands the killing blow, the enemy collects only deny_gold_fraction
+## of the bounty (by the usual nearby rule).
+@export var deny_hp_fraction := 0.5
+@export var deny_gold_fraction := 0.5
 ## Items in a pre-match deck, and how many of them a hero may own at once.
 @export var deck_size := 6
 @export var max_items := 3

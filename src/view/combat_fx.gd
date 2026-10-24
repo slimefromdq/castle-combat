@@ -27,7 +27,10 @@ func _ready() -> void:
 
 func on_sim_event(type: StringName, data: Dictionary) -> void:
 	if type == &"gold_awarded" and data.team == view.local_seat:
-		_spawn_gold_text(data.amount)
+		_spawn_gold_text("+%d" % int(data.amount), Color("f5d76e"))
+		return
+	if type == &"minion_denied" and data.team == view.local_seat:
+		_spawn_gold_text("Denied!", Color(0.85, 0.92, 1.0))
 		return
 	if type != &"attack_fired":
 		return
@@ -79,9 +82,9 @@ func _process(delta: float) -> void:
 
 
 ## "+20" in gold, rising from your hero.
-func _spawn_gold_text(amount: float) -> void:
-	var l := UnitFactory.label(self, "+%d" % int(amount), 0.0, 44)
-	l.modulate = Color("f5d76e")
+func _spawn_gold_text(text: String, color: Color) -> void:
+	var l := UnitFactory.label(self, text, 0.0, 44)
+	l.modulate = color
 	var start := view.unit_position(view.sim.heroes[view.local_seat].id) + Vector3(0.4, 2.3, 0)
 	l.position = start
 	_texts.append({"node": l, "t": 0.0, "from": start})

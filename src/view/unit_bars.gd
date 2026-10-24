@@ -38,6 +38,9 @@ func _draw() -> void:
 			color = Color(0.6, 0.62, 0.66)
 		var r := Rect2(p - Vector2(size.x / 2.0, size.y), size)
 		draw_rect(r.grow(1.5), Color(0, 0, 0, 0.7))
+		# Your own minions you could deny get a white frame.
+		if e is MinionState and e.team == view.local_seat and CombatSystem.can_deny(view.sim, view.sim.heroes[view.local_seat], e):
+			draw_rect(r.grow(3.0), Color(1, 1, 1, 0.9), false, 2.0)
 		draw_rect(Rect2(r.position, Vector2(size.x * e.hp / e.max_hp, size.y)), color)
 		if e is HeroState and e.is_winding_up():
 			draw_rect(Rect2(r.position + Vector2(0, size.y + 3), Vector2(size.x * e.windup_progress(), 4)), Color(1, 1, 1, 0.9))

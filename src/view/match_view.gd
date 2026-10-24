@@ -73,18 +73,23 @@ func unit_position(id: int) -> Vector3:
 	return to_world(e.pos) if e != null else Vector3.ZERO
 
 
-## Nearest enemy unit to a tap/click, within a thumb-sized radius. 0 if none.
+## Nearest unit you could focus at a tap/click, within a thumb-sized radius: enemies,
+## or your own minions that are low enough to deny. Enemies win ties. 0 if none.
 func pick_enemy(screen_pos: Vector2, radius_px := 56.0) -> int:
 	var cam := camera_rig.camera
 	var best := 0
 	var best_d := radius_px
+	var me := sim.heroes[local_seat]
 	for id: int in _units:
 		var e: SimEntity = sim.get_entity(id)
-		if e == null or not e.alive or e.team == local_seat or e.team < 0:
+		if e == null or not e.alive or e.team < 0:
+			continue
+		var deny := e.team == local_seat
+		if deny and not CombatSystem.can_deny(sim, me, e):
 			continue
 		var node: Node3D = _units[id]
 		var p := cam.unproject_position(node.global_position + Vector3(0, 0.6, 0))
-		var d := p.distance_to(screen_pos)
+		var d := p.distance_to(screen_pos) + (12.0 if deny else 0.0)
 		if d < best_d:
 			best_d = d
 			best = id

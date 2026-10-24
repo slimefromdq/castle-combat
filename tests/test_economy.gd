@@ -205,3 +205,33 @@ func test_bots_buy_items_at_a_reasonable_pace() -> void:
 	for h in sim.heroes:
 		check(h.items.size() >= 2, "%s bought 2+ items in 6 min (got %d, %d gold left)" % [h.data.display_name, h.items.size(), int(h.gold)])
 		check(h.gold >= 0.0, "gold never negative")
+
+
+func test_deny_your_own_low_minion() -> void:
+	var sim := _sim()
+	var blue := sim.heroes[0]
+	var red := sim.heroes[1]
+	place(blue, Vector2(0, -1.0))
+	place(red, Vector2(4.0, 1.0))
+	red.attack_damage = 0.0
+	var own := sim.spawn_minion(melee(), MatchSim.BLUE, Vector2(0.8, -1.0))
+	own.attack_damage = 0.0
+	run_ticks(sim, 1, Vector2.ZERO, Vector2.ZERO, own.id)
+	check(blue.preferred_target == 0, "a healthy own minion can't be tapped")
+	own.hp = 40.0
+	var gold_before := red.gold
+	# The minion keeps walking up the lane, so blue has a moment to land it.
+	run_ticks(sim, 12, Vector2.ZERO, Vector2.ZERO, own.id)
+	check(not own.alive, "blue denied its own low minion")
+	check_near(red.gold - gold_before - MatchController.CONFIG.passive_gold_per_second * 12 * sim.dt, melee().gold_bounty * 0.5, 0.05, "red collects only half")
+
+
+func test_auto_target_never_picks_your_own_minion() -> void:
+	var sim := _sim()
+	var blue := sim.heroes[0]
+	place(blue, Vector2(0, -1.0))
+	var own := sim.spawn_minion(melee(), MatchSim.BLUE, Vector2(0.8, -1.0))
+	own.hp = 5.0
+	own.attack_damage = 0.0
+	run_ticks(sim, 30)
+	check(own.alive, "no deny without a tap")

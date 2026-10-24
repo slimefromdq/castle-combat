@@ -240,7 +240,7 @@ func _heal_at_base() -> void:
 func _apply_target_command(hero: HeroState, cmd: PlayerCommand) -> void:
 	if cmd.target_id > 0:
 		var t := get_entity(cmd.target_id)
-		if CombatSystem.is_valid_target(self, hero, t):
+		if CombatSystem.is_valid_target(self, hero, t) or CombatSystem.can_deny(self, hero, t):
 			hero.preferred_target = t.id
 			hero.preferred_lost_time = 0.0
 			# Switching targets mid-windup restarts the windup on the new target.

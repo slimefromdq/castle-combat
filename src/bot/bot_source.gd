@@ -185,11 +185,21 @@ func _waypoints(sim: MatchSim) -> Array[Vector2]:
 	return _points
 
 
+## A minion our next hit would kill: an enemy one (last hit) or, failing that, one of
+## our own that is low enough to deny.
 func _last_hit_target(sim: MatchSim, me: HeroState) -> int:
+	var deny := 0
 	for m in sim.minions:
-		if CombatSystem.is_valid_target(sim, me, m) and m.hp <= me.attack_damage and CombatSystem.in_range(sim, me, m):
+		if m.hp > me.attack_damage or not CombatSystem.in_range(sim, me, m):
+			continue
+		if CombatSystem.is_valid_target(sim, me, m):
 			return m.id
-	return 0
+		# Deny only when it costs their hero gold, or we'd thin our own wave for nothing.
+		var them := sim.heroes[1 - team]
+		if deny == 0 and CombatSystem.can_deny(sim, me, m) and them.alive \
+				and them.pos.distance_to(m.pos) <= sim.config.minion_gold_radius:
+			deny = m.id
+	return deny
 
 
 ## The first wishlist item the bot can buy right now (deck slot), or -1.
