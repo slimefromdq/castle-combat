@@ -5,9 +5,9 @@ fired basic attack lands, and matches are won through waves, towers and the Rela
 objective as much as through the duel. Working title; the design doc calls it
 UNDERTOW: RELAY ([docs/GDD_v0.1.md](docs/GDD_v0.1.md)).
 
-**Status: Milestone 2** — a full match against a bot with waves, towers, stop-to-attack
-combat, hero-hit aggro and the Relay (pick it up, carry it across, deliver it for a siege
-minion). Gold and items arrive in M3.
+**Status: Milestone 3** — a full match against a bot with waves, towers, stop-to-attack
+combat, hero-hit aggro, the Relay (pick it up, carry it across, deliver it for a siege
+minion), and gold with a six-card item deck you pick before the match (buy up to three).
 
 ## Play it
 
@@ -26,7 +26,8 @@ minion). Gold and items arrive in M3.
 | Attack | Stand still: the nearest valid target is attacked automatically | Same |
 | Focus a target (for last hits) | Left-click an enemy unit; click the ground to clear | Tap an enemy unit |
 | Ability / Ultimate | Q / E (later milestone) | Right-thumb buttons |
-| Buy item card | 1–6 | Tap a card (M3) |
+| Buy item card | 1–6 | Tap a card |
+| Hide / show the item cards | Tab | — |
 | Pick up / deliver the Relay | Stand in the gold ring / the outlined pocket | Same |
 | Drop the Relay | F | Drop button while carrying |
 | Swap seat (debug) | F2 | Seat button |
@@ -35,6 +36,11 @@ minion). Gold and items arrive in M3.
 | Back to hero select | Esc | Menu button |
 
 There is no attack button on purpose: standing still is how you attack.
+
+**Gold:** any enemy minion that dies inside the faint gold circle around you pays you its
+gold, whoever killed it. A killing blow from farther away pays too.
+**Denies:** once one of your own minions drops to half health its bar gets a white frame;
+tap it and stand still to finish it yourself, and the enemy only collects half its gold.
 
 **Watch your aggro.** Hitting the enemy hero calls their nearby minions onto you, and if
 you stand inside their tower's range the tower switches to you too and hits harder. A "!"

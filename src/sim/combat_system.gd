@@ -7,8 +7,20 @@ class_name CombatSystem
 
 
 static func is_valid_target(sim: MatchSim, attacker: SimEntity, target: SimEntity) -> bool:
-	if target == null or not target.alive or target.team < 0 or target.team == attacker.team:
+	if target == null or not target.alive or target.team < 0:
 		return false
+	if target.team == attacker.team:
+		# A deny: only the hero's own tapped minion, and only once it is low enough.
+		return attacker is HeroState and attacker.preferred_target == target.id and can_deny(sim, attacker, target)
+	if target is StructureState and not sim.is_exposed(target):
+		return false
+	return true
+
+
+## True if this hero may tap its own minion to deny it.
+static func can_deny(sim: MatchSim, hero: SimEntity, target: SimEntity) -> bool:
+	return hero is HeroState and target is MinionState and target.alive and target.team == hero.team \
+			and target.hp <= target.max_hp * sim.config.deny_hp_fraction + 0.0001
 	if target is StructureState and not sim.is_exposed(target):
 		return false
 	return true
@@ -60,7 +72,7 @@ static func fire(sim: MatchSim, a: SimEntity, t: SimEntity) -> void:
 	a.cooldown_left = maxf(0.0, a.attack_interval - a.attack_windup)
 	var damage := a.attack_damage
 	if a is MinionState and t is StructureState:
-		damage *= a.data.structure_damage_mult
+		damage *= a.data.structure_damage_mult * Economy.minion_structure_mult(sim, a)
 	var called := a is StructureState and a.is_called(sim.time) and a.called_target == t.id
 	if called:
 		damage *= sim.config.tower_call_damage_mult

@@ -35,7 +35,8 @@ var winner := -1
 var _next_id := 1
 
 
-func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData], tiers: Array[StructureData], minion_data: Dictionary = {}) -> void:
+## decks[team] is that hero's six-card item deck (an empty deck means no shopping).
+func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData], tiers: Array[StructureData], minion_data: Dictionary = {}, decks: Array = []) -> void:
 	config = cfg
 	arena = arena_data
 	minion_types = minion_data
@@ -60,6 +61,9 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 			structures.append(s)
 		var h := HeroState.new()
 		h.setup(hero_picks[team], team, to_team_space(team, arena.hero_spawn))
+		h.gold = cfg.starting_gold
+		if team < decks.size():
+			h.deck.assign(decks[team])
 		_register(h)
 		heroes.append(h)
 	relay.setup(self)
@@ -73,6 +77,7 @@ func step(commands: Array) -> void:
 		e.prev_pos = e.pos
 	_respawn_heroes()
 	_heal_at_base()
+	Economy.tick(self)
 	for team in [BLUE, RED]:
 		var cmd: PlayerCommand = commands[team] if team < commands.size() else null
 		if cmd == null:
@@ -81,6 +86,8 @@ func step(commands: Array) -> void:
 		_apply_target_command(hero, cmd)
 		if cmd.drop_relay:
 			relay.request_drop(self, hero)
+		if cmd.buy_slot >= 0:
+			Economy.try_buy(self, hero, cmd.buy_slot)
 		Movement.move_hero(self, hero, cmd.move, dt)
 	if minion_types.size() > 0 and time + 0.0001 >= next_wave_time:
 		_spawn_wave()
@@ -142,6 +149,8 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity) -> void:
 		return
 	if target is StructureState and not is_exposed(target):
 		return
+	if target is HeroState and source is HeroState:
+		target.last_hero_damage_time = time
 	target.hp = maxf(0.0, target.hp - amount)
 	if target.hp <= 0.0:
 		_kill(target, source)
@@ -195,6 +204,7 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	target.attack_target = 0
 	var killer_team := source.team if source != null else -1
 	emit_event(&"unit_killed", {"id": target.id, "kind": target.kind, "team": target.team, "killer": source.id if source != null else 0, "killer_team": killer_team})
+	Economy.on_kill(self, target, source)
 	if target is HeroState:
 		target.respawn_at = time + config.respawn_time
 		relay.on_hero_killed(self, target)
@@ -230,7 +240,7 @@ func _heal_at_base() -> void:
 func _apply_target_command(hero: HeroState, cmd: PlayerCommand) -> void:
 	if cmd.target_id > 0:
 		var t := get_entity(cmd.target_id)
-		if CombatSystem.is_valid_target(self, hero, t):
+		if CombatSystem.is_valid_target(self, hero, t) or CombatSystem.can_deny(self, hero, t):
 			hero.preferred_target = t.id
 			hero.preferred_lost_time = 0.0
 			# Switching targets mid-windup restarts the windup on the new target.

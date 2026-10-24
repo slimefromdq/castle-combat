@@ -10,8 +10,9 @@ signal debug_toggle_pressed
 signal menu_pressed
 signal restart_pressed
 signal drop_pressed
+signal buy_pressed(slot: int)
 
-const BOTTOM_H := 214.0
+const BOTTOM_H := 240.0
 const MARGIN := 12.0
 
 var joystick: ThumbStick
@@ -31,6 +32,11 @@ var _relay: Label
 var _flash: Label
 var _flash_until := 0
 var _drop: Button
+var _cards: Array[Button] = []
+var _cards_row: Control
+var _them_items: Label
+var _you_items: Label
+var _deck_seen: Array[ItemData] = []
 var _debug: Label
 var _touch_button: Button
 var _seat_button: Button
@@ -74,7 +80,10 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_them_hp.value = them.hp / them.max_hp
 	_fill_structs(sim, seat, _you_structs)
 	_fill_structs(sim, 1 - seat, _them_structs)
-	_gold.text = "Gold 0"
+	_gold.text = "Gold\n%d" % int(me.gold)
+	_refresh_cards(sim, me)
+	_you_items.text = _items_text(me, sim.config.max_items)
+	_them_items.text = _items_text(them, sim.config.max_items)
 	_respawn.visible = not me.alive and not sim.over
 	if _respawn.visible:
 		_respawn.text = "Respawning in %d" % ceili(me.respawn_at - sim.time)
@@ -89,6 +98,42 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	if debug_visible:
 		_debug.text = "FPS %d   tick %d   t %.1fs\nyou (%.1f, %.1f) %s" % [
 			fps, sim.tick, sim.time, me.pos.x, me.pos.y, "moving" if me.moving else "stopped"]
+
+
+## Tab: collapse or open the item cards (gold and owned items stay visible).
+func toggle_tray() -> void:
+	_cards_row.visible = not _cards_row.visible
+
+
+func _items_text(h: HeroState, cap: int) -> String:
+	var names: Array[String] = []
+	for item in h.items:
+		names.append(item.display_name)
+	for i in cap - h.items.size():
+		names.append("—")
+	return "Items: " + "  ·  ".join(names)
+
+
+## Card text and state: owned, affordable, saving up, or locked out by full slots.
+func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
+	if _deck_seen != me.deck:
+		_deck_seen = me.deck.duplicate()
+		for i in _cards.size():
+			var c := _cards[i]
+			if i < me.deck.size():
+				c.tooltip_text = "%d: %s (%d gold)\n%s" % [i + 1, me.deck[i].display_name, me.deck[i].cost, me.deck[i].summary]
+			c.visible = i < me.deck.size()
+	for i in mini(_cards.size(), me.deck.size()):
+		var item := me.deck[i]
+		var c := _cards[i]
+		var owned := me.owns(item)
+		var problem := Economy.buy_problem(sim, me, i)
+		c.disabled = problem != ""
+		var status := "OWNED" if owned else ("%d" % item.cost if problem != "item slots full" else "full")
+		c.text = "%s\n%s" % [item.display_name, status]
+		var color := Color("8fe388") if owned else (Color("f5d76e") if problem == "" else Color(1, 1, 1, 0.45))
+		c.add_theme_color_override("font_color", color)
+		c.add_theme_color_override("font_disabled_color", color)
 
 
 ## Short event callouts under the Relay line ("Relay knocked loose!").
@@ -107,9 +152,19 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 			text = "Delivered! A siege minion joins your next wave" if data.team == seat else "Enemy delivered: their siege minion is coming"
 		&"relay_expired":
 			text = "The Relay faded"
+		&"item_bought":
+			if data.team == seat:
+				text = "Bought %s" % _item_name(data.item)
 	if text != "":
 		_flash.text = text
 		_flash_until = Time.get_ticks_msec() + 2600
+
+
+func _item_name(id: StringName) -> String:
+	for item in MatchController.ITEMS:
+		if item.id == id:
+			return item.display_name
+	return String(id)
 
 
 func _relay_text(sim: MatchSim, seat: int) -> String:
@@ -189,13 +244,16 @@ func _build_top(inset: float) -> void:
 	row.add_child(_them_hp)
 	v.add_child(row)
 	v.add_child(_struct_row(Palette.ENEMY, _them_structs))
+	# GDD 8: you can always see the opponent's equipped items (not their deck).
+	_them_items = UiKit.label("Items:", 16, Color(1, 1, 1, 0.7))
+	v.add_child(_them_items)
 
 
 func _build_tools(inset: float) -> void:
 	var tools := HBoxContainer.new()
 	tools.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	tools.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	tools.offset_top = 132 + inset
+	tools.offset_top = 156 + inset
 	tools.offset_right = -MARGIN
 	tools.add_theme_constant_override("separation", 6)
 	_root.add_child(tools)
@@ -207,19 +265,19 @@ func _build_tools(inset: float) -> void:
 	_relay.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_relay.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_relay.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_relay.offset_top = 186 + inset
+	_relay.offset_top = 210 + inset
 	_root.add_child(_relay)
 	_flash = UiKit.label("", 20, Color(1, 1, 1, 0.95))
 	_flash.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_flash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_flash.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_flash.offset_top = 218 + inset
+	_flash.offset_top = 242 + inset
 	_flash.add_theme_constant_override("outline_size", 8)
 	_flash.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_flash.visible = false
 	_root.add_child(_flash)
 	_debug = UiKit.label("", 18, Color(1, 1, 1, 0.75))
-	_debug.position = Vector2(MARGIN + 4, 254 + inset)
+	_debug.position = Vector2(MARGIN + 4, 278 + inset)
 	_root.add_child(_debug)
 
 
@@ -254,20 +312,31 @@ func _build_bottom() -> void:
 	row.add_child(_you_hp)
 	v.add_child(row)
 	v.add_child(_struct_row(Palette.ALLY, _you_structs))
+	_you_items = UiKit.label("Items:", 16, Color(1, 1, 1, 0.7))
+	v.add_child(_you_items)
 	var tray := HBoxContainer.new()
 	tray.add_theme_constant_override("separation", 6)
-	_gold = UiKit.label("Gold 0", 20, Color("f5d76e"))
-	_gold.custom_minimum_size = Vector2(96, 0)
+	_gold = UiKit.label("Gold\n0", 20, Color("f5d76e"))
+	_gold.custom_minimum_size = Vector2(76, 0)
+	_gold.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_gold.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tray.add_child(_gold)
+	var cards := HBoxContainer.new()
+	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cards.add_theme_constant_override("separation", 5)
+	tray.add_child(cards)
+	_cards_row = cards
 	for i in 6:
-		# Item cards are placeholders until the economy lands in M3.
-		var card := UiKit.button("%d\n—" % (i + 1), Vector2(0, 72))
+		# One tap buys: no shop screen (GDD 8). Keys 1-6 do the same.
+		var card := UiKit.button("", Vector2(0, 72))
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.add_theme_font_size_override("font_size", 18)
-		card.disabled = true
-		card.tooltip_text = "Item card (M3)"
-		tray.add_child(card)
+		card.custom_minimum_size.x = 50
+		card.add_theme_font_size_override("font_size", 14)
+		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card.clip_text = true
+		card.pressed.connect(func() -> void: buy_pressed.emit(i))
+		cards.add_child(card)
+		_cards.append(card)
 	v.add_child(tray)
 
 

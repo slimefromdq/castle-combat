@@ -15,3 +15,5 @@ extends Resource
 @export var attack_interval := 1.0
 ## Multiplier on damage dealt to towers and Cores.
 @export var structure_damage_mult := 1.0
+## Gold for the enemy hero who lands the killing blow (a last hit).
+@export var gold_bounty := 20.0
