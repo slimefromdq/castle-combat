@@ -1,0 +1,6 @@
+.godot/
+build/
+*.translation
+export_credentials.cfg
+.import/
+smoke.log
