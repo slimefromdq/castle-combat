@@ -6,9 +6,10 @@
 script = ExtResource("1_struct")
 id = &"core"
 display_name = "Core"
-max_hp = 1400.0
+max_hp = 4000.0
 radius = 1.6
 height = 2.0
 attack_range = 6.5
 attack_damage = 70.0
 attack_interval = 1.0
+resist_start = 0.1

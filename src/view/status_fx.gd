@@ -22,6 +22,10 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 		&"ability_cast":
 			if data.has("radius") and not data.has("point"):
 				_spawn_ring(data.pos, data.radius, Palette.team_color(data.team == view.local_seat).lightened(0.4))
+		&"guardian_slam":
+			var g: SimEntity = view.sim.get_entity(data.id)
+			if g != null:
+				_spawn_ring(g.pos, data.radius + 1.0, Color(1.0, 0.35, 0.2))
 		&"barrage_pulse":
 			var h: SimEntity = view.sim.get_entity(data.hero)
 			_spawn_ring(data.point, data.radius, Palette.team_color(h != null and h.team == view.local_seat).lightened(0.2))
@@ -53,7 +57,56 @@ func render() -> void:
 			var r := h.channel.radius
 			p.zone.position = MatchView.to_world(h.channel_point, 0.06)
 			p.zone.scale = Vector3(r, 0.03, r)
+	for st in sim.structures:
+		if st.is_guardian():
+			_render_guardian(st)
 	_update_rings()
+
+
+## Guardian beam (thicker and hotter as it ramps), slam telegraph and recovery dimming.
+func _render_guardian(s: StructureState) -> void:
+	var sim := view.sim
+	if not _parts.has(s.id):
+		var beam := MeshInstance3D.new()
+		beam.mesh = UnitFactory.cylinder(1.0, 1.0, 1.0, 8)
+		beam.material_override = UnitFactory.material(Color(1.0, 0.45, 0.2, 0.85), true)
+		add_child(beam)
+		_parts[s.id] = {
+			"beam": beam,
+			"tele": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.25, 0.2, 0.9), Vector3.ZERO, Vector3.ZERO, true),
+			"zone": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.25, 0.2, 0.25), Vector3.ZERO, Vector3.ZERO, true),
+			"rest": UnitFactory.label(self, "Recovering", 0.0, 40),
+		}
+	var p: Dictionary = _parts[s.id]
+	var center := MatchView.to_world(s.pos, 0.0)
+	var target := sim.get_entity(s.beam_target)
+	var firing := s.alive and target != null and target.alive and sim.time - s.beam_last < s.attack_interval + 0.15
+	p.beam.visible = firing
+	if firing:
+		var from := center + Vector3(0, s.data.height + 0.6, 0)
+		var to := view.unit_position(target.id) + Vector3(0, 0.6, 0)
+		var ramp := clampf((sim.time - s.beam_since) * s.data.beam_ramp_per_second / maxf(0.01, s.data.beam_max_mult - 1.0), 0.0, 1.0)
+		var width := lerpf(0.06, 0.28, ramp)
+		p.beam.position = (from + to) / 2.0
+		var dir := (to - from).normalized()
+		p.beam.basis = Basis(Quaternion(Vector3.UP, dir)).scaled(Vector3(width, from.distance_to(to), width))
+		(p.beam.material_override as StandardMaterial3D).albedo_color = Color(1.0, lerpf(0.7, 0.15, ramp), 0.2, 0.9)
+	# Slam: a ring that closes in until it lands; a faint ring shows the slam area.
+	var winding := s.alive and s.slam_at >= 0.0
+	p.tele.visible = winding
+	var r := s.data.slam_radius
+	if winding:
+		var k := clampf(1.0 - (s.slam_at - sim.time) / maxf(0.01, s.data.slam_windup), 0.0, 1.0)
+		p.tele.position = center + Vector3(0, 0.12, 0)
+		p.tele.scale = Vector3(r * lerpf(0.2, 1.0, k), 0.05, r * lerpf(0.2, 1.0, k))
+	p.rest.visible = s.alive and sim.time < s.disabled_until
+	p.rest.position = center + Vector3(0, s.data.height + 2.4, 0)
+	var me := sim.heroes[view.local_seat]
+	p.zone.visible = s.alive and s.team != view.local_seat and me.alive and me.pos.distance_to(s.pos) < r + 4.0
+	p.zone.position = center + Vector3(0, 0.08, 0)
+	p.zone.scale = Vector3(r, 0.03, r)
+	var ready := sim.time >= s.slam_ready_at and not winding
+	(p.zone.material_override as StandardMaterial3D).albedo_color.a = 0.35 if ready else 0.1
 
 
 func _parts_for(h: HeroState) -> Dictionary:

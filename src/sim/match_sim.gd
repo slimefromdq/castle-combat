@@ -30,6 +30,10 @@ var relay := RelayController.new()
 ## Siege minions each team has earned (Relay deliveries) for its next wave.
 var pending_siege: Array[int] = [0, 0]
 var over := false
+## Overtime (Pacing): structures weakened, tankier waves, longer respawns.
+var overtime := false
+## Per team: true once the enemy Guardian has fallen (its minions become power minions).
+var power_minions: Array[bool] = [false, false]
 ## Winning team once the match is over, else -1.
 var winner := -1
 var _next_id := 1
@@ -52,6 +56,8 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	waves_spawned = 0
 	pending_siege = [0, 0]
 	over = false
+	overtime = false
+	power_minions = [false, false]
 	winner = -1
 	_next_id = 1
 	_next_cast_key = 1
@@ -82,6 +88,7 @@ func step(commands: Array) -> void:
 	Economy.tick(self)
 	Items.tick(self)
 	Leveling.tick(self)
+	Pacing.tick(self)
 	for team in [BLUE, RED]:
 		var cmd: PlayerCommand = commands[team] if team < commands.size() else null
 		if cmd == null:
@@ -115,7 +122,7 @@ func step(commands: Array) -> void:
 		CombatSystem.tick_attack(self, hero, may_attack, Targeting.for_hero.bind(self, hero))
 	for s in structures:
 		var previous := s.attack_target
-		CombatSystem.tick_attack(self, s, s.alive, func() -> SimEntity: return Targeting.for_structure(self, s, previous))
+		CombatSystem.tick_attack(self, s, s.alive and not s.is_busy(time), func() -> SimEntity: return Targeting.for_structure(self, s, previous))
 	relay.tick(self)
 	_remove_dead_minions()
 	tick += 1
@@ -172,6 +179,8 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 	if hero_src != null:
 		amount = Items.outgoing(self, hero_src, target, amount, kind)
 	var raw := amount
+	if target is StructureState:
+		amount = Pacing.structure_damage_taken(self, target, amount, source)
 	if target is HeroState:
 		amount = Items.incoming(self, source, target, amount, kind)
 		amount = Abilities.modify_hero_damage(self, source, target, amount)
@@ -239,6 +248,7 @@ func queue_siege(team: int) -> void:
 func spawn_minion(data: MinionData, team: int, at: Vector2) -> MinionState:
 	var m := MinionState.new()
 	m.setup(data, team, at)
+	Pacing.scale_minion(self, m)
 	_register(m)
 	minions.append(m)
 	return m
@@ -256,12 +266,14 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	emit_event(&"unit_killed", {"id": target.id, "kind": target.kind, "team": target.team, "killer": source.id if source != null else 0, "killer_team": killer_team})
 	Economy.on_kill(self, target, source)
 	if target is HeroState:
-		target.respawn_at = time + config.respawn_time
+		target.deaths += 1
+		target.respawn_at = time + Pacing.respawn_delay(self, target)
 		target.clear_effects()
 		relay.on_hero_killed(self, target)
 		Leveling.on_knockout(self, target)
 	elif target is StructureState:
 		target.blocks_movement = false
+		Pacing.on_structure_killed(self, target)
 		if target.tier == 2:
 			over = true
 			winner = 1 - target.team

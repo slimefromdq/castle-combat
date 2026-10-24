@@ -114,8 +114,26 @@ static func make_structure(s: StructureState, is_ally: bool) -> Node3D:
 		gem.rings = 2
 		part(body, gem, c, Vector3(0, 0.5 + s.radius * 1.2, 0))
 		top = 0.5 + s.radius * 2.4
+	elif s.is_guardian():
+		# Guardian: a giant stone sentinel with team-colored eyes, crown and fists.
+		var h := s.data.height
+		part(body, cylinder(s.radius, s.radius + 0.2, 0.4, 8), Palette.STONE.darkened(0.15), Vector3(0, 0.2, 0))
+		part(body, cylinder(s.radius * 0.55, s.radius * 0.8, h * 0.6, 8), Palette.STONE, Vector3(0, 0.4 + h * 0.3, 0))
+		var head := SphereMesh.new()
+		head.radius = s.radius * 0.5
+		head.height = s.radius
+		head.radial_segments = 8
+		head.rings = 4
+		var head_y := 0.4 + h * 0.6 + s.radius * 0.4
+		part(body, head, Palette.STONE.lightened(0.1), Vector3(0, head_y, 0))
+		part(body, box(Vector3(s.radius * 0.7, 0.14, 0.12)), c.lightened(0.4), Vector3(0, head_y + 0.05, -s.radius * 0.45))
+		part(body, cylinder(s.radius * 0.55, s.radius * 0.45, 0.25, 8), c, Vector3(0, head_y + s.radius * 0.5, 0))
+		for side in [-1.0, 1.0]:
+			part(body, cylinder(0.28, 0.32, h * 0.5, 6), Palette.STONE.darkened(0.05), Vector3(side * s.radius * 0.95, 0.4 + h * 0.35, 0), Vector3(0, 0, side * 12))
+			part(body, box(Vector3(0.6, 0.55, 0.6)), c, Vector3(side * s.radius * 1.05, 0.4 + h * 0.08, 0))
+		top = head_y + s.radius * 0.65
 	else:
-		# Towers: hex pillar with a team-colored crown; the inner tower is taller.
+		# Towers: hex pillar with a team-colored crown.
 		var h := s.data.height
 		part(body, cylinder(s.radius * 0.8, s.radius * 0.95, h, 6), Palette.STONE, Vector3(0, h / 2.0, 0))
 		part(body, cylinder(s.radius, s.radius * 0.85, 0.35, 6), c, Vector3(0, h + 0.17, 0))

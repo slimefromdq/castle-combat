@@ -181,7 +181,7 @@ func _tick_carried(sim: MatchSim) -> void:
 		return  # Paused, not reset: the carrier keeps what they have built up.
 	deliver_progress += sim.dt
 	if deliver_progress + 0.0001 >= sim.config.relay_deliver_time:
-		sim.queue_siege(h.team)
+		Pacing.on_relay_delivered(sim, h, activations)
 		_release_carrier(sim)
 		_finish(sim, &"relay_delivered", h.team)
 

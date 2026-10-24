@@ -19,7 +19,7 @@ static func is_valid_deck(deck: Array, pool: Array, size: int) -> bool:
 static func tick(sim: MatchSim) -> void:
 	var cfg := sim.config
 	for h in sim.heroes:
-		h.gold += cfg.passive_gold_per_second * sim.dt
+		h.gold += cfg.passive_gold_per_second * Pacing.gold_mult(sim) * sim.dt
 
 
 ## Why a purchase would fail, or "" if it is allowed.
@@ -108,6 +108,7 @@ static func minion_structure_mult(sim: MatchSim, m: MinionState) -> float:
 
 
 static func _award(sim: MatchSim, hero: HeroState, amount: float, reason: StringName) -> void:
+	amount *= Pacing.gold_mult(sim)
 	if amount <= 0.0:
 		return
 	hero.gold += amount

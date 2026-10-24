@@ -12,3 +12,5 @@ height = 2.2
 attack_range = 6.5
 attack_damage = 70.0
 attack_interval = 1.0
+gold_bounty = 250.0
+resist_start = 0.2

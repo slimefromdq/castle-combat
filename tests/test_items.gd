@@ -49,7 +49,7 @@ func test_trooper_cleaver_and_siege_banner() -> void:
 	var tower := sim.structures_of(MatchSim.RED)[0]
 	hp = tower.hp
 	sim.apply_damage(tower, 100.0, blue)
-	check_near(hp - tower.hp, 115.0, 0.01, "+15% against structures")
+	check_near(hp - tower.hp, 115.0 * (1.0 - Pacing.structure_resist(sim, tower)), 0.01, "+15% against structures (before tower resist)")
 
 
 func test_warding_cloak_resists_abilities_only() -> void:

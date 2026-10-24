@@ -44,7 +44,7 @@ const BOT_DECKS := {
 }
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
-	preload("res://data/structures/inner_tower.tres"),
+	preload("res://data/structures/guardian.tres"),
 	preload("res://data/structures/core.tres"),
 ]
 

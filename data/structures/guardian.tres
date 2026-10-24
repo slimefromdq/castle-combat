@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="StructureData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/structure_data.gd" id="1_struct"]
+
+[resource]
+script = ExtResource("1_struct")
+id = &"guardian"
+display_name = "Guardian"
+max_hp = 4200.0
+radius = 1.5
+height = 3.4
+attack_range = 8.0
+attack_damage = 14.0
+attack_interval = 0.3
+gold_bounty = 400.0
+resist_start = 0.1
+is_guardian = true
+beam_ramp_per_second = 0.8
+beam_max_mult = 5.0
+slam_radius = 4.2
+slam_windup = 0.9
+slam_damage = 200.0
+slam_knockback = 5.0
+slam_stun = 1.6
+slam_recover = 3.5
+slam_cooldown = 12.0

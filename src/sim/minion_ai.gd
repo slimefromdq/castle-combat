@@ -16,14 +16,14 @@ static func tick(sim: MatchSim, m: MinionState) -> void:
 		m.pos = Movement.slide(sim, m, m.pos, _lane_step(sim, m))
 	elif not in_reach:
 		var to := (target.pos - m.pos).normalized()
-		m.pos = Movement.slide(sim, m, m.pos, to * m.data.move_speed * sim.dt)
+		m.pos = Movement.slide(sim, m, m.pos, to * m.data.move_speed * m.speed_mult * sim.dt)
 	CombatSystem.tick_attack(sim, m, in_reach, func() -> SimEntity: return target if in_reach else null)
 
 
 ## Forward along the lane, drifting back toward the centre line.
 static func _lane_step(sim: MatchSim, m: MinionState) -> Vector2:
 	var dir := m.lane_dir + Vector2(-m.pos.x * 0.15, 0.0)
-	return dir.normalized() * m.data.move_speed * sim.dt
+	return dir.normalized() * m.data.move_speed * m.speed_mult * sim.dt
 
 
 ## Keeps minions from stacking on one spot. Heroes walk through minions.

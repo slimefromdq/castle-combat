@@ -105,7 +105,7 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 		_result_title.add_theme_color_override("font_color", Palette.ALLY.lightened(0.3) if sim.winner == seat else Palette.ENEMY.lightened(0.2))
 		_result.visible = true
 	_seat_button.text = "Seat: %s" % ("blue" if seat == MatchSim.BLUE else "red")
-	_relay.text = _relay_text(sim, seat)
+	_relay.text = ("OVERTIME · " if sim.overtime else "") + _relay_text(sim, seat)
 	_flash.visible = Time.get_ticks_msec() < _flash_until
 	_drop.visible = me.carrying_relay
 	if debug_visible:
@@ -214,6 +214,13 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 		&"item_bought":
 			if data.team == seat:
 				text = "Bought %s" % _item_name(data.item)
+		&"overtime_started":
+			text = "Overtime! Structures are weakened, waves are tankier"
+		&"guardian_fallen":
+			text = "Your Guardian fell!" if data.team == seat else "Enemy Guardian down! Your minions are powered up"
+		&"guardian_slam_windup":
+			if data.team != seat and _sim_for_text != null and _sim_for_text.heroes[seat].pos.distance_to(_sim_for_text.get_entity(data.id).pos) < data.radius + 1.5:
+				text = "Guardian slam! Get out!"
 		&"item_sold":
 			if data.team == seat:
 				text = "Sold %s for %d" % [_item_name(data.item), int(data.refund)]

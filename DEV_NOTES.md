@@ -146,6 +146,38 @@ structures wear a translucent dome.
 - [x] 109 tests (13 item tests added)
 - Bot-vs-bot timings: first early item ~1:00, first mid ~4:30, first late ~9:00–12:00.
 
+**Pacing overhaul (Lucy's request, after the items):** all logic in `src/sim/pacing.gd`,
+all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*.tres`.
+
+- [x] Gold ramp: all gold +8% per minute after 2:30 (x1.6 at 10:00)
+- [x] Relay rewards grow: delivery gold 60 + 60 per earlier Relay; one more siege minion
+      every second activation (max 3)
+- [x] Structure resist: Outer Towers +20%, Guardians and Core +10%, all falling to -30%
+      between 2:00 and 12:00. Heroes earn 0.3 gold per point of their damage the resist soaks
+      ("or shields" in Lucy's note read as the same thing: there are no structure shields).
+      Outer Tower 250 gold, Guardian 400 gold to the enemy hero
+- [x] Guardians replace the Inner Towers: 4,200 HP, 8 m range, a beam (14 per 0.3 s) that
+      gains +80% per second on one target up to x5 and resets on a new target. Like towers,
+      the beam targets you only when no troopers are in range or you hit its hero in range
+      (Lucy: hitting the Guardian itself does not draw it).
+      Slam: an enemy hero within 4.2 m starts a 0.9 s telegraph; anyone still inside takes
+      200, is knocked back 5 m and stunned 1.6 s; then the Guardian can't attack for 3.5 s
+      (12 s cooldown). Walking out of the ring dodges it
+- [x] Guardian kill: power minions for the killer's team, for good (x1.6 HP, x1.3 damage,
+      x1.15 speed, live minions too); if the Guardian's own hero is down, their respawn
+      time left is cut to 40%
+- [x] Minions spawned after 2:00 get +2.5% HP and +2% damage per minute
+- [x] Respawn: 4 s + 0.6 s per minute + 1 s per earlier knockout, max 30 s
+- [x] Overtime at 10:00 (14:00 if a Guardian has already fallen): structures take x1.4 and
+      deal x0.5 damage, new minions x1.4 HP, respawns x1.5
+- [x] Bot walks out of a Guardian slam
+- [x] 122 tests (13 pacing tests added)
+- Bot-vs-bot length (6 matches, every pair, both seats): before 4 of 6 hit the 25 min cap
+  (others 9:54 and 20:40); after 8:52 to 11:26.
+- Watch: once a Guardian falls the Core usually follows within ~15 s, because overtime
+  waves stack up and all turn into power minions at once (snowball by design, but steep).
+  Heroes sit on 3,000+ unspendable gold late; a gold sink (consumables?) may be needed.
+
 **Next: metrics runner and tuning, then M5 iOS.**
 
 ## Assumptions (change by editing data)

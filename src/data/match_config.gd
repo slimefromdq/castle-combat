@@ -5,7 +5,8 @@ extends Resource
 @export var tick_rate := 30
 ## Joystick or stick input shorter than this counts as standing still.
 @export var move_dead_zone := 0.15
-@export var respawn_time := 7.0
+## Base respawn time; it grows over the match (see Pacing: respawn).
+@export var respawn_time := 4.0
 ## Heroes standing this close to their own Core heal (not in the GDD; added so damage
 ## isn't permanent without the Recovery Sigil item). Fraction of max HP per second.
 @export var base_heal_radius := 7.0
@@ -92,3 +93,58 @@ extends Resource
 @export var max_items := 3
 ## Selling an item pays back this fraction of its price.
 @export var sell_refund_fraction := 0.5
+
+@export_group("Pacing: gold")
+## All gold (passive, minions, knockouts) grows by gold_ramp_per_minute for every
+## minute after gold_ramp_start seconds: +8%/min means x1.6 at 10:00.
+@export var gold_ramp_start := 150.0
+@export var gold_ramp_per_minute := 0.08
+
+@export_group("Pacing: Relay rewards")
+## A delivery pays the carrier relay_gold_base + relay_gold_per_activation x the number
+## of Relays before it, and queues one more siege minion every relay_siege_every
+## activations (at most relay_siege_max).
+@export var relay_gold_base := 60.0
+@export var relay_gold_per_activation := 60.0
+@export var relay_siege_every := 2
+@export var relay_siege_max := 3
+
+@export_group("Pacing: structures")
+## Structure resist starts at StructureData.resist_start and falls in a straight line to
+## resist_end between resist_decay_start and resist_end_time seconds. Damage taken is
+## x (1 - resist), so -30% resist means +30% damage.
+@export var resist_decay_start := 120.0
+@export var resist_end_time := 720.0
+@export var resist_end := -0.3
+## Gold a hero earns for each point of its damage that structure resist soaks up.
+@export var resist_gold_per_damage := 0.3
+
+@export_group("Pacing: minions")
+## Minions spawned after minion_scale_start grow by these fractions per minute.
+@export var minion_scale_start := 120.0
+@export var minion_hp_per_minute := 0.025
+@export var minion_damage_per_minute := 0.02
+## Power minions: a team's minions after the enemy Guardian falls.
+@export var power_hp_mult := 1.6
+@export var power_damage_mult := 1.3
+@export var power_speed_mult := 1.15
+
+@export_group("Pacing: respawn")
+## Respawn = respawn_time + respawn_per_minute x minutes + respawn_per_death x earlier
+## knockouts, at most respawn_max. If your Guardian falls while you are down, the time
+## left is multiplied by guardian_fall_respawn_mult.
+@export var respawn_per_minute := 0.6
+@export var respawn_per_death := 1.0
+@export var respawn_max := 30.0
+@export var guardian_fall_respawn_mult := 0.4
+
+@export_group("Pacing: overtime")
+## Overtime starts at overtime_time if no Guardian has fallen, else at overtime_late_time.
+## Structures then take more and deal less damage, new minions are tankier, and
+## respawns are longer.
+@export var overtime_time := 600.0
+@export var overtime_late_time := 840.0
+@export var overtime_structure_damage_taken := 1.4
+@export var overtime_structure_damage_dealt := 0.5
+@export var overtime_minion_hp_mult := 1.4
+@export var overtime_respawn_mult := 1.5
