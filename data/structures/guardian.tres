@@ -6,7 +6,7 @@
 script = ExtResource("1_struct")
 id = &"guardian"
 display_name = "Guardian"
-max_hp = 3200.0
+max_hp = 4200.0
 radius = 1.5
 height = 3.4
 attack_range = 8.0

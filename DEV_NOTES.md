@@ -156,9 +156,10 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
       between 2:00 and 12:00. Heroes earn 0.3 gold per point of their damage the resist soaks
       ("or shields" in Lucy's note read as the same thing: there are no structure shields).
       Outer Tower 250 gold, Guardian 400 gold to the enemy hero
-- [x] Guardians replace the Inner Towers: 3,200 HP, 8 m range, a beam (14 per 0.3 s) that
-      gains +80% per second on one target up to x5 and resets on a new target. Hitting a
-      Guardian from inside its range calls the beam onto you (like hitting its hero).
+- [x] Guardians replace the Inner Towers: 4,200 HP, 8 m range, a beam (14 per 0.3 s) that
+      gains +80% per second on one target up to x5 and resets on a new target. Like towers,
+      the beam targets you only when no troopers are in range or you hit its hero in range
+      (Lucy: hitting the Guardian itself does not draw it).
       Slam: an enemy hero within 4.2 m starts a 0.9 s telegraph; anyone still inside takes
       200, is knocked back 5 m and stunned 1.6 s; then the Guardian can't attack for 3.5 s
       (12 s cooldown). Walking out of the ring dodges it
@@ -172,7 +173,7 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
 - [x] Bot walks out of a Guardian slam
 - [x] 122 tests (13 pacing tests added)
 - Bot-vs-bot length (6 matches, every pair, both seats): before 4 of 6 hit the 25 min cap
-  (others 9:54 and 20:40); after 12:48 to 15:47, with two comebacks.
+  (others 9:54 and 20:40); after 8:52 to 11:26.
 - Watch: once a Guardian falls the Core usually follows within ~15 s, because overtime
   waves stack up and all turn into power minions at once (snowball by design, but steep).
   Heroes sit on 3,000+ unspendable gold late; a gold sink (consumables?) may be needed.

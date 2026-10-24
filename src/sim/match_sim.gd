@@ -181,9 +181,6 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 	var raw := amount
 	if target is StructureState:
 		amount = Pacing.structure_damage_taken(self, target, amount, source)
-		# Hitting a Guardian from inside its range draws its beam onto you.
-		if hero_src != null and target.is_guardian() and CombatSystem.in_range(self, target, hero_src):
-			_call_unit(target, hero_src, config.tower_call_duration)
 	if target is HeroState:
 		amount = Items.incoming(self, source, target, amount, kind)
 		amount = Abilities.modify_hero_damage(self, source, target, amount)
