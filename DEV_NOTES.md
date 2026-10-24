@@ -81,8 +81,10 @@ structures wear a translucent dome.
 - [x] 62 tests (aggro 8, Relay 15 added)
 
 **M3 — gold and the six-item deck**
-- [x] Gold: 2/s passive; last-hit bounty 20 melee / 30 ranged / 60 siege, only for the hero
-      who lands the killing blow; 50 to the other hero on every knockout
+- [x] Gold: 2/s passive; minion bounty 20 melee / 30 ranged / 60 siege to the enemy hero
+      if it is within 6 m of the minion when it dies (Lucy's accessibility rule, shown as a
+      faint gold circle, "+20" pops up), or if it landed the killing blow from farther out;
+      50 to the other hero on every knockout
 - [x] Eight items from GDD 8 as `data/items/*.tres`; pick exactly six in the menu (default
       deck pre-selected); one-tap buy (cards or keys 1–6), max three, no duplicates,
       permanent for the match, kept through knockouts

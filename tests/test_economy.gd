@@ -113,21 +113,37 @@ func test_cards_outside_the_deck_cannot_be_bought() -> void:
 	check(blue.items.is_empty(), "only slots 0-5 of your own deck")
 
 
-func test_last_hits_pay_only_the_killer() -> void:
+func test_minion_gold_for_being_nearby() -> void:
 	var sim := _sim()
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	var m := sim.spawn_minion(melee(), MatchSim.RED, Vector2(0, -19))
-	var before_blue := blue.gold
-	var before_red := red.gold
-	sim.apply_damage(m, m.max_hp, blue)
-	check_near(blue.gold - before_blue, melee().gold_bounty, 0.01, "last hit pays the bounty")
-	check_near(red.gold, before_red, 0.01, "the other hero gets nothing")
-	var other := sim.spawn_minion(melee(), MatchSim.RED, Vector2(0, -19))
+	var radius := MatchController.CONFIG.minion_gold_radius
 	var tower := sim.structures_of(MatchSim.BLUE)[0]
+	var near := sim.spawn_minion(melee(), MatchSim.RED, blue.pos + Vector2(radius - 0.5, 0))
+	var before_red := red.gold
+	sim.apply_damage(near, near.max_hp, tower)
+	check_near(blue.gold, melee().gold_bounty, 0.01, "an enemy minion dying within the radius pays, whoever killed it")
+	check_near(red.gold, before_red, 0.01, "its own side gets nothing")
+	var far := sim.spawn_minion(melee(), MatchSim.RED, blue.pos + Vector2(0, radius + 1.0))
 	var before := blue.gold
-	sim.apply_damage(other, other.max_hp, tower)
-	check_near(blue.gold, before, 0.01, "no gold for kills you didn't land")
+	sim.apply_damage(far, far.max_hp, tower)
+	check_near(blue.gold, before, 0.01, "nothing from outside the radius")
+	var sniped := sim.spawn_minion(melee(), MatchSim.RED, blue.pos + Vector2(0, radius + 1.0))
+	sim.apply_damage(sniped, sniped.max_hp, blue)
+	check_near(blue.gold, before + melee().gold_bounty, 0.01, "a killing blow from farther away still pays")
+	var own := sim.spawn_minion(melee(), MatchSim.BLUE, blue.pos + Vector2(1, 0))
+	before = blue.gold
+	sim.apply_damage(own, own.max_hp, red)
+	check_near(blue.gold, before, 0.01, "your own minions pay you nothing")
+
+
+func test_knocked_out_heroes_collect_nothing() -> void:
+	var sim := _sim()
+	var blue := sim.heroes[0]
+	var m := sim.spawn_minion(melee(), MatchSim.RED, blue.pos + Vector2(1, 0))
+	blue.alive = false
+	sim.apply_damage(m, m.max_hp, sim.structures_of(MatchSim.BLUE)[0])
+	check_near(blue.gold, 0.0, 0.01, "dead heroes don't collect")
 
 
 func test_knockout_pays_the_other_hero() -> void:

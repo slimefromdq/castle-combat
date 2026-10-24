@@ -48,11 +48,18 @@ static func try_buy(sim: MatchSim, hero: HeroState, slot: int) -> bool:
 	return true
 
 
-## Kill rewards: minion bounty to an enemy hero landing the last hit; knockout gold to
-## the opposing hero whoever finished the knockout.
+## Kill rewards. A minion's bounty goes to the enemy hero if it is within
+## minion_gold_radius of the minion (whoever killed it) or landed the killing blow.
+## Knockout gold goes to the opposing hero whoever finished the knockout.
 static func on_kill(sim: MatchSim, target: SimEntity, source: SimEntity) -> void:
-	if target is MinionState and source is HeroState and source.team != target.team:
-		_award(sim, source, target.data.gold_bounty, &"last_hit")
+	if target is MinionState:
+		var hero := sim.heroes[1 - target.team]
+		if not hero.alive:
+			return
+		if source == hero:
+			_award(sim, hero, target.data.gold_bounty, &"last_hit")
+		elif hero.pos.distance_to(target.pos) <= sim.config.minion_gold_radius:
+			_award(sim, hero, target.data.gold_bounty, &"nearby")
 	elif target is HeroState:
 		_award(sim, sim.heroes[1 - target.team], sim.config.hero_ko_gold, &"knockout")
 

@@ -14,6 +14,8 @@ var _bars: UnitBars
 var _relay_view: RelayView
 ## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
 var _range_ring: MeshInstance3D
+## Faint gold circle: enemy minions dying inside it pay you their gold.
+var _gold_ring: MeshInstance3D
 var _windup_ring: MeshInstance3D
 var _bracket: MeshInstance3D
 var _lines: MeshInstance3D
@@ -170,6 +172,12 @@ func _build_helpers() -> void:
 	ring.rings = 64
 	ring.ring_segments = 4
 	_range_ring = UnitFactory.part(self, ring, Color(1, 1, 1, 0.35), Vector3.ZERO, Vector3.ZERO, true)
+	var gold := TorusMesh.new()
+	gold.inner_radius = 0.985
+	gold.outer_radius = 1.0
+	gold.rings = 96
+	gold.ring_segments = 4
+	_gold_ring = UnitFactory.part(self, gold, Color(Palette.RELAY, 0.28), Vector3.ZERO, Vector3.ZERO, true)
 	var wind := TorusMesh.new()
 	wind.inner_radius = 0.82
 	wind.outer_radius = 1.0
@@ -196,6 +204,10 @@ func _update_helpers() -> void:
 	_range_ring.visible = me.alive and not me.moving
 	_range_ring.position = my_pos + Vector3(0, 0.04, 0)
 	_range_ring.scale = Vector3(me.attack_range + 0.4, 0.02, me.attack_range + 0.4)
+	_gold_ring.visible = me.alive
+	_gold_ring.position = my_pos + Vector3(0, 0.03, 0)
+	var gr := sim.config.minion_gold_radius
+	_gold_ring.scale = Vector3(gr, 0.02, gr)
 	# Windup: a ring that closes in on the hero as the attack charges.
 	_windup_ring.visible = me.alive and me.is_winding_up()
 	var k := me.windup_progress()

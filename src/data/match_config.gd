@@ -68,6 +68,9 @@ extends Resource
 @export var starting_gold := 0.0
 ## Paid to the opposing hero whenever a hero is knocked out, whoever landed the blow.
 @export var hero_ko_gold := 50.0
+## A dying enemy minion pays its bounty to your hero if you are this close to it (metres),
+## whoever killed it. Landing the killing blow from farther away still pays.
+@export var minion_gold_radius := 6.0
 ## Items in a pre-match deck, and how many of them a hero may own at once.
 @export var deck_size := 6
 @export var max_items := 3

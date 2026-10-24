@@ -37,6 +37,9 @@ minion), and gold with a six-card item deck you pick before the match (buy up to
 
 There is no attack button on purpose: standing still is how you attack.
 
+**Gold:** any enemy minion that dies inside the faint gold circle around you pays you its
+gold, whoever killed it. A killing blow from farther away pays too.
+
 **Watch your aggro.** Hitting the enemy hero calls their nearby minions onto you, and if
 you stand inside their tower's range the tower switches to you too and hits harder. A "!"
 over a minion or tower means it has been called (red = coming for you). Tap a minion to
