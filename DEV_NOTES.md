@@ -80,7 +80,21 @@ structures wear a translucent dome.
       units, Relay status line + callouts, Drop button
 - [x] 62 tests (aggro 8, Relay 15 added)
 
-**Next: M3 — gold and the six-item deck.**
+**M3 — gold and the six-item deck**
+- [x] Gold: 2/s passive; last-hit bounty 20 melee / 30 ranged / 60 siege, only for the hero
+      who lands the killing blow; 50 to the other hero on every knockout
+- [x] Eight items from GDD 8 as `data/items/*.tres`; pick exactly six in the menu (default
+      deck pre-selected); one-tap buy (cards or keys 1–6), max three, no duplicates,
+      permanent for the match, kept through knockouts
+- [x] Effects: move speed, max HP (also heals the added amount), damage, attack speed,
+      range, Siege Banner aura (+12% within 7 m), Recovery Sigil (2%/s after 7 s free of
+      hero damage). Anchor Charm does nothing yet: nothing knocks back until abilities land
+- [x] HUD: gold, six cards (price / OWNED / full), your and the opponent's three items;
+      Tab collapses the cards
+- [x] Bot buys from a per-hero wishlist and saves up for the next item on it
+- [x] 75 tests (13 economy added), incl. Codex criterion 6 rules and "2+ items by 6 min"
+
+**Next: M4 — proof of strategy (metrics runner, tuning).**
 
 ## Assumptions (change by editing data)
 
@@ -106,7 +120,11 @@ structures wear a translucent dome.
   Delivery progress pauses while contested and resets if the carrier leaves the pocket.
   A dropped Relay that returns home gets a fresh 12 s expiry so it never vanishes suddenly.
 - The pockets sit opposite each other at mid-lane, so a clean delivery is a ~3 s walk.
-  That may make the Relay too easy to take; the M4 metrics runner should tell.
+  Lucy's playtest (2026-10-24): fine for now; the enemy did contest and steal it.
+- Economy: knockout gold goes to the opposing hero whoever finished the knockout (a tower
+  kill still pays). Structures pay no gold (the GDD lists none). The opponent's deck stays
+  hidden; only their bought items show. Wave acceleration at 5:00 (optional in the GDD)
+  is not in yet. Gold pacing: bots own 2–3 items by 6 min, the GDD's target.
 - Pacing: bot vs an idle opponent took ~14 min to win in M1 (~10.5 min with Relay sieges), mostly the Core. Minions deal 1.5x
   to structures and towers deal 70. Real tuning waits for the M4 metrics runner.
 - Hero abilities (Q/E) are not in M1; the buttons stay disabled.
