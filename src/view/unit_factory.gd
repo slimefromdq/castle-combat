@@ -1,0 +1,127 @@
+class_name UnitFactory
+## Builds the primitive 3D silhouettes. Every node faces -Z (sim "forward" for blue).
+## Silhouette = what it is; base decal shape = whose it is (circle ally, diamond enemy);
+## color only backs those up.
+
+
+static func material(color: Color, unshaded := false) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.roughness = 0.85
+	if unshaded:
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if color.a < 1.0:
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
+
+
+static func part(parent: Node3D, mesh: Mesh, color: Color, at := Vector3.ZERO, rot_deg := Vector3.ZERO, unshaded := false) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = material(color, unshaded)
+	mi.position = at
+	mi.rotation_degrees = rot_deg
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	return mi
+
+
+static func box(size: Vector3) -> BoxMesh:
+	var m := BoxMesh.new()
+	m.size = size
+	return m
+
+
+static func cylinder(top: float, bottom: float, height: float, sides := 24) -> CylinderMesh:
+	var m := CylinderMesh.new()
+	m.top_radius = top
+	m.bottom_radius = bottom
+	m.height = height
+	m.radial_segments = sides
+	m.rings = 1
+	return m
+
+
+## Circle under allies, diamond under enemies, so team reads without color.
+static func base_decal(parent: Node3D, radius: float, is_ally: bool) -> void:
+	var c := Palette.team_color(is_ally)
+	if is_ally:
+		part(parent, cylinder(radius + 0.25, radius + 0.25, 0.03, 32), Color(c, 0.55), Vector3(0, 0.02, 0), Vector3.ZERO, true)
+	else:
+		# A 4-sided cylinder has its corners on the axes: a diamond.
+		part(parent, cylinder(radius + 0.45, radius + 0.45, 0.03, 4), Color(c.darkened(0.45), 0.85), Vector3(0, 0.015, 0), Vector3.ZERO, true)
+		part(parent, cylinder(radius + 0.3, radius + 0.3, 0.035, 4), Color(c, 0.6), Vector3(0, 0.025, 0), Vector3.ZERO, true)
+
+
+static func label(parent: Node3D, text: String, height: float, font_size := 40) -> Label3D:
+	var l := Label3D.new()
+	l.text = text
+	l.font_size = font_size
+	l.pixel_size = 0.01
+	l.outline_size = 10
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.position = Vector3(0, height, 0)
+	parent.add_child(l)
+	return l
+
+
+## Root holds the decal and label; the "Body" child turns to face the move direction.
+static func make_hero(hero: HeroState, is_ally: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Hero%d" % hero.id
+	base_decal(root, hero.radius, is_ally)
+	var body := Node3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var c := Palette.team_color(is_ally)
+	match hero.data.shape:
+		"cone":
+			# Scout: an arrowhead lying flat, point forward.
+			part(body, cylinder(0.0, 0.48, 1.35, 20), c, Vector3(0, 0.48, 0), Vector3(-90, 0, 0))
+			part(body, box(Vector3(0.08, 0.38, 0.55)), Palette.ACCENT, Vector3(0, 0.88, 0.2))
+		"cylinder":
+			# Gunner: upright drum with a long barrel.
+			part(body, cylinder(0.4, 0.44, 1.05, 20), c, Vector3(0, 0.53, 0))
+			part(body, cylinder(0.42, 0.42, 0.1, 20), Palette.ACCENT, Vector3(0, 1.1, 0))
+			part(body, cylinder(0.1, 0.1, 1.0, 12), Palette.ACCENT, Vector3(0, 0.75, -0.6), Vector3(-90, 0, 0))
+		_:
+			# Vanguard: chunky block with a shield slab in front.
+			part(body, box(Vector3(0.95, 0.9, 0.75)), c, Vector3(0, 0.45, 0))
+			part(body, box(Vector3(1.2, 0.85, 0.14)), Palette.ACCENT, Vector3(0, 0.47, -0.5))
+	label(root, hero.data.display_name, 1.9, 34)
+	return root
+
+
+## Root holds the pillar or gem plus a "Dome" child shown while the structure is locked.
+static func make_structure(s: StructureState, is_ally: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Structure%d" % s.id
+	base_decal(root, s.radius, is_ally)
+	var c := Palette.team_color(is_ally)
+	var top := 0.0
+	if s.tier == 2:
+		# Core: faceted gem on a hex plinth.
+		part(root, cylinder(s.radius, s.radius + 0.15, 0.5, 6), Palette.STONE, Vector3(0, 0.25, 0))
+		var gem := SphereMesh.new()
+		gem.radius = s.radius * 0.8
+		gem.height = s.radius * 2.4
+		gem.radial_segments = 6
+		gem.rings = 2
+		part(root, gem, c, Vector3(0, 0.5 + s.radius * 1.2, 0))
+		top = 0.5 + s.radius * 2.4
+	else:
+		# Towers: hex pillar with a team-colored crown; the inner tower is taller.
+		var h := s.data.height
+		part(root, cylinder(s.radius * 0.8, s.radius * 0.95, h, 6), Palette.STONE, Vector3(0, h / 2.0, 0))
+		part(root, cylinder(s.radius, s.radius * 0.85, 0.35, 6), c, Vector3(0, h + 0.17, 0))
+		top = h + 0.35
+	var dome := SphereMesh.new()
+	dome.radius = s.radius + 0.7
+	dome.height = (s.radius + 0.7) * 2.0
+	var dome_node := part(root, dome, Palette.LOCK_DOME, Vector3(0, 0.2, 0), Vector3.ZERO, true)
+	dome_node.name = "Dome"
+	var tag := label(root, s.data.display_name, top + 0.9, 30)
+	tag.name = "Tag"
+	return root
