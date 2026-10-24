@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"overcharge_gem"
+display_name = "Overcharge Gem"
+cost = 1100
+tier = 1
+summary = "Big ability hits +6% max HP"
+ability_damage_bonus = 0.12
+overcharge_threshold = 80.0
+overcharge_fraction = 0.06

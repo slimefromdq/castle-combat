@@ -4,8 +4,11 @@
 
 [resource]
 script = ExtResource("1_item")
-id = &"iron_shell"
-display_name = "Iron Shell"
-cost = 350
-summary = "+12% max health"
-max_hp_bonus = 0.12
+id = &"bloodthirst_blade"
+display_name = "Bloodthirst Blade"
+cost = 1000
+tier = 1
+summary = "Lifesteal; fast attacks when low"
+damage_bonus = 0.1
+lifesteal = 0.12
+low_hp_attack_speed_bonus = 0.2

@@ -21,7 +21,7 @@ static func cast_problem(sim: MatchSim, h: HeroState, slot: int) -> String:
 		return "carrying the Relay"
 	if a.effect == &"blade_rush" and _aim_hero(sim, h, a.reach) == null:
 		return "no enemy hero in reach"
-	if a.effect == &"power_shot" and _aim_any(sim, h, a.reach) == null:
+	if a.effect == &"power_shot" and aim_any(sim, h, a.reach) == null:
 		return "nothing in reach"
 	return ""
 
@@ -65,7 +65,7 @@ static func try_cast(sim: MatchSim, h: HeroState, slot: int, move: Vector2) -> b
 				if target != null and target.alive:
 					_hit(sim, h, target, a, key))
 		&"power_shot":
-			var t := _aim_any(sim, h, a.reach)
+			var t := aim_any(sim, h, a.reach)
 			info.target = t.id
 			_hit(sim, h, t, a, key)
 		&"recoil":
@@ -81,7 +81,7 @@ static func try_cast(sim: MatchSim, h: HeroState, slot: int, move: Vector2) -> b
 			var reach := a.reach + _perk_value(h, slot, &"reach_bonus")
 			var t: SimEntity = _aim_hero(sim, h, reach)
 			if t == null:
-				t = _aim_any(sim, h, reach)
+				t = aim_any(sim, h, reach)
 			h.channel = a
 			h.channel_point = t.pos if t != null else h.pos + h.facing * 6.0
 			h.channel_pulses_left = a.pulses
@@ -91,6 +91,7 @@ static func try_cast(sim: MatchSim, h: HeroState, slot: int, move: Vector2) -> b
 			info.radius = a.radius
 	h.cooldowns[slot] = h.ability_cooldown(slot)
 	sim.emit_event(&"ability_cast", info)
+	Items.on_cast(sim, h, slot)
 	return true
 
 
@@ -159,7 +160,7 @@ static func _bash_impact(sim: MatchSim, h: HeroState, a: AbilityData, knock: flo
 static func _hit(sim: MatchSim, h: HeroState, e: SimEntity, a: AbilityData, key: int) -> void:
 	var dmg := a.damage if e is HeroState or a.minion_damage <= 0.0 else a.minion_damage
 	sim.emit_event(&"ability_hit", {"hero": h.id, "target": e.id, "damage": dmg, "ability": a.id})
-	sim.apply_damage(e, dmg, h)
+	sim.apply_damage(e, dmg, h, &"ability")
 	if e is HeroState:
 		sim.on_hero_hit(h, e, key)
 
@@ -198,7 +199,8 @@ static func _aim_hero(sim: MatchSim, h: HeroState, reach: float) -> HeroState:
 	return null
 
 
-static func _aim_any(sim: MatchSim, h: HeroState, reach: float) -> SimEntity:
+## The enemy hero in reach, else the nearest valid enemy unit in reach and sight.
+static func aim_any(sim: MatchSim, h: HeroState, reach: float) -> SimEntity:
 	var best: SimEntity = _aim_hero(sim, h, reach)
 	if best != null:
 		return best

@@ -1,7 +1,7 @@
 class_name StatusFx
 extends Node3D
 ## Ability visuals that follow hero state: shield bubble, stun halo, slow and
-## Flurry rings, and the Barrage target zone. Plus one-shot rings for area casts.
+## Flurry rings, Wounds and Frenzy rings (items), and the Barrage target zone. Plus one-shot rings for area casts.
 
 var view: MatchView
 ## Per hero id: {"shield", "stun", "slow", "flurry", "zone"} nodes.
@@ -43,6 +43,11 @@ func render() -> void:
 		p.flurry.visible = h.alive and sim.time < h.flurry_until
 		p.flurry.position = at + Vector3(0, 0.1, 0)
 		p.flurry.scale = Vector3.ONE * (1.0 + 0.08 * sin(Time.get_ticks_msec() / 60.0))
+		p.wounds.visible = h.alive and sim.time < h.wounds_until
+		p.wounds.position = at + Vector3(0, 0.12, 0)
+		p.frenzy.visible = h.alive and h.frenzy_left > 0
+		p.frenzy.position = at + Vector3(0, 0.14, 0)
+		p.frenzy.scale = Vector3.ONE * (0.6 + 0.06 * sin(Time.get_ticks_msec() / 45.0))
 		p.zone.visible = h.alive and h.is_channeling()
 		if p.zone.visible:
 			var r := h.channel.radius
@@ -64,7 +69,10 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"slow": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.8, 1.0, 0.8), Vector3.ZERO, Vector3.ZERO, true),
 		"flurry": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.6, 0.2, 0.8), Vector3.ZERO, Vector3.ZERO, true),
 		"zone": UnitFactory.part(self, _ring_mesh, Color(team_c.lightened(0.2), 0.9), Vector3.ZERO, Vector3.ZERO, true),
+		"wounds": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.05, 0.1, 0.9), Vector3.ZERO, Vector3.ZERO, true),
+		"frenzy": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.2, 0.25, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 	}
+	parts.wounds.scale = Vector3(1.05, 0.03, 1.05)
 	parts.shield.scale = Vector3(0.95, 0.95, 0.95)
 	parts.stun.scale = Vector3(0.45, 0.05, 0.45)
 	parts.slow.scale = Vector3(0.9, 0.03, 0.9)

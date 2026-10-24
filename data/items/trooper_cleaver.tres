@@ -4,8 +4,10 @@
 
 [resource]
 script = ExtResource("1_item")
-id = &"grip_gloves"
-display_name = "Grip Gloves"
-cost = 350
-summary = "+8% attack damage"
-damage_bonus = 0.08
+id = &"trooper_cleaver"
+display_name = "Trooper Cleaver"
+cost = 300
+tier = 0
+summary = "+40% vs troopers, +5% damage"
+trooper_damage_bonus = 0.4
+damage_bonus = 0.05

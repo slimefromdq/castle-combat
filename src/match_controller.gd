@@ -18,19 +18,30 @@ const MINIONS := {
 	&"ranged": preload("res://data/minions/ranged.tres"),
 	&"siege": preload("res://data/minions/siege.tres"),
 }
-## The item pool (GDD 8 listed eight; Anchor Charm was cut). Players pick six.
+## The item pool, early to late. Players bring a deck of CONFIG.deck_size of them.
 const ITEMS: Array[ItemData] = [
+	preload("res://data/items/trooper_cleaver.tres"),
+	preload("res://data/items/mending_charm.tres"),
 	preload("res://data/items/fleet_sandals.tres"),
-	preload("res://data/items/iron_shell.tres"),
-	preload("res://data/items/grip_gloves.tres"),
-	preload("res://data/items/quickstring.tres"),
+	preload("res://data/items/spark_band.tres"),
+	preload("res://data/items/bloodthirst_blade.tres"),
+	preload("res://data/items/thorncut.tres"),
+	preload("res://data/items/warding_cloak.tres"),
+	preload("res://data/items/overcharge_gem.tres"),
 	preload("res://data/items/siege_banner.tres"),
-	preload("res://data/items/watchful_lens.tres"),
-	preload("res://data/items/recovery_sigil.tres"),
+	preload("res://data/items/stormcrown.tres"),
+	preload("res://data/items/reapers_rhythm.tres"),
+	preload("res://data/items/aegis_mirror.tres"),
+	preload("res://data/items/titan_core.tres"),
 ]
-## Indices into ITEMS: the deck you start with, and the one the bot always brings.
-const DEFAULT_DECK := [0, 1, 2, 3, 4, 6]
-const BOT_DECK := [0, 1, 2, 3, 5, 6]
+## Indices into ITEMS: the deck you start with in the menu.
+const DEFAULT_DECK := [0, 1, 3, 4, 5, 6, 9, 11]
+## The bot's deck for each hero it plays.
+const BOT_DECKS := {
+	&"vanguard": [0, 1, 2, 6, 7, 8, 9, 11],
+	&"scout": [0, 2, 3, 4, 5, 6, 10, 11],
+	&"gunner": [0, 1, 3, 5, 6, 7, 9, 12],
+}
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
 	preload("res://data/structures/inner_tower.tres"),
@@ -58,7 +69,8 @@ func _ready() -> void:
 	var picks: Array[HeroData] = [HEROES[hero_index], HEROES[(hero_index + 1) % HEROES.size()]]
 	sim = MatchSim.new()
 	var mine := deck if deck.size() == CONFIG.deck_size else deck_from(DEFAULT_DECK)
-	var decks := [mine, deck_from(BOT_DECK)] if local_seat == MatchSim.BLUE else [deck_from(BOT_DECK), mine]
+	var theirs := bot_deck(picks[1])
+	var decks := [mine, theirs] if local_seat == MatchSim.BLUE else [theirs, mine]
 	sim.setup(CONFIG, ARENA, picks, TIERS, MINIONS, decks)
 	view = MatchView.new()
 	add_child(view)
@@ -72,6 +84,7 @@ func _ready() -> void:
 	hud.restart_pressed.connect(func() -> void: restart_requested.emit())
 	hud.drop_pressed.connect(func() -> void: player.pending_drop = true)
 	hud.buy_pressed.connect(func(slot: int) -> void: player.pending_buy = slot)
+	hud.sell_pressed.connect(func(slot: int) -> void: player.pending_sell = slot)
 	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
 	player = LocalPlayerSource.new()
@@ -91,6 +104,10 @@ func _process(delta: float) -> void:
 		_tick()
 	view.render(_accumulator / sim.dt, delta)
 	hud.refresh(sim, local_seat, Engine.get_frames_per_second())
+
+
+static func bot_deck(hero: HeroData) -> Array[ItemData]:
+	return deck_from(BOT_DECKS.get(hero.id, DEFAULT_DECK))
 
 
 static func deck_from(indices: Array) -> Array[ItemData]:
@@ -129,9 +146,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("cast_%d" % (i + 1)):
 			player.pending_cast = i
 			return
-	for i in 6:
+	for i in CONFIG.deck_size:
 		if event.is_action_pressed("buy_%d" % (i + 1)):
-			player.pending_buy = i
+			# A card you own sells on a second press (the HUD asks first).
+			hud.card_pressed(i)
 			return
 	if event.is_action_pressed("toggle_seat"):
 		toggle_seat()

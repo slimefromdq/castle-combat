@@ -127,7 +127,26 @@ structures wear a translucent dome.
 - **Snowball risk:** a knockout now pays gold, XP and lane tempo. Catch-up XP and small,
   mostly utility perks soften it; watch for one early kill deciding the match.
 
-**Next: M4b — metrics runner and tuning, then M5 iOS.**
+**Item overhaul (Lucy's request, after M4):**
+
+- [x] 13 items in three tiers, drawing on Deadlock, Dota and League
+      (proposal: https://claude.ai/artifact/QaPSG2DUMJLYXchu4oDRZb).
+      Early: Trooper Cleaver, Mending Charm, Fleet Sandals, Spark Band.
+      Mid: Bloodthirst Blade, Thorncut (anti-heal), Warding Cloak (ability resist),
+      Overcharge Gem (% max HP vs tanks), Siege Banner.
+      Late: Stormcrown (ult storm), Reaper's Rhythm (lifesteal frenzy + shred), Aegis Mirror
+      (blocks one big ability), Titan Core (ability damage)
+- [x] Damage kinds: `basic`, `ability`, `item` (`MatchSim.apply_damage(..., kind)`); item
+      effects live in `src/sim/items.gd` (outgoing bonuses, incoming defences, on-hit, on-cast, tick)
+- [x] All healing goes through `MatchSim.heal`, so Wounds cut base healing, regen and lifesteal
+- [x] Decks hold 8 (Lucy's pick); still 3 slots; sell any owned item for 50% (Lucy's pick)
+      by pressing its card or number twice
+- [x] Bot: a deck and wishlist per hero, a counter item per enemy hero, sells its cheapest
+      lower-tier item when that pays for the next one, never rebuys what it sold
+- [x] 109 tests (13 item tests added)
+- Bot-vs-bot timings: first early item ~1:00, first mid ~4:30, first late ~9:00–12:00.
+
+**Next: metrics runner and tuning, then M5 iOS.**
 
 ## Assumptions (change by editing data)
 
@@ -160,7 +179,9 @@ structures wear a translucent dome.
   is not in yet. Gold pacing: bots own 2–3 items by 6 min, the GDD's target.
 - Pacing: bot vs an idle opponent took ~14 min to win in M1 (~10.5 min with Relay sieges), mostly the Core. Minions deal 1.5x
   to structures and towers deal 70. Real tuning waits for the M4 metrics runner.
-- Item pool is 7 after removing Anchor Charm; the GDD asks for at least 8, so a deck of 6 has little choice. Add an item soon.
+- Item damage (storm strikes, Overcharge) is resisted by Warding Cloak but not boosted by
+  ability damage, and never triggers on-hit effects (no chains). Overcharge and storms skip structures.
+- Aegis Mirror only blocks hits of 60+ before defences, so single Barrage pulses get through.
 
 ## Known gaps
 

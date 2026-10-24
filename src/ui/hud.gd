@@ -11,9 +11,10 @@ signal menu_pressed
 signal restart_pressed
 signal drop_pressed
 signal buy_pressed(slot: int)
+signal sell_pressed(slot: int)
 signal cast_pressed(slot: int)
 
-const BOTTOM_H := 240.0
+const BOTTOM_H := 292.0
 const MARGIN := 12.0
 
 var joystick: ThumbStick
@@ -41,6 +42,10 @@ var _cards_row: Control
 var _them_items: Label
 var _you_items: Label
 var _deck_seen: Array[ItemData] = []
+## Selling takes two presses: the first arms the card (shows the refund), the second sells.
+var _sell_armed := -1
+var _sell_armed_until := 0
+var _me: HeroState
 var _debug: Label
 var _touch_button: Button
 var _seat_button: Button
@@ -142,26 +147,52 @@ func _items_text(h: HeroState, cap: int) -> String:
 	return "Items: " + "  ·  ".join(names)
 
 
-## Card text and state: owned, affordable, saving up, or locked out by full slots.
+## Card text and state: owned (tap twice to sell), affordable, saving up, or locked out
+## by full slots. Card colors hint the tier: early, mid, late.
 func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
+	_me = me
 	if _deck_seen != me.deck:
 		_deck_seen = me.deck.duplicate()
 		for i in _cards.size():
 			var c := _cards[i]
 			if i < me.deck.size():
-				c.tooltip_text = "%d: %s (%d gold)\n%s" % [i + 1, me.deck[i].display_name, me.deck[i].cost, me.deck[i].summary]
+				var it := me.deck[i]
+				c.tooltip_text = "%d: %s (%d gold, %s)\n%s\nOwned: press again to sell for half." % [i + 1, it.display_name, it.cost, ["early", "mid", "late"][it.tier], it.summary]
 			c.visible = i < me.deck.size()
+	if Time.get_ticks_msec() > _sell_armed_until:
+		_sell_armed = -1
 	for i in mini(_cards.size(), me.deck.size()):
 		var item := me.deck[i]
 		var c := _cards[i]
 		var owned := me.owns(item)
 		var problem := Economy.buy_problem(sim, me, i)
-		c.disabled = problem != ""
-		var status := "OWNED" if owned else ("%d" % item.cost if problem != "item slots full" else "full")
+		c.disabled = problem != "" and not owned
+		var status := "%d" % item.cost if problem != "item slots full" else "full"
+		if owned:
+			status = "Sell +%d?" % int(Economy.sell_value(sim, item)) if _sell_armed == i else "OWNED"
 		c.text = "%s\n%s" % [item.display_name, status]
 		var color := Color("8fe388") if owned else (Color("f5d76e") if problem == "" else Color(1, 1, 1, 0.45))
+		if owned and _sell_armed == i:
+			color = Color("ff9f6e")
 		c.add_theme_color_override("font_color", color)
 		c.add_theme_color_override("font_disabled_color", color)
+		c.add_theme_color_override("font_hover_color", color)
+		c.self_modulate = [Color(0.85, 0.95, 1.0), Color(1.0, 0.92, 0.8), Color(1.0, 0.8, 1.0)][item.tier]
+
+
+## A card tap or number key: buys, or for an owned card, asks once and then sells.
+func card_pressed(i: int) -> void:
+	if _me == null or i >= _me.deck.size():
+		return
+	if not _me.owns(_me.deck[i]):
+		buy_pressed.emit(i)
+		return
+	if _sell_armed == i and Time.get_ticks_msec() <= _sell_armed_until:
+		_sell_armed = -1
+		sell_pressed.emit(i)
+	else:
+		_sell_armed = i
+		_sell_armed_until = Time.get_ticks_msec() + 2500
 
 
 ## Short event callouts under the Relay line ("Relay knocked loose!").
@@ -183,6 +214,9 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 		&"item_bought":
 			if data.team == seat:
 				text = "Bought %s" % _item_name(data.item)
+		&"item_sold":
+			if data.team == seat:
+				text = "Sold %s for %d" % [_item_name(data.item), int(data.refund)]
 		&"level_up":
 			if data.team == seat:
 				text = _level_text(data.level, seat)
@@ -378,20 +412,22 @@ func _build_bottom() -> void:
 	_gold.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_gold.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tray.add_child(_gold)
-	var cards := HBoxContainer.new()
+	var cards := GridContainer.new()
+	cards.columns = 4
 	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cards.add_theme_constant_override("separation", 5)
+	cards.add_theme_constant_override("h_separation", 5)
+	cards.add_theme_constant_override("v_separation", 5)
 	tray.add_child(cards)
 	_cards_row = cards
-	for i in 6:
-		# One tap buys: no shop screen (GDD 8). Keys 1-6 do the same.
-		var card := UiKit.button("", Vector2(0, 72))
+	for i in MatchController.CONFIG.deck_size:
+		# One tap buys: no shop screen (GDD 8). Keys 1-8 do the same.
+		var card := UiKit.button("", Vector2(0, 58))
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.custom_minimum_size.x = 50
 		card.add_theme_font_size_override("font_size", 14)
-		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		card.autowrap_mode = TextServer.AUTOWRAP_OFF
 		card.clip_text = true
-		card.pressed.connect(func() -> void: buy_pressed.emit(i))
+		card.pressed.connect(func() -> void: card_pressed(i))
 		cards.add_child(card)
 		_cards.append(card)
 	v.add_child(tray)

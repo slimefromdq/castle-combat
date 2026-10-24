@@ -46,5 +46,6 @@ hero_ko_gold = 50.0
 minion_gold_radius = 6.0
 deny_hp_fraction = 0.5
 deny_gold_fraction = 0.5
-deck_size = 6
+deck_size = 8
 max_items = 3
+sell_refund_fraction = 0.5
