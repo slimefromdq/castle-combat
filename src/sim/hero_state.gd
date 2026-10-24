@@ -13,6 +13,8 @@ var preferred_target := 0
 var preferred_lost_time := 0.0
 ## Sim time when a knocked-out hero comes back.
 var respawn_at := 0.0
+## Knockouts so far (respawn timers grow with them).
+var deaths := 0
 ## True while this hero carries the Relay (set by RelayController).
 var carrying_relay := false
 ## Speed multiplier while carrying (copied from the config by RelayController).

@@ -126,6 +126,8 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			node.get_node("Body/Dome").visible = locked
 			continue
 		node.visible = e.alive
+		if e is MinionState and e.is_power:
+			node.scale = Vector3.ONE * 1.3
 		var facing := _facing_of(e)
 		if facing != Vector2.ZERO:
 			var body: Node3D = node.get_node("Body")

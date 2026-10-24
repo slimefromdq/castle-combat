@@ -25,7 +25,7 @@ func test_destroying_the_core_ends_the_match() -> void:
 	var sim := new_sim()
 	var red := sim.structures_of(MatchSim.RED)
 	for s in red:
-		sim.apply_damage(s, s.max_hp, sim.heroes[0])
+		sim.apply_damage(s, s.max_hp * 2.0, sim.heroes[0])
 	check(not red[0].alive and not red[1].alive and not red[2].alive, "all three fell in order")
 	check(sim.over and sim.winner == MatchSim.BLUE, "blue wins when the red Core falls")
 	var t := sim.tick

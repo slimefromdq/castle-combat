@@ -12,7 +12,7 @@ extends Resource
 @export var pockets: Array[Rect2] = []
 ## Solid walls. They block movement and line of sight.
 @export var walls: Array[Rect2] = []
-## Blue positions for Outer Tower, Inner Tower, Core (in that order).
+## Blue positions for Outer Tower, Guardian, Core (in that order).
 @export var structure_positions: Array[Vector2] = []
 @export var hero_spawn := Vector2(2.6, -35.0)
 @export var minion_spawn := Vector2(0.0, -34.0)

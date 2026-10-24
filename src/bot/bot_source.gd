@@ -38,7 +38,20 @@ func build_command(sim: MatchSim) -> PlayerCommand:
 	var me := sim.heroes[team]
 	if me.alive and not sim.over:
 		cmd.cast_slot = _choose_ability(sim, me, cmd)
+		_dodge_slam(sim, me, cmd)
 	return cmd
+
+
+## A Guardian winding up a slam nearby: walk straight out of it (baiting the slam and
+## then hitting the recovering Guardian is the intended play).
+func _dodge_slam(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> void:
+	for s in sim.structures:
+		if s.alive and s.team != team and s.is_guardian() and s.slam_at >= 0.0 \
+				and me.pos.distance_to(s.pos) <= s.data.slam_radius + me.radius + 1.0:
+			var away := me.pos - s.pos
+			cmd.move = away.normalized() if away.length() > 0.01 else -MatchSim.forward(team)
+			cmd.cast_slot = -1
+			return
 
 
 ## Which ability to use this tick (-1 for none). Simple rules per kit; the bot avoids

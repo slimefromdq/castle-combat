@@ -76,6 +76,8 @@ static func fire(sim: MatchSim, a: SimEntity, t: SimEntity) -> void:
 	var called := a is StructureState and a.is_called(sim.time) and a.called_target == t.id
 	if called:
 		damage *= sim.config.tower_call_damage_mult
+	if a is StructureState:
+		damage = Pacing.structure_damage_dealt(sim, a, t, damage)
 	sim.emit_event(&"attack_fired", {"attacker": a.id, "target": t.id, "damage": damage, "from": a.pos, "to": t.pos, "called": called})
 	sim.apply_damage(t, damage, a)
 	if a is HeroState and t is HeroState:

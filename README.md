@@ -54,6 +54,12 @@ at most three at once, and selling an early item is how you make room for a late
 knockouts. Level 1, 3 and 5 unlock your abilities (5 is the ultimate); 2, 4 and 6 give
 perks. Falling behind in level earns you bonus XP.
 
+**Matches speed up.** Gold and Relay rewards grow over time; towers start tough and get
+weaker; each base has a **Guardian** whose beam grows the longer it focuses one target, and
+which slams anyone who gets close (walk out of the red ring, then hit it while it
+recovers). Killing a Guardian powers up your minions for good. Respawns get longer as the
+match goes on, and at 10:00 overtime weakens every structure.
+
 **Watch your aggro.** Hitting the enemy hero calls their nearby minions onto you, and if
 you stand inside their tower's range the tower switches to you too and hits harder. A "!"
 over a minion or tower means it has been called (red = coming for you). Tap a minion to
