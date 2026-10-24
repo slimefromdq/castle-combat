@@ -4,6 +4,7 @@ extends Node
 ## local player and the bot, and lets the 3D view and HUD draw the result.
 
 signal exit_requested
+signal restart_requested
 
 const CONFIG: MatchConfig = preload("res://data/match_config.tres")
 const ARENA: ArenaData = preload("res://data/arena_default.tres")
@@ -12,6 +13,10 @@ const HEROES: Array[HeroData] = [
 	preload("res://data/heroes/scout.tres"),
 	preload("res://data/heroes/gunner.tres"),
 ]
+const MINIONS := {
+	&"melee": preload("res://data/minions/melee.tres"),
+	&"ranged": preload("res://data/minions/ranged.tres"),
+}
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
 	preload("res://data/structures/inner_tower.tres"),
@@ -22,6 +27,8 @@ const TIERS: Array[StructureData] = [
 var hero_index := 0
 var local_seat := MatchSim.BLUE
 var touch_mode := false
+## Dev: the bot also drives the local hero (for screenshots and soak tests).
+var autopilot: BotSource
 
 var sim: MatchSim
 var view: MatchView
@@ -34,7 +41,7 @@ var _accumulator := 0.0
 func _ready() -> void:
 	var picks: Array[HeroData] = [HEROES[hero_index], HEROES[(hero_index + 1) % HEROES.size()]]
 	sim = MatchSim.new()
-	sim.setup(CONFIG, ARENA, picks, TIERS)
+	sim.setup(CONFIG, ARENA, picks, TIERS, MINIONS)
 	view = MatchView.new()
 	add_child(view)
 	view.build(sim, local_seat)
@@ -44,6 +51,7 @@ func _ready() -> void:
 	hud.touch_toggle_pressed.connect(toggle_touch)
 	hud.debug_toggle_pressed.connect(func() -> void: hud.set_debug_visible(not hud.debug_visible))
 	hud.menu_pressed.connect(func() -> void: exit_requested.emit())
+	hud.restart_pressed.connect(func() -> void: restart_requested.emit())
 	player = LocalPlayerSource.new()
 	player.team = local_seat
 	player.joystick = hud.joystick
@@ -63,14 +71,31 @@ func _process(delta: float) -> void:
 	hud.refresh(sim, local_seat, Engine.get_frames_per_second())
 
 
+## Dev: run the sim forward instantly, e.g. to screenshot a mid-match moment.
+func fast_forward(seconds: float) -> void:
+	for i in int(seconds / sim.dt):
+		_tick()
+	view.render(1.0, 0.0, true)
+
+
 func _tick() -> void:
 	var commands: Array = [null, null]
-	commands[player.team] = player.build_command(sim)
+	if autopilot != null:
+		autopilot.team = player.team
+		commands[player.team] = autopilot.build_command(sim)
+	else:
+		commands[player.team] = player.build_command(sim)
 	commands[bot.team] = bot.build_command(sim)
 	sim.step(commands)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Click or tap a unit to focus it (for last hits); click empty ground to clear.
+	var tap: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	if tap or (event is InputEventScreenTouch and event.pressed):
+		var id := view.pick_enemy(event.position)
+		player.pending_target = id if id > 0 else -1
+		return
 	if event.is_action_pressed("toggle_seat"):
 		toggle_seat()
 	elif event.is_action_pressed("toggle_touch"):

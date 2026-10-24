@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MinionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/minion_data.gd" id="1_minion"]
+
+[resource]
+script = ExtResource("1_minion")
+id = &"melee"
+display_name = "Melee minion"
+shape = "melee"
+max_hp = 280.0
+move_speed = 3.0
+radius = 0.38
+attack_range = 0.9
+attack_damage = 16.0
+attack_windup = 0.25
+attack_interval = 1.0
+structure_damage_mult = 1.5

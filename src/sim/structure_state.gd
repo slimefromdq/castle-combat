@@ -17,3 +17,7 @@ func setup(structure_data: StructureData, structure_tier: int, structure_team: i
 	pos = at
 	prev_pos = at
 	blocks_movement = true
+	attack_range = structure_data.attack_range
+	attack_damage = structure_data.attack_damage
+	attack_windup = 0.35
+	attack_interval = structure_data.attack_interval

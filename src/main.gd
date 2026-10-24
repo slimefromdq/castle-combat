@@ -19,6 +19,7 @@ func _ready() -> void:
 
 ## Dev-only flags for smoke tests and screenshots, e.g.
 ## godot -- --autoplay --seat=red --touch --walk-up --screenshot=shot.png --frames=90
+## godot -- --autoplay --autopilot --skip=90   (bot plays you; jump 90 s into the match)
 func _apply_dev_args(args: PackedStringArray) -> void:
 	var frames := 60
 	var shot := ""
@@ -27,6 +28,10 @@ func _apply_dev_args(args: PackedStringArray) -> void:
 			_match.toggle_seat()
 		elif a == "--touch":
 			_match.toggle_touch()
+		elif a == "--autopilot":
+			_match.autopilot = BotSource.new()
+		elif a.begins_with("--skip="):
+			_match.fast_forward(float(a.get_slice("=", 1)))
 		elif a == "--walk-up":
 			Input.action_press("move_up")
 		elif a.begins_with("--frames="):
@@ -46,7 +51,13 @@ func _start_match() -> void:
 	_match = MatchController.new()
 	_match.hero_index = _hero_index
 	_match.exit_requested.connect(_end_match)
+	_match.restart_requested.connect(_restart_match)
 	add_child(_match)
+
+
+func _restart_match() -> void:
+	_end_match()
+	_start_match()
 
 
 func _end_match() -> void:
@@ -81,7 +92,7 @@ func _build_menu() -> void:
 	var title := UiKit.label("Castle Combat", 64)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(title)
-	var sub := UiKit.label("Prototype M0 · walk the lane", 22, Color(1, 1, 1, 0.6))
+	var sub := UiKit.label("Prototype M1 · combat loop", 22, Color(1, 1, 1, 0.6))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
 	v.add_child(UiKit.label("Pick a hero", 26))
@@ -99,7 +110,7 @@ func _build_menu() -> void:
 	play.add_theme_font_size_override("font_size", 32)
 	play.pressed.connect(_start_match)
 	v.add_child(play)
-	var help := UiKit.label("WASD / arrows move · F2 swap seat · F3 touch mode · F1 debug · Esc menu", 17, Color(1, 1, 1, 0.5))
+	var help := UiKit.label("WASD / arrows move · stop to attack · click a unit to focus it · F2 swap seat · F3 touch mode · F1 debug · Esc menu", 17, Color(1, 1, 1, 0.5))
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(help)

@@ -5,7 +5,7 @@ fired basic attack lands, and matches are won through waves, towers and the Rela
 objective as much as through the duel. Working title; the design doc calls it
 UNDERTOW: RELAY ([docs/GDD_v0.1.md](docs/GDD_v0.1.md)).
 
-**Status: Milestone 0** — a 3D graybox you can walk around. Combat starts in M1.
+**Status: Milestone 1** — a full match against a bot: waves, towers, stop-to-attack combat, win or lose. The Relay arrives in M2, gold and items in M3.
 
 ## Play it
 
@@ -21,7 +21,9 @@ UNDERTOW: RELAY ([docs/GDD_v0.1.md](docs/GDD_v0.1.md)).
 | Action | Desktop | Phone (or touch mode on desktop) |
 | --- | --- | --- |
 | Move | WASD / arrow keys | Floating joystick: drag in the lower left |
-| Ability / Ultimate | Q / E | Right-thumb buttons (M1) |
+| Attack | Stand still: the nearest valid target is attacked automatically | Same |
+| Focus a target (for last hits) | Left-click an enemy unit; click the ground to clear | Tap an enemy unit |
+| Ability / Ultimate | Q / E (later milestone) | Right-thumb buttons |
 | Buy item card | 1–6 | Tap a card (M3) |
 | Drop the Relay | F | Button while carrying (M2) |
 | Swap seat (debug) | F2 | Seat button |
@@ -38,6 +40,8 @@ godot --headless --path . --import                 # first time, builds the clas
 godot --headless --path . -s tests/run_tests.gd    # rule tests, exit code 1 on failure
 godot --path . -- --autoplay                       # skip the menu
 godot --path . -- --autoplay --seat=red --touch --walk-up --screenshot=shot.png --frames=120
+godot --path . -- --autoplay --autopilot --skip=90   # the bot plays you, 90 s into the match
+godot --headless --path . -s tests/run_tests.gd -- combat   # one suite
 ```
 
 CI (`.github/workflows/build.yml`) runs the tests, a smoke run, and exports Windows + web
