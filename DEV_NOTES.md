@@ -85,6 +85,10 @@ structures wear a translucent dome.
       if it is within 6 m of the minion when it dies (Lucy's accessibility rule, shown as a
       faint gold circle, "+20" pops up), or if it landed the killing blow from farther out;
       50 to the other hero on every knockout
+- [x] Denies (Lucy's pick): tap your own minion at or below 50% HP and stand still to hit
+      it; if you land the kill the enemy collects only half its gold. Auto-targeting never
+      picks your own minions; deniable ones get a white bar frame. The bot denies only when
+      the enemy hero is close enough to collect
 - [x] Eight items from GDD 8 as `data/items/*.tres`; pick exactly six in the menu (default
       deck pre-selected); one-tap buy (cards or keys 1–6), max three, no duplicates,
       permanent for the match, kept through knockouts
