@@ -8,6 +8,8 @@ var joystick: ThumbStick
 var pending_target := 0
 ## Set by the F key or the Drop button; consumed by the next command.
 var pending_drop := false
+## Item card slot to buy (keys 1-6 or a tapped card), -1 for none.
+var pending_buy := -1
 
 
 func build_command(_sim: MatchSim) -> PlayerCommand:
@@ -22,6 +24,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	cmd.ultimate = Input.is_action_pressed("ultimate")
 	cmd.drop_relay = pending_drop
 	pending_drop = false
+	cmd.buy_slot = pending_buy
+	pending_buy = -1
 	return cmd
 
 

@@ -18,6 +18,14 @@ var carrying_relay := false
 ## Speed multiplier while carrying (copied from the config by RelayController).
 var carry_speed_mult := 1.0
 
+## Economy: gold on hand, the six-card pre-match deck, and the items bought from it.
+var gold := 0.0
+var deck: Array[ItemData] = []
+var items: Array[ItemData] = []
+## Sim time of the last damage from the enemy hero (Recovery Sigil waits on it).
+var last_hero_damage_time := -1000.0
+var _move_speed_mult := 1.0
+
 
 func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 	kind = Kind.HERO
@@ -37,4 +45,27 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 
 
 func move_speed() -> float:
-	return data.move_speed * (carry_speed_mult if carrying_relay else 1.0)
+	return data.move_speed * _move_speed_mult * (carry_speed_mult if carrying_relay else 1.0)
+
+
+func owns(item: ItemData) -> bool:
+	return items.has(item)
+
+
+func item_total(property: StringName) -> float:
+	var sum := 0.0
+	for item in items:
+		sum += float(item.get(property))
+	return sum
+
+
+## Base stats from HeroData plus every owned item. Extra max HP is added to current HP.
+func recompute_stats() -> void:
+	var old_max := max_hp
+	max_hp = data.max_hp * (1.0 + item_total(&"max_hp_bonus"))
+	if alive:
+		hp = minf(max_hp, hp + max_hp - old_max)
+	attack_damage = data.attack_damage * (1.0 + item_total(&"damage_bonus"))
+	attack_interval = data.attack_interval / (1.0 + item_total(&"attack_speed_bonus"))
+	attack_range = data.attack_range * (1.0 + item_total(&"range_bonus"))
+	_move_speed_mult = 1.0 + item_total(&"move_speed_bonus")

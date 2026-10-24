@@ -10,6 +10,12 @@ extends CommandSource
 var last_hit := true
 var _healing := false
 var _sim: MatchSim
+## Items the bot buys, in order, when it can afford them and they are in its deck.
+const WISHLISTS := {
+	&"vanguard": [&"iron_shell", &"grip_gloves", &"quickstring", &"recovery_sigil"],
+	&"scout": [&"grip_gloves", &"fleet_sandals", &"quickstring", &"iron_shell"],
+	&"gunner": [&"quickstring", &"grip_gloves", &"watchful_lens", &"iron_shell"],
+}
 var _points: Array[Vector2] = []
 
 
@@ -28,6 +34,7 @@ func build_command(sim: MatchSim) -> PlayerCommand:
 	var home := sim.front_structure(team)
 	var their_front := sim.front_structure(1 - team)
 	var relay := sim.relay
+	cmd.buy_slot = _next_purchase(sim, me)
 	if last_hit:
 		cmd.target_id = _last_hit_target(sim, me)
 
@@ -183,6 +190,17 @@ func _last_hit_target(sim: MatchSim, me: HeroState) -> int:
 		if CombatSystem.is_valid_target(sim, me, m) and m.hp <= me.attack_damage and CombatSystem.in_range(sim, me, m):
 			return m.id
 	return 0
+
+
+## The first wishlist item the bot can buy right now (deck slot), or -1.
+func _next_purchase(sim: MatchSim, me: HeroState) -> int:
+	var wishlist: Array = WISHLISTS.get(me.data.id, [])
+	for id: StringName in wishlist:
+		for slot in me.deck.size():
+			if me.deck[slot].id == id and not me.owns(me.deck[slot]):
+				# Save for this one rather than buying something further down the list.
+				return slot if Economy.buy_problem(sim, me, slot) == "" else -1
+	return -1
 
 
 func _enemy_minions_near(sim: MatchSim, p: Vector2, radius: float) -> int:

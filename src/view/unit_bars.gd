@@ -55,7 +55,7 @@ func _draw_relay_pointer(cam: Camera3D) -> void:
 	if carrier != null:
 		at = view.unit_position(carrier.id) + Vector3(0, 2.7, 0)
 	var screen := get_viewport_rect().size
-	var area := Rect2(Vector2(36, 270), Vector2(screen.x - 72, screen.y - 270 - 250))
+	var area := Rect2(Vector2(36, 300), Vector2(screen.x - 72, screen.y - 300 - 280))
 	var p := cam.unproject_position(at)
 	if not cam.is_position_behind(at) and area.has_point(p):
 		return

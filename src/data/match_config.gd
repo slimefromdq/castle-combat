@@ -63,5 +63,11 @@ extends Resource
 ## Expiry timer after a dropped Relay returns home, so it never vanishes without warning.
 @export var relay_return_expire_time := 12.0
 
-@export_group("Economy (M3)")
+@export_group("Economy")
 @export var passive_gold_per_second := 2.0
+@export var starting_gold := 0.0
+## Paid to the opposing hero whenever a hero is knocked out, whoever landed the blow.
+@export var hero_ko_gold := 50.0
+## Items in a pre-match deck, and how many of them a hero may own at once.
+@export var deck_size := 6
+@export var max_items := 3
