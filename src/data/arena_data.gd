@@ -4,7 +4,7 @@ extends Resource
 ## Blue's Core sits at negative y. Everything is point-symmetric: red's copy of a
 ## blue position p is -p, which is the GDD's 180-degree rotation.
 
-@export var half_length := 30.0
+@export var half_length := 42.0
 @export var lane_half_width := 5.0
 ## Walkable ground pieces, used for visuals.
 @export var floors: Array[Rect2] = []
@@ -14,8 +14,8 @@ extends Resource
 @export var walls: Array[Rect2] = []
 ## Blue positions for Outer Tower, Inner Tower, Core (in that order).
 @export var structure_positions: Array[Vector2] = []
-@export var hero_spawn := Vector2(2.2, -24.0)
-@export var minion_spawn := Vector2(0.0, -23.5)
+@export var hero_spawn := Vector2(2.6, -35.0)
+@export var minion_spawn := Vector2(0.0, -34.0)
 
 
 static func mirror_rect(r: Rect2) -> Rect2:
