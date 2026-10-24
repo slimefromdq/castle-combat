@@ -18,6 +18,8 @@ const BINDINGS := {
 	"buy_4": [KEY_4],
 	"buy_5": [KEY_5],
 	"buy_6": [KEY_6],
+	"buy_7": [KEY_7],
+	"buy_8": [KEY_8],
 	"toggle_debug": [KEY_F1],
 	"toggle_seat": [KEY_F2],
 	"toggle_touch": [KEY_F3],

@@ -10,17 +10,27 @@ extends CommandSource
 var last_hit := true
 var _healing := false
 var _sim: MatchSim
-## Items the bot buys, in order, when it can afford them and they are in its deck.
+## Items the bot buys, in order, when they are in its deck. Early items get sold to
+## make room for later ones.
 const WISHLISTS := {
-	&"vanguard": [&"iron_shell", &"grip_gloves", &"quickstring", &"recovery_sigil"],
-	&"scout": [&"grip_gloves", &"fleet_sandals", &"quickstring", &"iron_shell"],
-	&"gunner": [&"quickstring", &"grip_gloves", &"watchful_lens", &"iron_shell"],
+	&"vanguard": [&"mending_charm", &"trooper_cleaver", &"overcharge_gem", &"stormcrown", &"aegis_mirror"],
+	&"scout": [&"trooper_cleaver", &"spark_band", &"bloodthirst_blade", &"reapers_rhythm", &"aegis_mirror"],
+	&"gunner": [&"mending_charm", &"spark_band", &"overcharge_gem", &"titan_core", &"stormcrown"],
+}
+## The counter item the bot slots in as its first mid item against each enemy hero.
+const COUNTERS := {
+	&"gunner": &"warding_cloak",
+	&"vanguard": &"overcharge_gem",
+	&"scout": &"thorncut",
 }
 var _points: Array[Vector2] = []
+## Items the bot sold this match (it never buys them back).
+var _sold := {}
 
 
 func reset() -> void:
 	_healing = false
+	_sold.clear()
 
 
 func build_command(sim: MatchSim) -> PlayerCommand:
@@ -82,7 +92,9 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	var home := sim.front_structure(team)
 	var their_front := sim.front_structure(1 - team)
 	var relay := sim.relay
-	cmd.buy_slot = _next_purchase(sim, me)
+	var shop := _shop(sim, me)
+	cmd.buy_slot = shop.x
+	cmd.sell_slot = shop.y
 	if last_hit:
 		cmd.target_id = _last_hit_target(sim, me)
 
@@ -250,14 +262,44 @@ func _last_hit_target(sim: MatchSim, me: HeroState) -> int:
 	return deny
 
 
-## The first wishlist item the bot can buy right now (deck slot), or -1.
-func _next_purchase(sim: MatchSim, me: HeroState) -> int:
-	var wishlist: Array = WISHLISTS.get(me.data.id, [])
-	for id: StringName in wishlist:
-		for slot in me.deck.size():
-			if me.deck[slot].id == id and not me.owns(me.deck[slot]):
-				# Save for this one rather than buying something further down the list.
-				return slot if Economy.buy_problem(sim, me, slot) == "" else -1
+## The wishlist with the counter for this matchup moved in as the first mid item.
+func _wishlist(sim: MatchSim, me: HeroState) -> Array:
+	var wish: Array = WISHLISTS.get(me.data.id, []).duplicate()
+	var counter: StringName = COUNTERS.get(sim.heroes[1 - team].data.id, &"")
+	if counter != &"" and _deck_slot(me, counter) >= 0 and not wish.has(counter):
+		wish.insert(mini(2, wish.size()), counter)
+	return wish
+
+
+## (buy slot, sell slot) for this tick, -1 for none. Saves up for the next wishlist
+## item; when slots are full, sells the cheapest lower-tier item once that covers it.
+func _shop(sim: MatchSim, me: HeroState) -> Vector2i:
+	for id: StringName in _wishlist(sim, me):
+		var slot := _deck_slot(me, id)
+		if slot < 0 or me.owns(me.deck[slot]) or _sold.has(id):
+			continue
+		var want := me.deck[slot]
+		var problem := Economy.buy_problem(sim, me, slot)
+		if problem == "":
+			return Vector2i(slot, -1)
+		if problem != "item slots full":
+			return Vector2i(-1, -1)
+		var sell := -1
+		for i in me.deck.size():
+			var it := me.deck[i]
+			if me.owns(it) and it.tier < want.tier and (sell < 0 or it.cost < me.deck[sell].cost):
+				sell = i
+		if sell >= 0 and me.gold + Economy.sell_value(sim, me.deck[sell]) + 0.0001 >= want.cost:
+			_sold[me.deck[sell].id] = true
+			return Vector2i(-1, sell)
+		return Vector2i(-1, -1)
+	return Vector2i(-1, -1)
+
+
+func _deck_slot(me: HeroState, id: StringName) -> int:
+	for i in me.deck.size():
+		if me.deck[i].id == id:
+			return i
 	return -1
 
 

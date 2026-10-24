@@ -4,8 +4,10 @@
 
 [resource]
 script = ExtResource("1_item")
-id = &"quickstring"
-display_name = "Quickstring"
-cost = 400
-summary = "+10% attack speed"
-attack_speed_bonus = 0.1
+id = &"warding_cloak"
+display_name = "Warding Cloak"
+cost = 1000
+tier = 1
+summary = "+10% HP, -25% ability damage"
+max_hp_bonus = 0.1
+ability_resist = 0.25

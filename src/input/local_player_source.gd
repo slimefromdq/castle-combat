@@ -8,8 +8,9 @@ var joystick: ThumbStick
 var pending_target := 0
 ## Set by the F key or the Drop button; consumed by the next command.
 var pending_drop := false
-## Item card slot to buy (keys 1-6 or a tapped card), -1 for none.
+## Item card slot to buy or sell (keys 1-8 or a tapped card), -1 for none.
 var pending_buy := -1
+var pending_sell := -1
 ## Ability to cast (Q/E/R or a button), -1 for none.
 var pending_cast := -1
 
@@ -28,6 +29,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_drop = false
 	cmd.buy_slot = pending_buy
 	pending_buy = -1
+	cmd.sell_slot = pending_sell
+	pending_sell = -1
 	return cmd
 
 

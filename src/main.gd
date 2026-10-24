@@ -82,7 +82,7 @@ func _pick(i: int) -> void:
 	_blurb.text = MatchController.HEROES[i].blurb
 
 
-## Toggle an item in or out of the deck; the deck holds exactly six to play.
+## Toggle an item in or out of the deck; the deck must be full to play.
 func _toggle_item(i: int) -> void:
 	if _deck.has(i):
 		_deck.erase(i)
@@ -112,13 +112,13 @@ func _build_menu() -> void:
 	center.theme = UiKit.make_theme()
 	_menu.add_child(center)
 	var v := VBoxContainer.new()
-	v.custom_minimum_size = Vector2(560, 0)
+	v.custom_minimum_size = Vector2(660, 0)
 	v.add_theme_constant_override("separation", 18)
 	center.add_child(v)
 	var title := UiKit.label("Castle Combat", 64)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(title)
-	var sub := UiKit.label("Prototype M3 · gold and items", 22, Color(1, 1, 1, 0.6))
+	var sub := UiKit.label("Prototype · levels, abilities and item decks", 22, Color(1, 1, 1, 0.6))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(sub)
 	v.add_child(UiKit.label("Pick a hero", 26))
@@ -130,19 +130,21 @@ func _build_menu() -> void:
 		_hero_buttons.append(b)
 	_blurb = UiKit.label("", 20, Color(1, 1, 1, 0.75))
 	_blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_blurb.custom_minimum_size = Vector2(560, 60)
+	_blurb.custom_minimum_size = Vector2(660, 60)
 	v.add_child(_blurb)
 	_deck_label = UiKit.label("", 26)
 	v.add_child(_deck_label)
 	var grid := GridContainer.new()
-	grid.columns = 2
+	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 8)
 	v.add_child(grid)
 	for i in MatchController.ITEMS.size():
 		var item := MatchController.ITEMS[i]
-		var b := UiKit.button("%s · %d\n%s" % [item.display_name, item.cost, item.summary], Vector2(276, 66))
-		b.add_theme_font_size_override("font_size", 16)
+		var b := UiKit.button("%s · %d\n%s" % [item.display_name, item.cost, item.summary], Vector2(212, 60))
+		b.add_theme_font_size_override("font_size", 13)
+		b.tooltip_text = "%s (%s item)\n%s" % [item.display_name, ["early", "mid", "late"][item.tier], item.summary]
+		b.self_modulate = [Color(0.85, 0.95, 1.0), Color(1.0, 0.92, 0.8), Color(1.0, 0.8, 1.0)][item.tier]
 		b.toggle_mode = true
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.clip_text = true
@@ -153,7 +155,7 @@ func _build_menu() -> void:
 	_play.add_theme_font_size_override("font_size", 32)
 	_play.pressed.connect(_start_match)
 	v.add_child(_play)
-	var help := UiKit.label("WASD / arrows move · stop to attack · click a unit to focus it · 1-6 buy items · Tab hide cards · F drop Relay · F2 swap seat · F3 touch · F1 debug · Esc menu", 17, Color(1, 1, 1, 0.5))
+	var help := UiKit.label("WASD / arrows move · stop to attack · click a unit to focus it · 1-8 buy items (press an owned one twice to sell) · Tab hide cards · F drop Relay · F2 swap seat · F3 touch · F1 debug · Esc menu", 17, Color(1, 1, 1, 0.5))
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(help)

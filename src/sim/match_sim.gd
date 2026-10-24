@@ -80,6 +80,7 @@ func step(commands: Array) -> void:
 	_respawn_heroes()
 	_heal_at_base()
 	Economy.tick(self)
+	Items.tick(self)
 	Leveling.tick(self)
 	for team in [BLUE, RED]:
 		var cmd: PlayerCommand = commands[team] if team < commands.size() else null
@@ -89,6 +90,8 @@ func step(commands: Array) -> void:
 		_apply_target_command(hero, cmd)
 		if cmd.drop_relay:
 			relay.request_drop(self, hero)
+		if cmd.sell_slot >= 0:
+			Economy.try_sell(self, hero, cmd.sell_slot)
 		if cmd.buy_slot >= 0:
 			Economy.try_buy(self, hero, cmd.buy_slot)
 		hero._now = time
@@ -157,20 +160,44 @@ func front_structure(team: int) -> StructureState:
 	return null
 
 
-func apply_damage(target: SimEntity, amount: float, source: SimEntity) -> void:
+## Deals damage and returns the HP actually removed. kind is &"basic", &"ability" or
+## &"item" (see Items): hero sources add item bonuses, hero targets apply their items,
+## perks and shields, and hero hits then trigger on-hit item effects.
+func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &"basic") -> float:
 	if not target.alive or amount <= 0.0:
-		return
+		return 0.0
 	if target is StructureState and not is_exposed(target):
-		return
+		return 0.0
+	var hero_src := source as HeroState
+	if hero_src != null:
+		amount = Items.outgoing(self, hero_src, target, amount, kind)
+	var raw := amount
 	if target is HeroState:
+		amount = Items.incoming(self, source, target, amount, kind)
 		amount = Abilities.modify_hero_damage(self, source, target, amount)
-		if amount <= 0.0:
-			return
-		if source is HeroState:
+		if hero_src != null and hero_src.team != target.team:
 			target.last_hero_damage_time = time
-	target.hp = maxf(0.0, target.hp - amount)
-	if target.hp <= 0.0:
-		_kill(target, source)
+			target.last_hero_combat_time = time
+			hero_src.last_hero_combat_time = time
+	var dealt := minf(target.hp, maxf(0.0, amount))
+	if amount > 0.0:
+		target.hp = maxf(0.0, target.hp - amount)
+		if target.hp <= 0.0:
+			_kill(target, source)
+	if hero_src != null:
+		Items.after_hit(self, hero_src, target, dealt, raw, kind)
+	return dealt
+
+
+## Heals a hero, less while it has Wounds (Thorncut). Returns the HP restored.
+func heal(h: HeroState, amount: float) -> float:
+	if not h.alive or amount <= 0.0:
+		return 0.0
+	if time < h.wounds_until:
+		amount *= 1.0 - h.wounds_amount
+	var before := h.hp
+	h.hp = minf(h.max_hp, h.hp + amount)
+	return h.hp - before
 
 
 ## Hero-hit aggro. Called when a hero's attack lands on the enemy hero: the victim's
@@ -260,7 +287,7 @@ func _heal_at_base() -> void:
 			continue
 		var core := structures_of(h.team)[structures_of(h.team).size() - 1]
 		if h.pos.distance_to(core.pos) <= config.base_heal_radius:
-			h.hp = minf(h.max_hp, h.hp + h.max_hp * config.base_heal_per_second * dt)
+			heal(h, h.max_hp * config.base_heal_per_second * dt)
 
 
 func _apply_target_command(hero: HeroState, cmd: PlayerCommand) -> void:

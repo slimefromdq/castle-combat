@@ -6,7 +6,9 @@
 script = ExtResource("1_item")
 id = &"siege_banner"
 display_name = "Siege Banner"
-cost = 450
-summary = "+12% minion siege damage nearby"
-siege_aura_bonus = 0.12
+cost = 900
+tier = 1
+summary = "+15% vs towers; troopers +20%"
+siege_aura_bonus = 0.2
 siege_aura_radius = 7.0
+structure_damage_bonus = 0.15

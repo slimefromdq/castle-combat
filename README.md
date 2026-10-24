@@ -7,7 +7,8 @@ UNDERTOW: RELAY ([docs/GDD_v0.1.md](docs/GDD_v0.1.md)).
 
 **Status: Milestone 4** — a full match against a bot with waves, towers, stop-to-attack
 combat, hero-hit aggro, the Relay (pick it up, carry it across, deliver it for a siege
-minion), gold with a six-card item deck you pick before the match (buy up to three), and
+minion), gold with an eight-card item deck you pick before the match (own up to three, sell
+for half to make room), and
 six hero levels that unlock three abilities and three perks.
 
 ## Play it
@@ -27,7 +28,8 @@ six hero levels that unlock three abilities and three perks.
 | Attack | Stand still: the nearest valid target is attacked automatically | Same |
 | Focus a target (for last hits) | Left-click an enemy unit; click the ground to clear | Tap an enemy unit |
 | Abilities (unlock at Lv 1 / 3 / 5) | Q / E / R | Right-thumb buttons |
-| Buy item card | 1–6 | Tap a card |
+| Buy item card | 1–8 | Tap a card |
+| Sell an owned item (half price back) | Its number twice | Tap its card twice |
 | Hide / show the item cards | Tab | — |
 | Pick up / deliver the Relay | Stand in the gold ring / the outlined pocket | Same |
 | Drop the Relay | F | Drop button while carrying |
@@ -42,6 +44,11 @@ There is no attack button on purpose: standing still is how you attack.
 gold, whoever killed it. A killing blow from farther away pays too.
 **Denies:** once one of your own minions drops to half health its bar gets a white frame;
 tap it and stand still to finish it yourself, and the enemy only collects half its gold.
+
+**Items:** thirteen items in three tiers. Early items (300–400) help in lane, mid items
+(900–1,100) answer the enemy (anti-heal, ability resist, damage that hurts tanks) or push
+your plan, and late items (2,000–2,400) change how fights go. Your deck holds eight, you own
+at most three at once, and selling an early item is how you make room for a late one.
 
 **Levels:** you earn XP over time, from enemy minions (same rule as gold) and from
 knockouts. Level 1, 3 and 5 unlock your abilities (5 is the ultimate); 2, 4 and 6 give

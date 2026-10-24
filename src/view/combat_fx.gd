@@ -32,6 +32,21 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 	if type == &"minion_denied" and data.team == view.local_seat:
 		_spawn_gold_text("Denied!", Color(0.85, 0.92, 1.0))
 		return
+	if type == &"storm_strike":
+		var tgt: SimEntity = view.sim.get_entity(data.target)
+		if tgt != null:
+			var at := view.unit_position(tgt.id)
+			var bolt := UnitFactory.part(self, UnitFactory.cylinder(0.12, 0.3, 9.0, 8), Color("b8e0ff"), at + Vector3(0, 4.5, 0), Vector3.ZERO, true)
+			_puffs.append({"node": bolt, "t": 0.0, "size": 1.0, "bolt": true})
+			_spawn_puff(at + Vector3(0, 0.6, 0), true)
+		return
+	if type == &"item_proc":
+		var words := {&"aegis_mirror": "Blocked!", &"spark_band": "Spark!", &"reapers_rhythm": "Frenzy!", &"overcharge_gem": "Overcharge!"}
+		if words.has(data.item):
+			var who: SimEntity = view.sim.get_entity(data.target if data.item == &"overcharge_gem" else data.hero)
+			if who != null:
+				_spawn_text_at(words[data.item], Color("c9a7ff"), view.unit_position(who.id) + Vector3(-0.4, 2.6, 0))
+		return
 	if type == &"ability_hit":
 		var src: SimEntity = view.sim.get_entity(data.hero)
 		var tgt: SimEntity = view.sim.get_entity(data.target)
@@ -88,16 +103,22 @@ func _process(delta: float) -> void:
 			p.node.queue_free()
 			_puffs.remove_at(i)
 			continue
-		p.node.scale = Vector3.ONE * lerpf(0.4, p.size, k)
+		if p.has("bolt"):
+			p.node.scale = Vector3(1.0 - k, 1.0, 1.0 - k)
+		else:
+			p.node.scale = Vector3.ONE * lerpf(0.4, p.size, k)
 		var mat: StandardMaterial3D = p.node.material_override
 		mat.albedo_color.a = 0.9 * (1.0 - k)
 
 
 ## "+20" in gold, rising from your hero.
 func _spawn_gold_text(text: String, color: Color) -> void:
+	_spawn_text_at(text, color, view.unit_position(view.sim.heroes[view.local_seat].id) + Vector3(0.4, 2.3, 0))
+
+
+func _spawn_text_at(text: String, color: Color, start: Vector3) -> void:
 	var l := UnitFactory.label(self, text, 0.0, 44)
 	l.modulate = color
-	var start := view.unit_position(view.sim.heroes[view.local_seat].id) + Vector3(0.4, 2.3, 0)
 	l.position = start
 	_texts.append({"node": l, "t": 0.0, "from": start})
 

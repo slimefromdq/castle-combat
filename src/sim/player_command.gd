@@ -10,5 +10,7 @@ var target_id := 0
 ## Ability to cast this tick: 0, 1 or 2 (the ultimate), or -1.
 var cast_slot := -1
 var drop_relay := false
-## Item card slot 0..5 to buy, or -1. (M3)
+## Deck card slot to buy, or -1.
 var buy_slot := -1
+## Deck card slot whose owned item to sell back, or -1.
+var sell_slot := -1

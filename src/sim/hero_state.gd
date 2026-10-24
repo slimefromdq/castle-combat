@@ -22,8 +22,23 @@ var carry_speed_mult := 1.0
 var gold := 0.0
 var deck: Array[ItemData] = []
 var items: Array[ItemData] = []
-## Sim time of the last damage from the enemy hero (Recovery Sigil waits on it).
+## Sim time of the last damage from the enemy hero (regen items wait on it).
 var last_hero_damage_time := -1000.0
+## Sim time of the last hero damage dealt or taken ("out of hero combat" checks).
+var last_hero_combat_time := -1000.0
+## Item effects on this hero: Wounds (less healing), shred (more damage taken from the
+## enemy hero), an armed Spark Band, a running storm, Reaper's Rhythm, Aegis recharge.
+var wounds_until := 0.0
+var wounds_amount := 0.0
+var shred_until := 0.0
+var shred_amount := 0.0
+var spark_until := 0.0
+var storm_left := 0
+var storm_next := 0.0
+var storm_item: ItemData
+var rhythm_count := 0
+var frenzy_left := 0
+var aegis_ready_at := 0.0
 var _move_speed_mult := 1.0
 
 ## Levels and abilities. cooldowns[i] is seconds until ability i is ready.
@@ -69,7 +84,14 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 
 func move_speed() -> float:
 	var slowed := 1.0 - (slow_amount if _now < slow_until else 0.0)
-	return data.move_speed * _move_speed_mult * (carry_speed_mult if carrying_relay else 1.0) * slowed
+	var mult := _move_speed_mult
+	if _now - last_hero_combat_time >= OUT_OF_COMBAT_DELAY:
+		mult += item_total(&"out_of_combat_speed_bonus")
+	return data.move_speed * mult * (carry_speed_mult if carrying_relay else 1.0) * slowed
+
+
+## Seconds without dealing or taking hero damage before you count as out of combat.
+const OUT_OF_COMBAT_DELAY := 5.0
 
 
 ## Set by MatchSim each tick so speed and attack-rate queries can check timed effects.
@@ -77,7 +99,10 @@ var _now := 0.0
 
 
 func current_interval(time: float) -> float:
-	return attack_interval / (1.0 + (flurry_bonus if time < flurry_until else 0.0))
+	var bonus := flurry_bonus if time < flurry_until else 0.0
+	if hp < max_hp * 0.5:
+		bonus += item_total(&"low_hp_attack_speed_bonus")
+	return attack_interval / (1.0 + bonus)
 
 
 func is_stunned(time: float) -> bool:
@@ -118,6 +143,8 @@ func ability_cooldown(i: int) -> float:
 	for p in owned_perks():
 		if p.ability_index == i:
 			cd -= p.cooldown_cut
+	if i == 2:
+		cd *= 1.0 - item_total(&"ult_cooldown_cut")
 	return maxf(1.0, cd)
 
 
@@ -139,10 +166,23 @@ func clear_effects() -> void:
 	forced_vel = Vector2.ZERO
 	forced_action = Callable()
 	channel = null
+	wounds_until = 0.0
+	shred_until = 0.0
+	spark_until = 0.0
+	storm_left = 0
+	frenzy_left = 0
 
 
 func owns(item: ItemData) -> bool:
 	return items.has(item)
+
+
+## The first owned item with a non-zero value for property, or null.
+func item_with(property: StringName) -> ItemData:
+	for item in items:
+		if float(item.get(property)) != 0.0:
+			return item
+	return null
 
 
 func item_total(property: StringName) -> float:
@@ -152,12 +192,13 @@ func item_total(property: StringName) -> float:
 	return sum
 
 
-## Base stats from HeroData plus every owned item. Extra max HP is added to current HP.
+## Base stats from HeroData plus every owned item. Extra max HP is added to current HP;
+## losing max HP (selling) only caps current HP.
 func recompute_stats() -> void:
 	var old_max := max_hp
 	max_hp = data.max_hp * (1.0 + item_total(&"max_hp_bonus") + perk_total(&"max_hp_bonus"))
 	if alive:
-		hp = minf(max_hp, hp + max_hp - old_max)
+		hp = minf(max_hp, hp + maxf(0.0, max_hp - old_max))
 	attack_damage = data.attack_damage * (1.0 + item_total(&"damage_bonus") + perk_total(&"damage_bonus"))
 	attack_interval = data.attack_interval / (1.0 + item_total(&"attack_speed_bonus") + perk_total(&"attack_speed_bonus"))
 	attack_range = data.attack_range * (1.0 + item_total(&"range_bonus") + perk_total(&"range_bonus"))

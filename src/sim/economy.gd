@@ -1,7 +1,7 @@
 class_name Economy
 ## Gold and items (GDD 8): passive income, last-hit and knockout gold, deck rules,
-## purchases and item effects. Gold never goes negative; a hero owns at most
-## max_items distinct items, all from its six-card deck.
+## buying and selling. Item effects live in Items. Gold never goes negative; a hero owns at most
+## max_items distinct items, all from its pre-match deck.
 
 
 ## A deck is exactly deck_size distinct, non-null items from the pool.
@@ -20,7 +20,6 @@ static func tick(sim: MatchSim) -> void:
 	var cfg := sim.config
 	for h in sim.heroes:
 		h.gold += cfg.passive_gold_per_second * sim.dt
-		_regen(sim, h)
 
 
 ## Why a purchase would fail, or "" if it is allowed.
@@ -45,6 +44,33 @@ static func try_buy(sim: MatchSim, hero: HeroState, slot: int) -> bool:
 	hero.items.append(item)
 	hero.recompute_stats()
 	sim.emit_event(&"item_bought", {"hero": hero.id, "team": hero.team, "item": item.id, "slot": slot})
+	return true
+
+
+## Why selling the card in this deck slot would fail, or "" if it is allowed.
+static func sell_problem(_sim: MatchSim, hero: HeroState, slot: int) -> String:
+	if slot < 0 or slot >= hero.deck.size():
+		return "no such card"
+	if not hero.owns(hero.deck[slot]):
+		return "not owned"
+	return ""
+
+
+## What selling an item pays back.
+static func sell_value(sim: MatchSim, item: ItemData) -> float:
+	return roundf(item.cost * sim.config.sell_refund_fraction)
+
+
+## Sells an owned item for sell_refund_fraction of its price. Works anywhere, any time.
+static func try_sell(sim: MatchSim, hero: HeroState, slot: int) -> bool:
+	if sell_problem(sim, hero, slot) != "":
+		return false
+	var item := hero.deck[slot]
+	var refund := sell_value(sim, item)
+	hero.items.erase(item)
+	hero.gold += refund
+	hero.recompute_stats()
+	sim.emit_event(&"item_sold", {"hero": hero.id, "team": hero.team, "item": item.id, "slot": slot, "refund": refund})
 	return true
 
 
@@ -86,12 +112,3 @@ static func _award(sim: MatchSim, hero: HeroState, amount: float, reason: String
 		return
 	hero.gold += amount
 	sim.emit_event(&"gold_awarded", {"hero": hero.id, "team": hero.team, "amount": amount, "reason": reason})
-
-
-## Recovery Sigil: heal over time once the enemy hero has left you alone for a while.
-static func _regen(sim: MatchSim, h: HeroState) -> void:
-	if not h.alive or h.hp >= h.max_hp:
-		return
-	for item in h.items:
-		if item.regen_per_second > 0.0 and sim.time - h.last_hero_damage_time >= item.regen_delay:
-			h.hp = minf(h.max_hp, h.hp + h.max_hp * item.regen_per_second * sim.dt)
