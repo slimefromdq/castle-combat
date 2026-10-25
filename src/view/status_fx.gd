@@ -8,9 +8,14 @@ var view: MatchView
 var _parts: Dictionary = {}
 var _rings: Array = []
 var _ring_mesh := TorusMesh.new()
+## Sprint speed trail: short streaks left behind a sprinting hero, fading out.
+var _streaks: Array = []
+var _streak_mesh := BoxMesh.new()
+var _next_streak := {}
 
 
 func _ready() -> void:
+	_streak_mesh.size = Vector3(0.14, 0.06, 1.4)
 	_ring_mesh.inner_radius = 0.92
 	_ring_mesh.outer_radius = 1.0
 	_ring_mesh.rings = 48
@@ -26,10 +31,10 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			var g: SimEntity = view.sim.get_entity(data.id)
 			if g != null:
 				_spawn_ring(g.pos, data.radius + 1.0, Color(1.0, 0.35, 0.2))
-		&"recalled":
-			var rh: SimEntity = view.sim.get_entity(data.hero)
-			if rh != null:
-				_spawn_ring(rh.pos, 2.0, Color(0.55, 1.0, 0.7))
+		&"sprint_started":
+			var sh: HeroState = view.sim.get_entity(data.hero) as HeroState
+			if sh != null:
+				_spawn_ring(sh.pos, 1.3, sh.data.sprint_color)
 		&"barrage_pulse":
 			var h: SimEntity = view.sim.get_entity(data.hero)
 			_spawn_ring(data.point, data.radius, Palette.team_color(h != null and h.team == view.local_seat).lightened(0.2))
@@ -56,13 +61,6 @@ func render() -> void:
 		p.frenzy.visible = h.alive and h.frenzy_left > 0
 		p.frenzy.position = at + Vector3(0, 0.14, 0)
 		p.frenzy.scale = Vector3.ONE * (0.6 + 0.06 * sin(Time.get_ticks_msec() / 45.0))
-		# Recall: a ring that closes in on the hero as the recall completes.
-		p.recall.visible = h.alive and h.recall_at >= 0.0
-		if p.recall.visible:
-			var k := clampf(1.0 - (h.recall_at - sim.time) / sim.config.recall_time, 0.0, 1.0)
-			var rr := lerpf(1.8, 0.55, k)
-			p.recall.position = at + Vector3(0, 0.1 + 1.6 * k, 0)
-			p.recall.scale = Vector3(rr, 0.05, rr)
 		p.zone.visible = h.alive and h.is_channeling()
 		if p.zone.visible:
 			var r := h.channel.radius
@@ -72,6 +70,7 @@ func render() -> void:
 		if st.is_guardian():
 			_render_guardian(st)
 	_update_rings()
+	_update_streaks(sim)
 
 
 ## Guardian beam (always visible while it has a target, hotter as it ramps, with a
@@ -146,7 +145,6 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"zone": UnitFactory.part(self, _ring_mesh, Color(team_c.lightened(0.2), 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"wounds": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.05, 0.1, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"frenzy": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.2, 0.25, 0.9), Vector3.ZERO, Vector3.ZERO, true),
-		"recall": UnitFactory.part(self, _ring_mesh, Color(0.55, 1.0, 0.7, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 	}
 	parts.wounds.scale = Vector3(1.05, 0.03, 1.05)
 	parts.shield.scale = Vector3(0.95, 0.95, 0.95)
@@ -176,6 +174,34 @@ func _update_rings() -> void:
 		var r: float = lerpf(0.3, g.r, k)
 		g.node.scale = Vector3(r, 0.04, r)
 		(g.node.material_override as StandardMaterial3D).albedo_color.a = 1.0 - k
+
+
+## Every 0.05 s a sprinting hero drops two streaks (one per side) in its trail colour.
+func _update_streaks(sim: MatchSim) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	for h in sim.heroes:
+		if not (h.alive and h.sprinting) or now < _next_streak.get(h.id, 0.0):
+			continue
+		_next_streak[h.id] = now + 0.05
+		var at := view.unit_position(h.id)
+		var back := Vector3(-h.facing.x, 0, h.facing.y)  # Sim y is world -z.
+		var side := Vector3(back.z, 0, -back.x)
+		var yaw := atan2(-h.facing.x, h.facing.y)
+		for s: float in [-1.0, 1.0]:
+			var p := at + back * 0.7 + side * (0.28 * s) + Vector3(0, 0.25 + 0.2 * randf(), 0)
+			var node := UnitFactory.part(self, _streak_mesh, Color(h.data.sprint_color, 0.85), p, Vector3(0, rad_to_deg(yaw), 0), true)
+			_streaks.append({"node": node, "t": 0.0})
+	var delta := get_process_delta_time()
+	for i in range(_streaks.size() - 1, -1, -1):
+		var g: Dictionary = _streaks[i]
+		g.t += delta
+		var k: float = g.t / 0.3
+		if k >= 1.0:
+			g.node.queue_free()
+			_streaks.remove_at(i)
+			continue
+		g.node.scale = Vector3(1.0, 1.0, 1.0 - 0.6 * k)
+		(g.node.material_override as StandardMaterial3D).albedo_color.a = 0.85 * (1.0 - k)
 
 
 ## Seat swaps rebuild team colors.

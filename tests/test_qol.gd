@@ -1,5 +1,5 @@
 extends TestCase
-## Recall, shop range, deny gold and the basic-attack items (Lucy's playtest notes).
+## Sprinting, shop range, deny gold and the basic-attack items (Lucy's playtest notes).
 
 
 func _item(id: StringName) -> ItemData:
@@ -23,37 +23,50 @@ func _step(sim: MatchSim, blue: PlayerCommand) -> void:
 	sim.step([blue, null])
 
 
-func _recall_cmd() -> PlayerCommand:
-	var cmd := PlayerCommand.new()
-	cmd.recall = true
-	return cmd
+func _walk(sim: MatchSim, dir: Vector2, seconds: float) -> void:
+	run_ticks(sim, int(round(seconds / sim.dt)), dir)
 
 
-func test_recall_takes_you_home() -> void:
+func test_sprint_after_moving_out_of_combat() -> void:
 	var sim := _sim()
 	var blue := sim.heroes[0]
-	_step(sim, _recall_cmd())
-	check(blue.recall_at > 0.0, "recall started")
-	run_ticks(sim, int((sim.config.recall_time - 0.2) / sim.dt))
-	check(blue.pos.distance_to(Vector2(0, -2)) < 0.1, "still in lane just before it completes")
-	run_ticks(sim, int(0.4 / sim.dt))
-	check(blue.pos.distance_to(sim.arena.heal_pad) < 0.1, "on the healing pad after recall_time")
-	check(blue.recall_at < 0.0, "recall finished")
+	place(blue, Vector2(0, 0))
+	_walk(sim, Vector2(0, -1), sim.config.sprint_build_time - 0.2)
+	check(not blue.sprinting, "no sprint before the build-up")
+	var walk := blue.move_speed()
+	_walk(sim, Vector2(0, -1), 0.4)
+	check(blue.sprinting, "sprinting after %.1f s" % sim.config.sprint_build_time)
+	check_near(blue.move_speed(), walk * sim.config.sprint_speed_mult, 0.01, "faster")
+	_walk(sim, Vector2(0.3, -1).normalized(), 1.0)
+	check(blue.sprinting, "a gentle curve keeps it")
+	_walk(sim, Vector2(1, 0), 0.1)
+	check(not blue.sprinting, "a sharp turn ends it")
 
 
-func test_recall_cancels_on_move_and_damage() -> void:
+func test_sprint_ends_on_stop_damage_cast_and_combat() -> void:
 	var sim := _sim()
 	var blue := sim.heroes[0]
-	_step(sim, _recall_cmd())
-	run_ticks(sim, 10, Vector2(1, 0))
-	check(blue.recall_at < 0.0, "moving cancels it")
-	_step(sim, _recall_cmd())
-	sim.apply_damage(blue, 5.0, sim.heroes[1])
-	check(blue.recall_at < 0.0, "damage cancels it")
-	run_ticks(sim, int((sim.config.recall_time + 0.5) / sim.dt))
-	check(blue.pos.y > -10.0, "never teleported")
+	var red := sim.heroes[1]
+	place(blue, Vector2(0, 0))
+	_walk(sim, Vector2(0, -1), sim.config.sprint_build_time + 0.2)
+	check(blue.sprinting, "sprinting")
+	run_ticks(sim, 1)
+	check(not blue.sprinting and blue.sprint_build == 0.0, "stopping (to attack) ends it")
+	_walk(sim, Vector2(0, -1), sim.config.sprint_build_time + 0.2)
+	check(blue.sprinting, "sprinting again")
+	var m := sim.spawn_minion(melee(), MatchSim.RED, Vector2(5, 0))
+	sim.apply_damage(blue, 1.0, m)
+	check(not blue.sprinting, "any damage ends it")
+	_walk(sim, Vector2(0, -1), sim.config.sprint_build_time + 0.2)
+	check(not blue.sprinting, "no build-up for a while after being hit")
+	_walk(sim, Vector2(0, 1), sim.config.sprint_build_time + 0.2)
+	check(blue.sprinting, "back to sprinting once out of combat")
+	sim.apply_damage(red, 1.0, blue)
+	_walk(sim, Vector2(0, 1), 0.1)
+	check(not blue.sprinting, "hitting the enemy hero puts you in combat")
 	blue.carrying_relay = true
-	check(Recall.problem(sim, blue) != "", "no recall with the Relay")
+	_walk(sim, Vector2(0, -1), sim.config.sprint_combat_delay + sim.config.sprint_build_time + 0.5)
+	check(not blue.sprinting, "no sprinting with the Relay")
 
 
 func test_shop_only_near_your_structures() -> void:

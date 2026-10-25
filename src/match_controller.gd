@@ -86,7 +86,6 @@ func _ready() -> void:
 	hud.menu_pressed.connect(func() -> void: exit_requested.emit())
 	hud.restart_pressed.connect(func() -> void: restart_requested.emit())
 	hud.drop_pressed.connect(func() -> void: player.pending_drop = true)
-	hud.recall_pressed.connect(func() -> void: player.pending_recall = true)
 	hud.buy_pressed.connect(func(slot: int) -> void: player.pending_buy = slot)
 	hud.sell_pressed.connect(func(slot: int) -> void: player.pending_sell = slot)
 	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
@@ -132,6 +131,12 @@ func fast_forward(seconds: float) -> void:
 ## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
+	if what == "sprint":
+		# Start in the lane in front of your tower (pair with --walk-up to see a sprint).
+		var me_s := sim.heroes[local_seat]
+		me_s.pos = MatchSim.to_team_space(local_seat, Vector2(0, -12))
+		me_s.prev_pos = me_s.pos
+		return
 	var theirs := sim.structures_of(enemy)
 	sim.apply_damage(theirs[0], theirs[0].max_hp * 10.0, sim.heroes[local_seat])
 	var g := theirs[1]
@@ -183,8 +188,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_touch()
 	elif event.is_action_pressed("drop_relay"):
 		player.pending_drop = true
-	elif event.is_action_pressed("recall"):
-		player.pending_recall = true
 	elif event.is_action_pressed("show_deck"):
 		hud.toggle_tray()
 	elif event.is_action_pressed("toggle_debug"):

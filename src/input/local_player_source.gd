@@ -8,8 +8,6 @@ var joystick: ThumbStick
 var pending_target := 0
 ## Set by the F key or the Drop button; consumed by the next command.
 var pending_drop := false
-## Set by the B key or the Recall button.
-var pending_recall := false
 ## Item card slot to buy or sell (keys 1-8 or a tapped card), -1 for none.
 var pending_buy := -1
 var pending_sell := -1
@@ -29,8 +27,6 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_cast = -1
 	cmd.drop_relay = pending_drop
 	pending_drop = false
-	cmd.recall = pending_recall
-	pending_recall = false
 	cmd.buy_slot = pending_buy
 	pending_buy = -1
 	cmd.sell_slot = pending_sell

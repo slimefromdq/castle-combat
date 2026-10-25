@@ -46,7 +46,8 @@ gold, whoever killed it. A killing blow from farther away pays too.
 tap it and stand still to finish it yourself: the enemy only collects half its gold, and
 you get a share too.
 
-**Recall:** press B (or the Recall button) and stand still for 3 seconds to return to your healing pad. Damage or moving cancels it.
+**Sprint:** keep moving in roughly one direction, out of combat, for 3.5 seconds and your hero breaks into a sprint (45% faster, with a speed trail). Stopping, turning sharply, casting, carrying the Relay or taking damage ends it.
+**Camera:** it follows you but stops at the ends of the map.
 **Shopping:** buy and sell only near your front tower or at your base.
 
 **Items:** sixteen items in three tiers. Early items (300–400) help in lane, mid items

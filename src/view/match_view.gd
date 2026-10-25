@@ -133,11 +133,23 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			var body: Node3D = node.get_node("Body")
 			var target_yaw := atan2(-facing.x, facing.y)
 			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
+		if e is HeroState:
+			_sprint_pose(e, node.get_node("Body"), delta)
 	_update_helpers()
 	_relay_view.render(alpha)
 	_status.render()
 	var me := sim.heroes[local_seat]
 	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
+
+
+## Sprinting heroes lean into the run and bounce (each hero its own way, see HeroData).
+func _sprint_pose(h: HeroState, body: Node3D, delta: float) -> void:
+	var d := h.data
+	var k := 1.0 - exp(-10.0 * delta)
+	var lean := -deg_to_rad(d.sprint_lean_deg) if h.sprinting else 0.0
+	body.rotation.x = lerpf(body.rotation.x, lean, k)
+	var bob := absf(sin(Time.get_ticks_msec() / 70.0)) * d.sprint_bob if h.sprinting else 0.0
+	body.position.y = lerpf(body.position.y, bob, k * 2.0)
 
 
 ## A "!" over minions and towers that a hero's attack has called: red when they are

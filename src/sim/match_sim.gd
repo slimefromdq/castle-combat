@@ -104,7 +104,7 @@ func step(commands: Array) -> void:
 		hero._now = time
 		if cmd.cast_slot >= 0:
 			Abilities.try_cast(self, hero, cmd.cast_slot, cmd.move)
-		Recall.tick(self, hero, cmd)
+		Sprint.tick(self, hero, cmd)
 		if Abilities.move_forced(self, hero):
 			hero.moving = true  # Dashing or knocked back: no attacking meanwhile.
 		elif hero.is_stunned(time):
@@ -119,7 +119,7 @@ func step(commands: Array) -> void:
 	MinionAI.separate(self)
 	for hero in heroes:
 		_update_preferred_target(hero)
-		var may_attack := hero.alive and not hero.moving and not hero.is_stunned(time) and not hero.is_channeling() and hero.recall_at < 0.0
+		var may_attack := hero.alive and not hero.moving and not hero.is_stunned(time) and not hero.is_channeling()
 		CombatSystem.tick_attack(self, hero, may_attack, Targeting.for_hero.bind(self, hero))
 	for s in structures:
 		var previous := s.attack_target
@@ -192,7 +192,8 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 			hero_src.last_hero_combat_time = time
 	var dealt := minf(target.hp, maxf(0.0, amount))
 	if amount > 0.0 and target is HeroState:
-		Recall.cancel(self, target)
+		target.last_damaged_time = time
+		Sprint.stop(self, target)
 	if amount > 0.0:
 		target.hp = maxf(0.0, target.hp - amount)
 		if target.hp <= 0.0:
