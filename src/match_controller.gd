@@ -9,9 +9,9 @@ signal restart_requested
 const CONFIG: MatchConfig = preload("res://data/match_config.tres")
 const ARENA: ArenaData = preload("res://data/arena_default.tres")
 const HEROES: Array[HeroData] = [
-	preload("res://data/heroes/vanguard.tres"),
-	preload("res://data/heroes/scout.tres"),
-	preload("res://data/heroes/gunner.tres"),
+	preload("res://data/heroes/avery.tres"),
+	preload("res://data/heroes/jose.tres"),
+	preload("res://data/heroes/jack.tres"),
 ]
 const MINIONS := {
 	&"melee": preload("res://data/minions/melee.tres"),
@@ -41,9 +41,9 @@ const ITEMS: Array[ItemData] = [
 const DEFAULT_DECK := [0, 1, 13, 4, 5, 14, 9, 15]
 ## The bot's deck for each hero it plays.
 const BOT_DECKS := {
-	&"vanguard": [0, 1, 2, 6, 7, 8, 9, 11],
-	&"scout": [0, 13, 3, 4, 5, 14, 10, 15],
-	&"gunner": [0, 1, 13, 5, 6, 14, 12, 15],
+	&"avery": [0, 1, 2, 6, 7, 8, 9, 11],
+	&"jose": [0, 1, 13, 4, 5, 14, 10, 15],
+	&"jack": [0, 1, 3, 6, 7, 5, 9, 11],
 }
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
@@ -89,6 +89,7 @@ func _ready() -> void:
 	hud.buy_pressed.connect(func(slot: int) -> void: player.pending_buy = slot)
 	hud.sell_pressed.connect(func(slot: int) -> void: player.pending_sell = slot)
 	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
+	hud.perk_pressed.connect(func(choice: int) -> void: player.pending_perk = choice)
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
 	player = LocalPlayerSource.new()
 	player.team = local_seat
@@ -127,10 +128,23 @@ func fast_forward(seconds: float) -> void:
 	view.render(1.0, 0.0, true)
 
 
-## Dev: set up a moment for screenshots. "guardian" = your wave beside the enemy
+## Dev: set up a moment for screenshots. "duel" / "perk" see below; "guardian" = your wave beside the enemy
 ## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
+	if what == "duel" or what == "perk":
+		# "duel": both heroes at level 6 a few metres apart in mid-lane (pair with
+		# --autopilot and --skip=N to catch abilities); "perk": you just hit level 2.
+		for h in sim.heroes:
+			Leveling.gain(sim, h, float(sim.config.level_xp[5 if what == "duel" else 1]) - h.xp + 0.01)
+			if what == "duel":
+				for t in 3:
+					Leveling.pick_perk(sim, h, 0)
+			h.pos = MatchSim.to_team_space(h.team, Vector2(0.8, -3.0))
+			h.prev_pos = h.pos
+		sim.next_wave_time = 1000.0
+		view.render(1.0, 0.0, true)
+		return
 	if what == "sprint":
 		# Start in the lane in front of your tower (pair with --walk-up to see a sprint).
 		var me_s := sim.heroes[local_seat]
@@ -176,6 +190,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	for i in 3:
 		if event.is_action_pressed("cast_%d" % (i + 1)):
 			player.pending_cast = i
+			return
+	for i in 2:
+		if event.is_action_pressed("perk_%d" % (i + 1)):
+			player.pending_perk = i
 			return
 	for i in CONFIG.deck_size:
 		if event.is_action_pressed("buy_%d" % (i + 1)):

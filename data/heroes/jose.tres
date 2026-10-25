@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/spin_dash.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/sweet_talk.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/last_tango.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/smooth_operator.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/encore.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/lady_killer.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/last_call.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/showstopper.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/bloody_tango.tres" id="p5"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"jose"
+display_name = "Jose"
+shape = "gunslinger"
+blurb = "Charming gunslinger. Fragile, slippery, and his shots hit harder every level."
+max_hp = 520.0
+move_speed = 4.6
+radius = 0.5
+attack_range = 6.0
+attack_damage = 38.0
+attack_windup = 0.2
+attack_interval = 0.8
+attack_damage_per_level = 0.08
+sprint_color = Color(1, 0.3, 0.32, 1)
+sprint_lean_deg = -10.0
+sprint_bob = 0.04
+sprint_moonwalk = true
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])

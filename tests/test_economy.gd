@@ -227,9 +227,9 @@ func test_deny_your_own_low_minion() -> void:
 	own.hp = 40.0
 	var gold_before := red.gold
 	# The minion keeps walking up the lane, so blue has a moment to land it.
-	run_ticks(sim, 12, Vector2.ZERO, Vector2.ZERO, own.id)
+	run_ticks(sim, 16, Vector2.ZERO, Vector2.ZERO, own.id)
 	check(not own.alive, "blue denied its own low minion")
-	check_near(red.gold - gold_before - MatchController.CONFIG.passive_gold_per_second * 12 * sim.dt, melee().gold_bounty * 0.5, 0.05, "red collects only half")
+	check_near(red.gold - gold_before - MatchController.CONFIG.passive_gold_per_second * 16 * sim.dt, melee().gold_bounty * 0.5, 0.05, "red collects only half")
 
 
 func test_auto_target_never_picks_your_own_minion() -> void:

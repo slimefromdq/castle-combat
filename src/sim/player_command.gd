@@ -10,6 +10,8 @@ var target_id := 0
 ## Ability to cast this tick: 0, 1 or 2 (the ultimate), or -1.
 var cast_slot := -1
 var drop_relay := false
+## Perk choice (0 or 1) for the earliest level-up perk not yet picked, or -1.
+var perk_pick := -1
 ## Deck card slot to buy, or -1.
 var buy_slot := -1
 ## Deck card slot whose owned item to sell back, or -1.

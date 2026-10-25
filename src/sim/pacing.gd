@@ -158,5 +158,5 @@ static func _tick_slam(sim: MatchSim, s: StructureState) -> void:
 	if enemy.alive:
 		var away := enemy.pos - s.pos
 		away = away.normalized() if away.length() > 0.01 else MatchSim.forward(s.team)
-		Abilities._force(sim, enemy, away * d.slam_knockback, 0.3, Callable(), false)
+		Abilities._force(sim, enemy, away * d.slam_knockback, 0.3, false)
 		Abilities._stun(sim, enemy, d.slam_stun)

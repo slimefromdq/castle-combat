@@ -80,22 +80,52 @@ static func make_hero(hero: HeroState, is_ally: bool) -> Node3D:
 	return root
 
 
-## The hero silhouette alone (also used by the menu's hero showcase).
+## The hero silhouette alone (also used by the menu's hero showcase). The main mass is
+## the team color; each hero's own accents make the silhouette.
 static func hero_body(body: Node3D, shape: String, c: Color) -> void:
+	var skin := Color("f1d2b6")
 	match shape:
-		"cone":
-			# Scout: an arrowhead lying flat, point forward.
-			part(body, cylinder(0.0, 0.48, 1.35, 20), c, Vector3(0, 0.48, 0), Vector3(-90, 0, 0))
-			part(body, box(Vector3(0.08, 0.38, 0.55)), Palette.ACCENT, Vector3(0, 0.88, 0.2))
-		"cylinder":
-			# Gunner: upright drum with a long barrel.
-			part(body, cylinder(0.4, 0.44, 1.05, 20), c, Vector3(0, 0.53, 0))
-			part(body, cylinder(0.42, 0.42, 0.1, 20), Palette.ACCENT, Vector3(0, 1.1, 0))
-			part(body, cylinder(0.1, 0.1, 1.0, 12), Palette.ACCENT, Vector3(0, 0.75, -0.6), Vector3(-90, 0, 0))
+		"gunslinger":
+			# Jose: long coat, wide-brimmed hat, a revolver in each hand.
+			var red := Color("c22a35")
+			part(body, cylinder(0.3, 0.46, 1.05, 16), c, Vector3(0, 0.53, 0))
+			part(body, cylinder(0.31, 0.31, 0.12, 16), red, Vector3(0, 0.95, 0))
+			var head := SphereMesh.new()
+			head.radius = 0.22
+			head.height = 0.44
+			part(body, head, skin, Vector3(0, 1.22, 0))
+			part(body, cylinder(0.62, 0.62, 0.05, 24), red.darkened(0.2), Vector3(0, 1.38, 0))
+			part(body, cylinder(0.24, 0.27, 0.26, 16), red.darkened(0.2), Vector3(0, 1.5, 0))
+			for side: float in [-1.0, 1.0]:
+				part(body, box(Vector3(0.09, 0.14, 0.5)), Color("2b2b31"), Vector3(side * 0.42, 0.78, -0.28))
+				part(body, box(Vector3(0.12, 0.12, 0.12)), Palette.ACCENT, Vector3(side * 0.42, 0.74, -0.04))
+		"thief":
+			# Jack: flared coat, round glasses, a few floating cards.
+			var violet := Color("6d4bb3")
+			part(body, cylinder(0.22, 0.55, 1.1, 20), c, Vector3(0, 0.55, 0))
+			part(body, cylinder(0.3, 0.24, 0.32, 16), violet, Vector3(0, 1.0, 0))
+			var head := SphereMesh.new()
+			head.radius = 0.21
+			head.height = 0.42
+			part(body, head, skin, Vector3(0, 1.3, 0))
+			part(body, cylinder(0.24, 0.2, 0.16, 16), Color("2f2a3a"), Vector3(0, 1.46, 0.02))
+			part(body, box(Vector3(0.34, 0.06, 0.04)), Color("ffd84a"), Vector3(0, 1.31, -0.2))
+			for k in 3:
+				var ang := deg_to_rad(120.0 * k + 30.0)
+				part(body, box(Vector3(0.18, 0.26, 0.02)), Palette.ACCENT, Vector3(cos(ang) * 0.75, 1.15 + 0.12 * k, sin(ang) * 0.75), Vector3(0, -rad_to_deg(ang), 12))
 		_:
-			# Vanguard: chunky block with a shield slab in front.
-			part(body, box(Vector3(0.95, 0.9, 0.75)), c, Vector3(0, 0.45, 0))
-			part(body, box(Vector3(1.2, 0.85, 0.14)), Palette.ACCENT, Vector3(0, 0.47, -0.5))
+			# Avery: armored body over a wide skirt, a crown and a long sword.
+			var gold := Color("e8c35a")
+			part(body, cylinder(0.5, 0.62, 0.55, 20), Color("3a3f4a"), Vector3(0, 0.28, 0))
+			part(body, box(Vector3(0.75, 0.62, 0.55)), c, Vector3(0, 0.84, 0))
+			part(body, box(Vector3(0.82, 0.12, 0.6)), gold, Vector3(0, 0.6, 0))
+			var head := SphereMesh.new()
+			head.radius = 0.22
+			head.height = 0.44
+			part(body, head, skin, Vector3(0, 1.36, 0))
+			part(body, cylinder(0.2, 0.2, 0.1, 6), gold, Vector3(0, 1.56, 0))
+			part(body, box(Vector3(0.1, 0.1, 1.4)), Palette.ACCENT, Vector3(0.5, 0.82, -0.55))
+			part(body, box(Vector3(0.36, 0.08, 0.08)), gold, Vector3(0.5, 0.82, 0.12))
 
 
 ## Root holds "Body" (pillar or gem plus the lock "Dome") and "Rubble", shown once destroyed.

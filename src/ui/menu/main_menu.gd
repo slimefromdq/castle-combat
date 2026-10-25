@@ -117,6 +117,8 @@ func pick_hero(i: int) -> void:
 	for k in hero.abilities.size():
 		var ab := hero.abilities[k]
 		lines.append("Lv%d  %s: %s" % [unlock[k], ab.display_name, ab.summary])
+	for tier in hero.perks.size() / 2:
+		lines.append("Lv%d  perk: %s or %s" % [2 + tier * 2, hero.perks[tier * 2].display_name, hero.perks[tier * 2 + 1].display_name])
 	_kit_label.text = "\n".join(lines)
 
 

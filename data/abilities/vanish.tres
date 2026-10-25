@@ -4,11 +4,13 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"power_shot"
-display_name = "Power Shot"
-summary = "Instant 110-dmg shot, 8.5 m reach"
-effect = &"power_shot"
-cooldown = 9.0
-reach = 8.5
-damage = 110.0
+id = &"vanish"
+display_name = "Vanish"
+summary = "Vanish 2.5 s (immune, very slow); tap again to burst out: 100 dmg"
+effect = &"vanish"
+cooldown = 15.0
+duration = 2.5
+radius = 3.2
+damage = 100.0
 minion_damage = 80.0
+move_mult = 0.35

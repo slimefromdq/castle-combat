@@ -78,7 +78,7 @@ func show_hero(data: HeroData) -> void:
 	_turntable.add_child(_hero)
 	UnitFactory.hero_body(_hero, data.shape, Palette.ALLY)
 	_ink(_hero)
-	_hero.scale = Vector3.ONE * (1.0 if data.shape != "cone" else 1.15)
+	_hero.scale = Vector3.ONE
 
 
 ## Inverted-hull outline: a slightly grown, front-culled black copy of every part.

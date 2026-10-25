@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"judgment_blade"
+display_name = "Judgment Blade"
+summary = "Sword wave, 9 m: 140 dmg, stuns the hero 1 s and pulls it to you"
+effect = &"judgment_blade"
+cooldown = 50.0
+reach = 9.0
+speed = 20.0
+width = 0.7
+damage = 140.0
+minion_damage = 90.0
+stun = 1.0

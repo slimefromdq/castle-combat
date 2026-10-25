@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cleave"
+display_name = "Cleave"
+summary = "Slash around you: 75 dmg, heal 8 per trooper and 30 per hero hit"
+effect = &"cleave"
+cooldown = 8.0
+radius = 3.0
+damage = 75.0
+minion_damage = 60.0
+heal_per_minion = 8.0
+heal_per_hero = 30.0

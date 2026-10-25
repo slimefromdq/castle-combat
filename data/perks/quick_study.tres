@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"hair_trigger"
-display_name = "Hair Trigger"
-summary = "Power Shot: -3 s cooldown"
-ability_index = 0
-cooldown_cut = 3.0
+id = &"quick_study"
+display_name = "Quick Study"
+summary = "Encore Performance cooldown -25%"
+special = &"quick_study"
+special_value = 0.25

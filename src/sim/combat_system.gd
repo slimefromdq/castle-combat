@@ -9,6 +9,12 @@ class_name CombatSystem
 static func is_valid_target(sim: MatchSim, attacker: SimEntity, target: SimEntity) -> bool:
 	if target == null or not target.alive or target.team < 0:
 		return false
+	if target is HeroState and target.team != attacker.team:
+		# In the shadows nobody can touch you; a decoy fools troopers and towers.
+		if sim.time < target.vanish_until:
+			return false
+		if not (attacker is HeroState) and sim.time < target.decoy_until:
+			return false
 	if target.team == attacker.team:
 		# A deny: only the hero's own tapped minion, and only once it is low enough.
 		return attacker is HeroState and attacker.preferred_target == target.id and can_deny(sim, attacker, target)
@@ -78,7 +84,14 @@ static func fire(sim: MatchSim, a: SimEntity, t: SimEntity) -> void:
 		damage *= sim.config.tower_call_damage_mult
 	if a is StructureState:
 		damage = Pacing.structure_damage_dealt(sim, a, t, damage)
+	if a is HeroState:
+		damage = Abilities.basic_damage(sim, a, t, damage)
+		if damage < 0.0:
+			sim.emit_event(&"attack_missed", {"attacker": a.id, "target": t.id, "from": a.pos, "to": t.pos})
+			return
 	sim.emit_event(&"attack_fired", {"attacker": a.id, "target": t.id, "damage": damage, "from": a.pos, "to": t.pos, "called": called})
 	sim.apply_damage(t, damage, a)
 	if a is HeroState and t is HeroState:
 		sim.on_hero_hit(a, t)
+	if a is HeroState:
+		Abilities.after_basic(sim, a, t)

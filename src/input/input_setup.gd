@@ -11,6 +11,8 @@ const BINDINGS := {
 	"cast_2": [KEY_E],
 	"cast_3": [KEY_R],
 	"drop_relay": [KEY_F],
+	"perk_1": [KEY_Z],
+	"perk_2": [KEY_X],
 	"show_deck": [KEY_TAB],
 	"buy_1": [KEY_1],
 	"buy_2": [KEY_2],

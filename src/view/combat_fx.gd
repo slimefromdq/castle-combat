@@ -32,6 +32,24 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 	if type == &"minion_denied" and data.team == view.local_seat:
 		_spawn_gold_text("Denied!", Color(0.85, 0.92, 1.0))
 		return
+	if type in [&"basic_crit", &"attack_missed", &"judgment_struck", &"hero_healed"]:
+		var words := {&"basic_crit": "Crit!", &"attack_missed": "Miss", &"judgment_struck": "Judgment!"}
+		var colors := {&"basic_crit": Color("ff5c8a"), &"attack_missed": Color(0.75, 0.75, 0.8), &"judgment_struck": Color("ffe9a8"), &"hero_healed": Color("7dffa0")}
+		var who_id: int = data.attacker if type == &"attack_missed" else (data.hero if type == &"hero_healed" else data.target)
+		var who: SimEntity = view.sim.get_entity(who_id)
+		if who != null:
+			var text: String = "+%d" % int(data.amount) if type == &"hero_healed" else words[type]
+			_spawn_text_at(text, colors[type], view.unit_position(who.id) + Vector3(-0.3, 2.4, 0))
+		return
+	if type == &"volley":
+		var shooter: SimEntity = view.sim.get_entity(data.hero)
+		var aim: SimEntity = view.sim.get_entity(data.target)
+		if shooter != null and aim != null:
+			for k in 3:
+				var from := view.unit_position(shooter.id) + Vector3(0.25 * (k - 1), 0.9, 0)
+				var dot := UnitFactory.part(self, _tracer_mesh, Color("ffe14d"), from, Vector3.ZERO, true)
+				_tracers.append({"node": dot, "from": from, "to": view.unit_position(aim.id), "target": aim.id, "t": -0.04 * k, "big": aim is HeroState})
+		return
 	if type == &"storm_strike":
 		var tgt: SimEntity = view.sim.get_entity(data.target)
 		if tgt != null:
@@ -51,12 +69,7 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 		var src: SimEntity = view.sim.get_entity(data.hero)
 		var tgt: SimEntity = view.sim.get_entity(data.target)
 		if src != null and tgt != null:
-			if data.ability == &"power_shot":
-				var from := view.unit_position(src.id) + Vector3(0, 0.9, 0)
-				var dot := UnitFactory.part(self, _tracer_mesh, Color("ffe14d"), from, Vector3.ZERO, true)
-				dot.scale = Vector3.ONE * 2.0
-				_tracers.append({"node": dot, "from": from, "to": view.unit_position(tgt.id), "target": tgt.id, "t": 0.0, "big": true})
-			else:
+			if data.ability != &"spin_dash":  # The volley's tracers end in their own puff.
 				_spawn_puff(view.unit_position(tgt.id) + Vector3(0, 0.6, 0), tgt is HeroState)
 		return
 	if type != &"attack_fired":
