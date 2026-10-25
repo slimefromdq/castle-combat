@@ -64,3 +64,13 @@ static func button(text: String, min_size := Vector2(0, 56)) -> Button:
 	b.custom_minimum_size = min_size
 	b.focus_mode = Control.FOCUS_NONE
 	return b
+
+
+static func is_fullscreen() -> bool:
+	var mode := DisplayServer.window_get_mode()
+	return mode == DisplayServer.WINDOW_MODE_FULLSCREEN or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+
+
+## F11 or the HUD menu. On the web this must run from a key press or click, which it does.
+static func toggle_fullscreen() -> void:
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if is_fullscreen() else DisplayServer.WINDOW_MODE_FULLSCREEN)

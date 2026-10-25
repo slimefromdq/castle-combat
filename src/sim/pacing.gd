@@ -93,6 +93,11 @@ static func on_structure_killed(sim: MatchSim, s: StructureState) -> void:
 	if not s.is_guardian():
 		return
 	sim.power_minions[winner] = true
+	# The Core behind a fallen Guardian gets a few seconds of breathing room.
+	var core := sim.structures_of(s.team)[-1]
+	if core.alive and core.tier == 2:
+		core.immune_until = sim.time + sim.config.core_immunity_time
+		sim.emit_event(&"core_immune", {"id": core.id, "team": s.team, "until": core.immune_until, "seconds": sim.config.core_immunity_time})
 	for m in sim.minions:
 		if m.alive and m.team == winner:
 			make_power(sim, m)
@@ -113,12 +118,17 @@ static func on_relay_delivered(sim: MatchSim, hero: HeroState, activation: int) 
 	sim.emit_event(&"gold_awarded", {"hero": hero.id, "team": hero.team, "amount": gold, "reason": &"relay"})
 
 
+## When overtime starts: later once any Guardian has fallen (the match is moving).
+static func overtime_at(sim: MatchSim) -> float:
+	for s in sim.structures:
+		if s.is_guardian() and not s.alive:
+			return sim.config.overtime_late_time
+	return sim.config.overtime_time
+
+
 static func tick(sim: MatchSim) -> void:
 	if not sim.overtime:
-		var guardian_down := false
-		for s in sim.structures:
-			guardian_down = guardian_down or (s.is_guardian() and not s.alive)
-		if sim.time >= (sim.config.overtime_late_time if guardian_down else sim.config.overtime_time):
+		if sim.time >= overtime_at(sim):
 			sim.overtime = true
 			sim.emit_event(&"overtime_started", {})
 	for s in sim.structures:

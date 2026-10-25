@@ -318,6 +318,43 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
       (the bot can't play Jack's range-and-cloak style; Lucy finds him strong by hand);
       length median 8:42; Lv3 1:29, Lv5 3:17, Lv6 5:18
 
+### M13: playtest gameplay pass (Lucy)
+
+- [x] Special troopers every 4th wave (`special_wave_every` 3 -> 4): first towers fell too fast
+- [x] Relay: one enemy-hero hit knocks it loose (`relay_intercept_hits` 1). Minions and towers don't
+- [x] Bushes (`ArenaData.bushes`, mirrored): a hidden enemy hero can't be targeted, aimed at or
+      seen. Attacking, casting or an enemy-hero hit reveals for `bush_reveal_time` 1.5 s; an
+      enemy within `bush_reveal_radius` 2.2 m sees you. Bots treat a hidden hero as absent
+- [x] Map 5% bigger (lane length, width, structure and wall positions x1.05)
+- [x] Core immune for `core_immunity_time` 8 s after its Guardian falls (dome + countdown)
+- [x] Siege scrolls: Lv6, at the shop, 350 gold (+100 each), at most 2 pending; adds to
+      `pending_siege` like a Relay delivery. Bots read them once their Masterworks are done
+- [x] Fix from M11: C/V/B Masterwork keys were never wired (wrong indent in an edit)
+- [x] Dev: `--stage=bush`, `--stage=core`; bot runner prints Relay and scroll counts
+- [x] 170 tests. Bot matches (4 per pairing and seat): Avery 13/16, Jose 10/16, Jack 1/16;
+      length median 9:22 (was 8:42); Lv3 1:25, Lv5 3:37, Lv6 5:55. Relays: 138 of 155
+      delivered even with 67 knock-loose hits (carriers pick it back up). Bots alternate
+      Masterworks and scrolls (6 scrolls in a 12-match check)
+
+### M14: playtest UI pass (Lucy)
+
+- [x] Aimed skillshots: `PlayerCommand.aim` (sim space). Judgment Blade, Sweet Talk, Cloak Toss
+      and Spin Dash use it when set; zero keeps the old auto-aim (bots). Desktop aims at the
+      ground under the mouse; touch drags the ability button (`AimButton`, multi-touch like the
+      joystick) with a ground aim line, and a tap casts the way you last moved or aimed
+- [x] Match clock under the top band, with the Relay timer and "Overtime in N" in the last
+      minute (`Pacing.overtime_at`)
+- [x] Cleaner HUD: slim top and bottom bands, structure pips instead of six health bars, item
+      cards only in shop range (Masterwork and scroll row at Lv6), details panel on Tab / i,
+      tool buttons folded into a ☰ menu, debug readout off by default
+- [x] Fullscreen: F11 anywhere or the ☰ menu (`UiKit.toggle_fullscreen`); wide screens put the
+      HUD in a centred column (max 1000 px or 0.8 x height)
+- [x] Camera clamp: sideways it now stays inside the map's sides and always keeps your hero
+      1.4 m inside the screen edge (the side pockets used to push you off screen); bands
+      come from `Hud.TOP_BAND` / `Hud.BOTTOM_BAND`
+- [x] Dev: `--stage=aim`, `--stage=shop`
+- [x] 176 tests
+
 **Next: metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)

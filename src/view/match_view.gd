@@ -21,6 +21,10 @@ var _windup_ring: MeshInstance3D
 var _bracket: MeshInstance3D
 var _lines: MeshInstance3D
 var _line_mesh := ImmediateMesh.new()
+## Drag-to-aim preview: a flat arrow on the ground from your hero.
+var _aim_line: MeshInstance3D
+var _aim_dir := Vector2.ZERO
+var _aim_length := 0.0
 
 
 static func to_world(p: Vector2, height := 0.0) -> Vector3:
@@ -37,6 +41,7 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_arena_view.build(sim.arena, seat)
 	camera_rig = CameraRig.new()
 	camera_rig.half_length = sim.arena.half_length
+	camera_rig.half_width = ArenaGeometry.half_width(sim.arena)
 	camera_rig.seat = seat
 	add_child(camera_rig)
 	_unit_root = Node3D.new()
@@ -63,6 +68,47 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	bar_layer.add_child(_bars)
 	_rebuild_units()
 	render(1.0, 0.0, true)
+
+
+## The point on the ground (sim space) under a screen position.
+func ground_point(screen_pos: Vector2) -> Vector2:
+	var cam := camera_rig.camera
+	var from := cam.project_ray_origin(screen_pos)
+	var dir := cam.project_ray_normal(screen_pos)
+	if absf(dir.y) < 0.0001:
+		return sim.heroes[local_seat].pos
+	var hit := from + dir * (-from.y / dir.y)
+	return Vector2(hit.x, -hit.z)
+
+
+func show_aim(dir: Vector2, length: float) -> void:
+	_aim_dir = dir
+	_aim_length = length
+
+
+func hide_aim() -> void:
+	_aim_dir = Vector2.ZERO
+
+
+func _place_aim_line(hero_world: Vector3) -> void:
+	if _aim_line == null:
+		_aim_line = MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(0.55, 0.02, 1.0)
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = Color(1, 1, 1, 0.45)
+		mat.no_depth_test = true
+		mesh.material = mat
+		_aim_line.mesh = mesh
+		add_child(_aim_line)
+	_aim_line.visible = _aim_dir != Vector2.ZERO and sim.heroes[local_seat].alive
+	if not _aim_line.visible:
+		return
+	var d := to_world(_aim_dir)
+	_aim_line.basis = Basis.looking_at(d, Vector3.UP) * Basis.from_scale(Vector3(1, 1, _aim_length))
+	_aim_line.position = hero_world + d * (_aim_length / 2.0) + Vector3(0, 0.06, 0)
 
 
 func unit_nodes() -> Dictionary:
@@ -123,9 +169,11 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			node.get_node("Body").visible = e.alive
 			node.get_node("Rubble").visible = not e.alive
 			var locked := not sim.is_exposed(e)
-			node.get_node("Body/Dome").visible = locked
+			node.get_node("Body/Dome").visible = locked or sim.time < e.immune_until
 			continue
 		node.visible = e.alive
+		if e is HeroState and e.team != local_seat and sim.is_hidden(e):
+			node.visible = false  # In a bush: the enemy is out of sight.
 		if e is MinionState and e.is_power:
 			node.scale = Vector3.ONE * 1.3
 		if e is MinionState:
@@ -152,6 +200,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 	_status.render()
 	var me := sim.heroes[local_seat]
 	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
+	_place_aim_line(to_world(me.prev_pos.lerp(me.pos, alpha)))
 
 
 ## Sprinting heroes lean into the run and bounce (each hero its own way, see HeroData).

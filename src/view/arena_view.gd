@@ -44,6 +44,7 @@ func build(arena: ArenaData, local_seat: int) -> void:
 		var pad_c := Palette.team_color(team == local_seat).lightened(0.5)
 		UnitFactory.part(self, UnitFactory.cylinder(arena.heal_pad_radius, arena.heal_pad_radius, 0.02, 32), Color(0.55, 1.0, 0.65, 0.35), at, Vector3.ZERO, true)
 		UnitFactory.part(self, UnitFactory.cylinder(arena.heal_pad_radius * 0.35, arena.heal_pad_radius * 0.35, 0.03, 4), Color(pad_c, 0.8), at + Vector3(0, 0.01, 0), Vector3(0, 45, 0), true)
+	_bushes(arena)
 	# Gold centre line between the pockets.
 	UnitFactory.part(self, UnitFactory.box(Vector3(lane_w, 0.02, 0.3)), Palette.CENTER_LINE, MatchView.to_world(Vector2.ZERO, 0.012), Vector3.ZERO, true)
 	# Walls: sandstone with a lighter cap, below hero height so the camera never loses a unit.
@@ -51,6 +52,28 @@ func build(arena: ArenaData, local_seat: int) -> void:
 		UnitFactory.part(self, UnitFactory.box(Vector3(w.size.x, 0.7, w.size.y)), Palette.WALL, MatchView.to_world(w.get_center(), 0.35))
 		UnitFactory.part(self, UnitFactory.box(Vector3(w.size.x + 0.08, 0.08, w.size.y + 0.08)), Palette.WALL_CAP, MatchView.to_world(w.get_center(), 0.74))
 	_scenery(arena)
+
+
+## Bushes: a dark green base with round leafy clumps on top, low enough that a hero
+## inside still pokes out a little for its owner (the enemy sees nothing).
+func _bushes(arena: ArenaData) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = SCENERY_SEED + 1
+	for r in arena.bushes:
+		UnitFactory.part(self, UnitFactory.box(Vector3(r.size.x, 0.5, r.size.y)), Palette.BUSH.darkened(0.25), MatchView.to_world(r.get_center(), 0.25))
+		var step := 0.75
+		var y := r.position.y + step / 2.0
+		while y < r.end.y:
+			var x := r.position.x + step / 2.0
+			while x < r.end.x:
+				var clump := SphereMesh.new()
+				var rad := rng.randf_range(0.42, 0.55)
+				clump.radius = rad
+				clump.height = rad * 1.6
+				var shade := Palette.BUSH.lightened(rng.randf_range(-0.05, 0.15))
+				UnitFactory.part(self, clump, shade, MatchView.to_world(Vector2(x, y) + Vector2(rng.randf_range(-0.1, 0.1), rng.randf_range(-0.1, 0.1)), 0.65))
+				x += step
+			y += step
 
 
 ## Small tiles on a grid inside a rect.

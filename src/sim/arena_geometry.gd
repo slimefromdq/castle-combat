@@ -27,3 +27,11 @@ static func has_line_of_sight(arena: ArenaData, a: Vector2, b: Vector2) -> bool:
 		if segment_hits_rect(a, b, wall):
 			return false
 	return true
+
+
+## Widest point of the map from the centre line, walls included.
+static func half_width(arena: ArenaData) -> float:
+	var w := arena.lane_half_width
+	for r in arena.walls + arena.floors:
+		w = maxf(w, maxf(absf(r.position.x), absf(r.end.x)))
+	return w

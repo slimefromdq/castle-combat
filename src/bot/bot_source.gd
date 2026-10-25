@@ -70,26 +70,27 @@ func _dodge_slam(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> void:
 ## starting a hero fight that would call the enemy wave or tower, like its basic attacks.
 func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 	var them := sim.heroes[1 - team]
-	var d := me.pos.distance_to(them.pos) if them.alive else INF
+	var seen := them.alive and not sim.is_hidden(them)
+	var d := me.pos.distance_to(them.pos) if seen else INF
 	var my_hp := me.hp / me.max_hp
-	var their_hp := them.hp / them.max_hp if them.alive else 1.0
+	var their_hp := them.hp / them.max_hp if seen else 1.0
 	var their_front := sim.front_structure(1 - team)
 	var safe := _enemy_minions_near(sim, me.pos, sim.config.minion_call_radius) <= 1 \
 			and not (their_front != null and CombatSystem.in_range(sim, their_front, me, 0.5))
-	var fight := them.alive and (safe or their_hp < 0.35)
+	var fight := seen and (safe or their_hp < 0.35)
 	var ready := func(i: int) -> bool: return Abilities.cast_problem(sim, me, i) == ""
 	match me.data.id:
 		&"avery":
 			if ready.call(2) and fight and d < 8.5 and (their_hp < 0.7 or my_hp < 0.5):
 				return 2
-			if ready.call(1) and them.alive and d < 7.0 and (my_hp < 0.65 or (fight and d > me.attack_range + 1.0)):
+			if ready.call(1) and seen and d < 7.0 and (my_hp < 0.65 or (fight and d > me.attack_range + 1.0)):
 				return 1
 			if ready.call(0) and ((fight and d < 3.2) or (_enemy_minions_near(sim, me.pos, 3.0) >= 3 and my_hp < 0.85)):
 				return 0
 		&"jose":
 			if me.is_charging():
 				var held := sim.time - me.charging_since
-				if held >= me.data.abilities[1].charge_time or (them.alive and d > 10.5) or not them.alive:
+				if held >= me.data.abilities[1].charge_time or (seen and d > 10.5) or not seen:
 					return 1
 				return -1
 			var side := _strafe(me, them)
@@ -98,7 +99,7 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 				return 0
 			if ready.call(2) and fight and d < 3.5 and their_hp < 0.75 and me.channel == null:
 				return 2
-			if me.channel != null and them.alive:
+			if me.channel != null and seen:
 				cmd.move = _toward(me, them.pos)  # Dance into them.
 				return -1
 			if ready.call(1) and fight and d < 10.0:
@@ -110,19 +111,19 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 				return 0
 		&"jack":
 			if me.is_vanished():
-				if _enemy_minions_near(sim, me.pos, 3.0) >= 3 and (not them.alive or d > 6.0):
+				if _enemy_minions_near(sim, me.pos, 3.0) >= 3 and (not seen or d > 6.0):
 					return 1  # Clearing the wave.
-				if Abilities.can_recast(sim, me, 0) and me.cloak_shot_id == 0 and them.alive and me.cloak_pos.distance_to(them.pos) < 2.8:
+				if Abilities.can_recast(sim, me, 0) and me.cloak_shot_id == 0 and seen and me.cloak_pos.distance_to(them.pos) < 2.8:
 					return 0  # Reappear at the cloak and burst right there.
-				if them.alive and d < 2.6:
+				if seen and d < 2.6:
 					return 1
-				if them.alive:
+				if seen:
 					cmd.move = _toward(me, them.pos)
 				return -1
 			if Abilities.can_recast(sim, me, 0) and me.cloak_shot_id == 0:
-				if fight and them.alive and me.cloak_pos.distance_to(them.pos) < 2.8:
+				if fight and seen and me.cloak_pos.distance_to(them.pos) < 2.8:
 					return 1 if ready.call(1) else 0
-				if _healing and them.alive and me.cloak_pos.distance_to(them.pos) > d + 3.0:
+				if _healing and seen and me.cloak_pos.distance_to(them.pos) > d + 3.0:
 					return 0  # Blink away.
 			var copied := Abilities.ability_for(sim, me, 2)
 			var ult_reach := 3.2 if copied != null and copied.effect == &"last_tango" else 8.5
@@ -132,7 +133,7 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 				return 0
 			if ready.call(0) and safe and _enemy_minions_near(sim, me.pos, 7.0) >= 3:
 				return 0  # The cloak cuts through a wave.
-			if ready.call(1) and them.alive and d < 5.5 and my_hp < 0.45:
+			if ready.call(1) and seen and d < 5.5 and my_hp < 0.45:
 				return 1
 			if ready.call(1) and safe and _enemy_minions_near(sim, me.pos, 3.0) >= 3:
 				return 1  # Vanish into the wave; the burst follows next tick.
@@ -158,6 +159,7 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	if not me.alive or sim.over:
 		return cmd
 	var them := sim.heroes[1 - team]
+	var seen := them.alive and not sim.is_hidden(them)  # A hero in a bush is out of sight.
 	var fwd := MatchSim.forward(team)
 	var home := sim.front_structure(team)
 	var their_front := sim.front_structure(1 - team)
@@ -167,6 +169,12 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	cmd.sell_slot = shop.y
 	if shop == Vector2i(-1, -1):
 		cmd.masterwork_slot = _masterwork(sim, me)
+		# Late gold: alternate Masterworks and siege scrolls (scrolls once everything is a Masterwork).
+		var scroll_turn := me.masterworks.size() > me.scrolls_bought or cmd.masterwork_slot < 0
+		if me.masterworks.size() > 0 and scroll_turn and _wishlist_done(sim, me) \
+				and Economy.siege_scroll_problem(sim, me) == "":
+			cmd.buy_scroll = true
+			cmd.masterwork_slot = -1
 	if last_hit:
 		cmd.target_id = _last_hit_target(sim, me)
 
@@ -197,16 +205,16 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	var callers := _enemy_minions_near(sim, me.pos, sim.config.minion_call_radius)
 	var under_their_tower := their_front != null and CombatSystem.in_range(sim, their_front, me, 0.5)
 	var relay_dist := me.pos.distance_to(relay.pos)
-	var their_relay_dist := them.pos.distance_to(relay.pos) if them.alive else INF
+	var their_relay_dist := them.pos.distance_to(relay.pos) if seen else INF
 	if me.carrying_relay:
 		# R1. Carry it to the delivery pocket and stand in the middle until it lands.
 		var drop_off := relay.delivery_rect(sim).get_center()
 		if me.pos.distance_to(drop_off) > 0.6:
 			cmd.move = _toward(me, drop_off)
 		return cmd
-	elif relay.state == RelayController.State.CARRIED and them.carrying_relay and them.alive \
+	elif relay.state == RelayController.State.CARRIED and them.carrying_relay and seen \
 			and me.hp > me.max_hp * 0.45 and me.pos.distance_to(them.pos) < 20.0:
-		# R2. Intercept: two hits knock the Relay loose.
+		# R2. Intercept: one hit knocks the Relay loose.
 		engage = them
 		goal = them.pos
 		cmd.target_id = them.id
@@ -226,13 +234,13 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		var banner: Dictionary = _banner_to_take(sim, me, their_front)
 		cmd.move = _toward(me, banner.pos)
 		return cmd
-	elif them.alive and them.hp < them.max_hp * 0.35 and me.hp > me.max_hp * 0.5 \
+	elif seen and them.hp < them.max_hp * 0.35 and me.hp > me.max_hp * 0.5 \
 			and (their_front == null or them.pos.distance_to(their_front.pos) > their_front.attack_range + 1.0):
 		# 4. Punish a weak hero who is away from their tower, whatever their minions do.
 		engage = them
 		goal = them.pos
 		cmd.target_id = them.id
-	elif them.alive and me.pos.distance_to(them.pos) < 8.0 and me.hp / me.max_hp >= them.hp / them.max_hp - 0.1 \
+	elif seen and me.pos.distance_to(them.pos) < 8.0 and me.hp / me.max_hp >= them.hp / them.max_hp - 0.1 \
 			and callers <= 1 and not under_their_tower:
 		# 5. Even or better trade, and hitting them won't pull their wave or tower onto us.
 		engage = them
@@ -257,7 +265,7 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 
 	# Farming near their hero: tap a minion (ranged ones first) so the automatic
 	# target isn't their hero, which would call their wave or tower onto us.
-	if engage != them and cmd.target_id == 0 and them.alive and CombatSystem.in_range(sim, me, them):
+	if engage != them and cmd.target_id == 0 and seen and CombatSystem.in_range(sim, me, them):
 		cmd.target_id = _safe_farm_target(sim, me)
 	if engage != null and CombatSystem.in_range(sim, me, engage, -0.2):
 		return cmd  # Stand still: the attack happens on its own.
@@ -400,11 +408,8 @@ func _banner_to_take(sim: MatchSim, me: HeroState, their_front: StructureState) 
 	return best
 
 
-## Level 6 gold sink: once no wishlist upgrade is still to come, make the priciest owned
-## item a Masterwork. -1 for nothing to do.
-func _masterwork(sim: MatchSim, me: HeroState) -> int:
-	if me.level < sim.config.masterwork_level:
-		return -1
+## True once no wishlist item is still worth saving for.
+func _wishlist_done(sim: MatchSim, me: HeroState) -> bool:
 	var low_tier := 99
 	for item in me.items:
 		low_tier = mini(low_tier, item.tier)
@@ -412,7 +417,15 @@ func _masterwork(sim: MatchSim, me: HeroState) -> int:
 		var slot := _deck_slot(me, id)
 		if slot >= 0 and not me.owns(me.deck[slot]) and not _sold.has(id) \
 				and (me.items.size() < sim.config.max_items or me.deck[slot].tier > low_tier):
-			return -1
+			return false
+	return true
+
+
+## Level 6 gold sink: once no wishlist upgrade is still to come, make the priciest owned
+## item a Masterwork. -1 for nothing to do.
+func _masterwork(sim: MatchSim, me: HeroState) -> int:
+	if me.level < sim.config.masterwork_level or not _wishlist_done(sim, me):
+		return -1
 	var best := -1
 	for i in me.deck.size():
 		if Economy.masterwork_problem(sim, me, i) == "" and (best < 0 or me.deck[i].cost > me.deck[best].cost):

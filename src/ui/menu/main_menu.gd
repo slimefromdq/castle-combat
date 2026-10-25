@@ -396,7 +396,7 @@ func _build_battle_page() -> Control:
 	play_row.add_child(mode)
 	v.add_child(play_row)
 	if not DisplayServer.is_touchscreen_available():
-		var help := Zine.label("WASD move · stop to attack · click to focus · 1-8 buy · Q/E/R abilities · F drop Relay · Esc menu", Zine.HAND, 18, Color(Zine.INK, 0.65))
+		var help := Zine.label("WASD move · stop to attack · Q/E/R cast at the mouse · Tab details · F11 fullscreen · Esc menu", Zine.HAND, 18, Color(Zine.INK, 0.65))
 		help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(help)
