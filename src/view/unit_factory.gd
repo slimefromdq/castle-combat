@@ -76,6 +76,7 @@ static func make_hero(hero: HeroState, is_ally: bool) -> Node3D:
 	body.name = "Body"
 	root.add_child(body)
 	hero_body(body, hero.data.shape, Palette.team_color(is_ally))
+	hero_gear(body, hero.data.shape, Palette.team_color(is_ally))
 	root.set_meta("bar_height", 2.0)
 	return root
 
@@ -126,6 +127,51 @@ static func hero_body(body: Node3D, shape: String, c: Color) -> void:
 			part(body, cylinder(0.2, 0.2, 0.1, 6), gold, Vector3(0, 1.56, 0))
 			part(body, box(Vector3(0.1, 0.1, 1.4)), Palette.ACCENT, Vector3(0.5, 0.82, -0.55))
 			part(body, box(Vector3(0.36, 0.08, 0.08)), gold, Vector3(0.5, 0.82, 0.12))
+
+
+## Item silhouettes, hidden until MatchView shows them: "GearMid" (a mid item: the
+## weapon glows), "GearLate" (a late item: armor or clothing that changes the outline from
+## above) and "GearMaster" (a Masterwork: a gold gem floating over the head).
+static func hero_gear(body: Node3D, shape: String, c: Color) -> void:
+	var mid := Node3D.new()
+	mid.name = "GearMid"
+	var late := Node3D.new()
+	late.name = "GearLate"
+	var master := Node3D.new()
+	master.name = "GearMaster"
+	for n: Node3D in [mid, late, master]:
+		n.visible = false
+		body.add_child(n)
+	var glow := Color(1.0, 0.85, 0.35, 0.75)
+	var gold := Color("e8c35a")
+	match shape:
+		"gunslinger":
+			# Jose: guns glow hot; late, a red poncho with a gold hem and a bandolier.
+			for side: float in [-1.0, 1.0]:
+				part(mid, box(Vector3(0.16, 0.2, 0.6)), Color(1.0, 0.55, 0.15, 0.7), Vector3(side * 0.42, 0.78, -0.3), Vector3.ZERO, true)
+			part(late, cylinder(0.26, 0.66, 0.34, 20), Color("c22a35"), Vector3(0, 0.9, 0))
+			part(late, cylinder(0.67, 0.67, 0.06, 20), gold, Vector3(0, 0.74, 0))
+			part(late, box(Vector3(0.1, 0.06, 0.9)), Color("6b4a2b"), Vector3(0, 1.08, 0), Vector3(0, 45, 0))
+		"thief":
+			# Jack: his cards glow; late, a tall top hat and a long cape.
+			for k in 3:
+				var ang := deg_to_rad(120.0 * k + 30.0)
+				part(mid, box(Vector3(0.24, 0.32, 0.04)), Color(0.8, 0.6, 1.0, 0.7), Vector3(cos(ang) * 0.75, 1.15 + 0.12 * k, sin(ang) * 0.75), Vector3(0, -rad_to_deg(ang), 12), true)
+			part(late, cylinder(0.2, 0.2, 0.42, 16), Color("2f2a3a"), Vector3(0, 1.72, 0.02))
+			part(late, cylinder(0.21, 0.21, 0.08, 16), Palette.ACCENT, Vector3(0, 1.56, 0.02))
+			part(late, box(Vector3(0.9, 0.06, 0.9)), Color("6d4bb3").darkened(0.25), Vector3(0, 0.95, 0.42), Vector3(-28, 0, 0))
+		_:
+			# Avery: the blade glows; late, gold pauldrons and a team-colored cape.
+			part(mid, box(Vector3(0.18, 0.18, 1.5)), glow, Vector3(0.5, 0.82, -0.55), Vector3.ZERO, true)
+			for side: float in [-1.0, 1.0]:
+				part(late, box(Vector3(0.34, 0.2, 0.5)), gold, Vector3(side * 0.5, 1.15, 0))
+			part(late, box(Vector3(0.85, 0.06, 0.95)), c.darkened(0.3), Vector3(0, 0.85, 0.42), Vector3(-30, 0, 0))
+	var gem := SphereMesh.new()
+	gem.radius = 0.16
+	gem.height = 0.4
+	gem.radial_segments = 4
+	gem.rings = 2
+	part(master, gem, Color("ffd84a"), Vector3(0, 2.25, 0), Vector3.ZERO, true)
 
 
 ## Root holds "Body" (pillar or gem plus the lock "Dome") and "Rubble", shown once destroyed.

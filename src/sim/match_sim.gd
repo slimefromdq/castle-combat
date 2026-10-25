@@ -31,6 +31,8 @@ var relay := RelayController.new()
 var skillshots: Array[Skillshot] = []
 ## Multiplies last-hit gold while an ability hit resolves (Last Call, Sleight of Hand).
 var kill_gold_mult := 1.0
+## Team of the first hero to reach the ultimate level (Lv5), or -1 while nobody has.
+var ult_race_winner := -1
 ## Siege minions each team has earned (Relay deliveries) for its next wave.
 var pending_siege: Array[int] = [0, 0]
 var over := false
@@ -58,6 +60,7 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	minions.clear()
 	skillshots.clear()
 	kill_gold_mult = 1.0
+	ult_race_winner = -1
 	next_wave_time = cfg.first_wave_time
 	waves_spawned = 0
 	pending_siege = [0, 0]
@@ -109,6 +112,8 @@ func step(commands: Array) -> void:
 			Economy.try_sell(self, hero, cmd.sell_slot)
 		if cmd.buy_slot >= 0:
 			Economy.try_buy(self, hero, cmd.buy_slot)
+		if cmd.masterwork_slot >= 0:
+			Economy.try_masterwork(self, hero, cmd.masterwork_slot)
 		if cmd.perk_pick >= 0:
 			Leveling.pick_perk(self, hero, cmd.perk_pick)
 		if cmd.cast_slot >= 0:

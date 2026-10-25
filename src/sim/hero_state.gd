@@ -42,6 +42,11 @@ var rhythm_count := 0
 var frenzy_left := 0
 var crest_count := 0
 var aegis_ready_at := 0.0
+## Masterwork items (by id) and their boosted copies, which item_with and item_total use.
+var masterworks: Dictionary = {}
+## Level-up surge: extra attack speed until this sim time.
+var surge_until := 0.0
+var surge_bonus := 0.0
 var _move_speed_mult := 1.0
 
 ## Levels and abilities. cooldowns[i] is seconds until ability i is ready.
@@ -157,6 +162,8 @@ func current_interval(_time: float) -> float:
 	var bonus := 0.0
 	if hp < max_hp * 0.5:
 		bonus += item_total(&"low_hp_attack_speed_bonus")
+	if _now < surge_until:
+		bonus += surge_bonus
 	return attack_interval / (1.0 + bonus)
 
 
@@ -275,25 +282,45 @@ func clear_effects() -> void:
 	spark_until = 0.0
 	storm_left = 0
 	frenzy_left = 0
+	surge_until = 0.0
 
 
 func owns(item: ItemData) -> bool:
 	return items.has(item)
 
 
-## The first owned item with a non-zero value for property, or null.
+func is_masterwork(item: ItemData) -> bool:
+	return masterworks.has(item.id)
+
+
+## An owned item as it works for this hero: its Masterwork copy if it has one.
+func effective(item: ItemData) -> ItemData:
+	return masterworks.get(item.id, item)
+
+
+## The first owned item with a non-zero value for property, or null (a Masterwork
+## comes back as its boosted copy).
 func item_with(property: StringName) -> ItemData:
 	for item in items:
-		if float(item.get(property)) != 0.0:
-			return item
+		var it := effective(item)
+		if float(it.get(property)) != 0.0:
+			return it
 	return null
 
 
 func item_total(property: StringName) -> float:
 	var sum := 0.0
 	for item in items:
-		sum += float(item.get(property))
+		sum += float(effective(item).get(property))
 	return sum
+
+
+## The highest tier among owned items (-1 with none).
+func top_item_tier() -> int:
+	var top := -1
+	for item in items:
+		top = maxi(top, item.tier)
+	return top
 
 
 ## Base stats from HeroData plus every owned item. Extra max HP is added to current HP;

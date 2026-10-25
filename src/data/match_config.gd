@@ -66,8 +66,8 @@ extends Resource
 @export_group("Levels")
 ## Total XP needed to reach each level (index 0 = level 1). Abilities unlock at 1, 3, 5;
 ## perks at 2, 4, 6 (the last is the capstone).
-@export var level_xp: Array[int] = [0, 120, 300, 550, 850, 1200]
-@export var passive_xp_per_second := 1.0
+@export var level_xp: Array[int] = [0, 120, 300, 550, 850, 1400]
+@export var passive_xp_per_second := 0.35
 ## XP to the opposing hero for a knockout, plus this much per level the victim is above them.
 @export var ko_xp := 90.0
 @export var ko_xp_per_level_above := 25.0
@@ -76,6 +76,18 @@ extends Resource
 ## At levels 2, 4 and 6 you pick one of two perks. Unpicked after this long, the first
 ## option is taken for you.
 @export var perk_auto_pick_time := 12.0
+
+@export_group("Power spikes")
+## Every level-up heals this fraction of max HP and gives level_up_attack_speed more
+## attack speed for level_up_surge_time seconds: fight right as you level.
+@export var level_up_heal_fraction := 0.15
+@export var level_up_attack_speed := 0.3
+@export var level_up_surge_time := 3.0
+## From masterwork_level, a hero can pay masterwork_cost_fraction of an owned item's
+## price to make it a Masterwork: masterwork_bonus more of its stats and effects.
+@export var masterwork_level := 6
+@export var masterwork_cost_fraction := 0.5
+@export var masterwork_bonus := 0.25
 
 @export_group("Economy")
 @export var passive_gold_per_second := 2.0

@@ -31,6 +31,7 @@ six hero levels that unlock three abilities and three perks.
 | Pick a level-up perk | Z / X | Tap a perk card |
 | Buy item card | 1–8 | Tap a card |
 | Sell an owned item (half price back) | Its number twice | Tap its card twice |
+| Make an owned item a Masterwork (Lv 6, at the shop) | C / V / B | Tap a Masterwork button |
 | Hide / show the item cards | Tab | — |
 | Pick up / deliver the Relay | Stand in the gold ring / the outlined pocket | Same |
 | Drop the Relay | F | Drop button while carrying |
@@ -56,10 +57,26 @@ you get a share too.
 your plan, and late items (2,000–2,400) change how fights go. Your deck holds eight, you own
 at most three at once, and selling an early item is how you make room for a late one.
 
-**Levels:** you earn XP over time, from enemy minions (same rule as gold) and from
-knockouts. Level 1, 3 and 5 unlock your abilities (5 is the ultimate); at 2, 4 and 6 you
+**Levels:** most XP comes from enemy minions dying near you (same rule as gold), then
+knockouts, with a small trickle over time, so a trip back to shop costs XP as well as gold.
+Level 1, 3 and 5 unlock your abilities (5 is the ultimate); at 2, 4 and 6 you
 pick one of two perks (Z / X or tap a card; after 12 s the first one is taken for you).
-Falling behind in level earns you bonus XP.
+Falling behind in level earns you bonus XP. Expect Lv3 around 1:30, Lv5 around 3:30 and
+Lv6 around 5:30.
+
+**Power spikes:**
+- **Level-up surge:** every level-up heals 15% of your max HP and gives +30% attack
+  speed for 3 seconds, so fight right as you level. A gold ring marks every level-up.
+- **Ult race:** the first hero to reach Lv5 gets a column of light and a callout. Play
+  around the enemy's Lv5.
+- **Push, then shop:** when you can afford a card away from the shop, your gold pulses
+  and says "Shop!". Push your wave into their tower, then head back.
+- **Enemy spikes:** when the enemy finishes a mid or late item or a Masterwork, their name
+  and items pulse with a callout. Their XP bar sits under their health.
+- **Item looks:** a mid item makes your weapon glow, and a late item adds armor or
+  clothing (Avery's pauldrons and cape, Jose's poncho, Jack's top hat and cape).
+- **Masterwork (Lv6 gold sink):** at the shop, pay half an owned item's price to make it a
+  Masterwork with +25% to its stats and effects. A gold gem floats over your head.
 
 **Heroes** (all move at the same speed):
 

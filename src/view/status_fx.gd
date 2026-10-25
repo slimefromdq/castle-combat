@@ -11,6 +11,7 @@ var _parts: Dictionary = {}
 ## Skillshot id -> node.
 var _shots: Dictionary = {}
 var _rings: Array = []
+var _pillars: Array = []
 var _ring_mesh := TorusMesh.new()
 ## Sprint speed trail: short streaks left behind a sprinting hero, fading out.
 var _streaks: Array = []
@@ -46,6 +47,22 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			_spawn_ring(data.pos, data.radius, Color("9b6bff"))
 		&"shield_shattered":
 			_spawn_ring(data.pos, data.radius, Color(0.8, 0.95, 1.0))
+		&"level_up":
+			# Bright gold ring on every level-up; a wider double ring at the ultimate level.
+			var lh: SimEntity = view.sim.get_entity(data.hero)
+			if lh != null:
+				var big: bool = data.level == Leveling.ULT_LEVEL
+				_spawn_ring(lh.pos, 3.6 if big else 2.2, Color(1.0, 0.86, 0.35), 0.7 if big else 0.55)
+				if big:
+					_spawn_ring(lh.pos, 2.4, Color(1, 1, 1), 0.5)
+		&"ult_race_won":
+			var uh: SimEntity = view.sim.get_entity(data.hero)
+			if uh != null:
+				_spawn_pillar(uh.id, Palette.team_color(uh.team == view.local_seat).lightened(0.5))
+		&"masterwork":
+			var mh: SimEntity = view.sim.get_entity(data.hero)
+			if mh != null:
+				_spawn_ring(mh.pos, 1.8, Color("f5d76e"), 0.5)
 		&"teleported":
 			_spawn_ring(data.from, 1.2, Color("9b6bff"))
 			_spawn_ring(data.to, 1.6, Color("c9a7ff"))
@@ -103,6 +120,7 @@ func render() -> void:
 			_render_guardian(st)
 	_render_skillshots(sim)
 	_update_rings()
+	_update_pillars()
 	_update_streaks(sim)
 
 
@@ -225,9 +243,15 @@ func _parts_for(h: HeroState) -> Dictionary:
 
 
 ## A ring that grows to `radius` and fades: shows the area an ability just hit.
-func _spawn_ring(p: Vector2, radius: float, color: Color) -> void:
+func _spawn_ring(p: Vector2, radius: float, color: Color, life := 0.35) -> void:
 	var node := UnitFactory.part(self, _ring_mesh, color, MatchView.to_world(p, 0.1), Vector3.ZERO, true)
-	_rings.append({"node": node, "t": 0.0, "r": radius})
+	_rings.append({"node": node, "t": 0.0, "r": radius, "life": life})
+
+
+## Ult race: a column of light over the first hero to reach the ultimate level.
+func _spawn_pillar(hero_id: int, color: Color) -> void:
+	var node := UnitFactory.part(self, UnitFactory.cylinder(0.9, 1.2, 14.0, 24), Color(color, 0.55), Vector3.ZERO, Vector3.ZERO, true)
+	_pillars.append({"node": node, "t": 0.0, "id": hero_id})
 
 
 func _update_rings() -> void:
@@ -235,7 +259,7 @@ func _update_rings() -> void:
 	for i in range(_rings.size() - 1, -1, -1):
 		var g: Dictionary = _rings[i]
 		g.t += delta
-		var k: float = g.t / 0.35
+		var k: float = g.t / g.life
 		if k >= 1.0:
 			g.node.queue_free()
 			_rings.remove_at(i)
@@ -243,6 +267,23 @@ func _update_rings() -> void:
 		var r: float = lerpf(0.3, g.r, k)
 		g.node.scale = Vector3(r, 0.04, r)
 		(g.node.material_override as StandardMaterial3D).albedo_color.a = 1.0 - k
+
+
+func _update_pillars() -> void:
+	var delta := get_process_delta_time()
+	for i in range(_pillars.size() - 1, -1, -1):
+		var g: Dictionary = _pillars[i]
+		g.t += delta
+		var k: float = g.t / 1.4
+		if k >= 1.0:
+			g.node.queue_free()
+			_pillars.remove_at(i)
+			continue
+		var at := view.unit_position(g.id)
+		g.node.position = Vector3(at.x, 7.0, at.z)
+		var w := lerpf(1.0, 0.2, k)
+		g.node.scale = Vector3(w, 1.0, w)
+		(g.node.material_override as StandardMaterial3D).albedo_color.a = 0.55 * (1.0 - k * k)
 
 
 ## Every 0.05 s a sprinting hero drops two streaks (one per side) in its trail colour.

@@ -266,7 +266,36 @@ Lucy tried an Underdog Relay comeback (PR #12) and dropped it: the Relay stays a
 - [x] 154 tests. Bot matches (3 per pairing and seat): Avery 8/12, Jose 7/12, Jack 3/12;
       length 6:40 to 13:03 (median 10:34); Lv3 1:41, Lv5 3:59, Lv6 5:24 (medians)
 
-**Next: power spikes, then waves and troopers; metrics runner; M5 iOS.**
+### M11: power spikes (Lucy picked ideas 1, 2, 3, 4, 6, 8, 9, 10, 11)
+
+Doc: https://claude.ai/artifact/7U1bEzZcY6GZDvb87P4Zo3
+
+- [x] 1 Level timeline: target Lv3 ~1:30, Lv5 ~3:30, Lv6 ~5:30. Lv6 now needs 1,400 XP (was 1,200)
+- [x] 4 Wave XP is the main source: passive XP 1.0 -> 0.35 per second; troopers give 22 XP
+      (was 15), siege 60 (was 40)
+- [x] 2 Level-up surge: +15% max HP healed and +30% attack speed for 3 s (`HeroState.surge_until`)
+- [x] 3 Ult race: `sim.ult_race_winner`, `ult_race_won` event, HUD callout, a column of light
+- [x] 6 Push, then shop: gold pulses with "Shop!" while a card is affordable away from the
+      shop, plus a one-time callout per card
+- [x] 8 Masterwork (Lv6 gold sink): pay 50% of an owned item's price for +25% to its stats and
+      effect strengths (`Items.MASTERWORK_FIELDS`; thresholds, timings and counts unchanged).
+      `HeroState.masterworks` holds boosted copies; `item_with`/`item_total` read them. Selling
+      refunds half of both prices. HUD buttons at the shop (C/V/B); the bot buys them once
+      its wishlist is done. Siege scrolls not built (the doc offered them as an alternative)
+- [x] 9 Enemy spike icons: their name and items pulse for 8 s after a mid or late item, a
+      Masterwork, or their Lv5 first, with a callout. Their XP bar was already there
+- [x] 10 Level-up ring: gold ring on every level-up, bigger double ring at Lv5. No sound
+      yet (the project has no audio)
+- [x] 11 Item silhouettes: mid item = glowing weapon, late item = Avery's pauldrons and
+      cape, Jose's poncho, Jack's top hat and cape; Masterwork = a gold gem over the head
+- [x] Dev: `--stage=spikes|ultrace`; `tools/bot_matches.gd` prints Lv4, per-hero Lv5 times,
+      how often the first to Lv5 won, and Masterworks made
+- [x] 159 tests. Bot matches (4 per pairing and seat): Avery 15/16, Jose 9/16, Jack 0/16;
+      length median 9:26; Lv3 1:31, Lv4 2:22, Lv5 3:25, Lv6 5:31; first to Lv5 won 21 of 24.
+      Jack loses with or without the surge and Masterworks (0-1 of 8 either way), so his
+      weakness predates this; he levels as fast as the others
+
+**Next: waves and troopers; a Jack tuning pass; metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)
 
