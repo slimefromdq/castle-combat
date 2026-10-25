@@ -259,8 +259,8 @@ func _refresh_spikes(sim: MatchSim, me: HeroState) -> void:
 ## The first card you don't own that you could buy now or at the shop, or -1.
 func _affordable_card(sim: MatchSim, me: HeroState) -> int:
 	for i in me.deck.size():
-		var problem := Economy.buy_problem(sim, me, i)
-		if problem == "" or problem == "shop at your tower or base":
+		var item := me.deck[i]
+		if not me.owns(item) and me.items.size() < sim.config.max_items and me.gold + 0.0001 >= item.cost:
 			return i
 	return -1
 
@@ -339,6 +339,14 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 			else:
 				text = "Enemy spike: Masterwork %s!" % _item_name(data.item)
 				_enemy_spike(data.item)
+		&"special_spawned":
+			if data.team != seat:
+				text = "Enemy Sapper incoming: kill it before it reaches your tower" if data.kind == &"sapper" \
+						else "Enemy Shieldbearer: its shield stops your first skillshot"
+		&"banner_dropped":
+			text = "A banner dropped: walk over it to buff your next wave"
+		&"banner_taken":
+			text = "Banner taken: your next wave is stronger" if data.team == seat else "The enemy took the banner: their next wave is stronger"
 		&"ult_race_won":
 			if data.team == seat:
 				text = "You reached Lv5 first! Ultimate ready (R): go fight"

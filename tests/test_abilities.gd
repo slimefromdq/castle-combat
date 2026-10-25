@@ -421,7 +421,7 @@ func test_lady_killer_and_last_call() -> void:
 	check(not m.alive, "Last Call finished the low trooper")
 	var gold := _last(&"gold_awarded")
 	check(gold.get("reason") == &"last_hit", "a last hit")
-	check_near(gold.get("amount", 0.0), melee().gold_bounty * 2.0 * Pacing.gold_mult(sim2), 0.01, "for double gold")
+	check_near(gold.get("amount", 0.0), melee().gold_bounty * 2.0 * (1.0 + MatchController.CONFIG.last_hit_bonus) * Pacing.gold_mult(sim2), 0.01, "for double gold")
 
 
 func test_last_tango_dances_slowly_and_hits_around() -> void:
@@ -592,7 +592,7 @@ func test_sleight_of_hand_pays_more_for_cloak_kills() -> void:
 	m.hp = 10.0
 	_cast(sim, 0)
 	run_until(sim, func() -> bool: return not m.alive, 20)
-	check_near(_last(&"gold_awarded").get("amount", 0.0), melee().gold_bounty * 1.5 * Pacing.gold_mult(sim), 0.01, "+50% gold")
+	check_near(_last(&"gold_awarded").get("amount", 0.0), melee().gold_bounty * 1.5 * (1.0 + MatchController.CONFIG.last_hit_bonus) * Pacing.gold_mult(sim), 0.01, "+50% gold")
 
 
 func test_encore_copies_the_enemy_ult() -> void:

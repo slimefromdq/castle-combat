@@ -43,7 +43,17 @@ six hero levels that unlock three abilities and three perks.
 There is no attack button on purpose: standing still is how you attack.
 
 **Gold:** any enemy minion that dies inside the faint gold circle around you pays you its
-gold, whoever killed it. A killing blow from farther away pays too.
+gold, whoever killed it. A killing blow from farther away pays too, and a killing blow
+always pays 15% more, so last hits are worth timing.
+
+**Waves:** every 3rd wave brings a special trooper, alternating a **Sapper** (carries a
+bomb, hits structures five times harder; kill it before it reaches your tower) and a
+**Shieldbearer** (a big shield that stops the first enemy skillshot that touches it,
+protecting the troopers behind). A special trooper drops a **banner** where it dies:
+walk over it within 15 s and your next wave gets +20% HP and damage (the troopers carry
+little gold flags). Arrows on both lane edges show where the waves are meeting: they
+point the way the fight is drifting, in your color when it drifts toward the enemy base,
+in theirs when it drifts toward yours, and flatten while it holds.
 **Denies:** once one of your own minions drops to half health its bar gets a white frame;
 tap it and stand still to finish it yourself: the enemy only collects half its gold, and
 you get a share too.

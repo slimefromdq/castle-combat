@@ -22,7 +22,7 @@ func test_gold_ramps_up_over_time() -> void:
 	var gold := blue.gold
 	var m := sim.spawn_minion(melee(), MatchSim.RED, blue.pos + Vector2(1, 0))
 	sim.apply_damage(m, m.max_hp * 3.0, blue)
-	check_near(blue.gold - gold, melee().gold_bounty * Pacing.gold_mult(sim), 0.01, "minion gold is scaled too")
+	check_near(blue.gold - gold, melee().gold_bounty * (1.0 + MatchController.CONFIG.last_hit_bonus) * Pacing.gold_mult(sim), 0.01, "minion gold is scaled too")
 
 
 func test_relay_rewards_grow_each_activation() -> void:

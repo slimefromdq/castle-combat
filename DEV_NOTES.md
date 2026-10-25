@@ -295,7 +295,30 @@ Doc: https://claude.ai/artifact/7U1bEzZcY6GZDvb87P4Zo3
       Jack loses with or without the surge and Masterworks (0-1 of 8 either way), so his
       weakness predates this; he levels as fast as the others
 
-**Next: waves and troopers; a Jack tuning pass; metrics runner; M5 iOS.**
+### M12: wave depth (Lucy picked ideas 1, 5, 7 and 8)
+
+Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
+
+- [x] 1 Last-hit bonus: a killing blow pays +15% (`last_hit_bonus`); proximity gold unchanged
+- [x] 5 Wave meeting marker: `Waves.meeting_y` (halfway between the two wave fronts); the view
+      smooths its drift and draws an arrow on each lane edge (floats above the mid-lane pillars)
+- [x] 7 Special troopers every 3rd wave (`special_wave_every`), alternating Sapper (320 HP vs
+      melee 280, structure damage x5) and Shieldbearer (`shield_blocks` = 1: the first enemy
+      skillshot touching it ends there, no damage)
+- [x] 8 Banners: a dead special trooper drops one for 15 s; the first hero within 1 m takes
+      it and their team's next wave gets +20% HP and damage (`sim.banner_pending`). Bots grab
+      banners within 10 m when healthy and out of tower reach
+- [x] Jack (Lucy: "bot skill issue, buff cloak and burst"): Cloak Toss 110 -> 135 (troopers
+      100 -> 115), Vanish burst 100 -> 150 (troopers 80 -> 100), burst radius 3.2 -> 3.8 m
+- [x] Fix from M11: the "Shop!" pulse and "you can afford" callout fired when you could not
+      afford the card (shop range was checked before gold)
+- [x] Dev: `--stage=waves`
+- [x] Levels re-tuned for the extra wave XP: Lv4 560, Lv5 920, Lv6 1,560
+- [x] 166 tests. Bot matches (4 per pairing and seat): Avery 13/16, Jose 11/16, Jack 0-3/16
+      (the bot can't play Jack's range-and-cloak style; Lucy finds him strong by hand);
+      length median 8:42; Lv3 1:29, Lv5 3:17, Lv6 5:18
+
+**Next: metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)
 

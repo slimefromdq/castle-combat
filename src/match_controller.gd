@@ -17,6 +17,8 @@ const MINIONS := {
 	&"melee": preload("res://data/minions/melee.tres"),
 	&"ranged": preload("res://data/minions/ranged.tres"),
 	&"siege": preload("res://data/minions/siege.tres"),
+	&"sapper": preload("res://data/minions/sapper.tres"),
+	&"shieldbearer": preload("res://data/minions/shieldbearer.tres"),
 }
 ## The item pool, early to late. Players bring a deck of CONFIG.deck_size of them.
 const ITEMS: Array[ItemData] = [
@@ -189,6 +191,30 @@ func stage(what: String) -> void:
 		them_s.pos = keep_t
 		me_u.gold = 1400.0
 		view.render(1.0, 0.0, true)
+		return
+	if what == "waves":
+		# Special troopers mid-lane (a Shieldbearer and a Sapper each side), a banner on
+		# the ground in front of you, and a banner-buffed wave of yours.
+		for h in sim.heroes:
+			h.pos = MatchSim.to_team_space(h.team, Vector2(1.2, -8.0 if h.team == local_seat else -22.0))
+			h.prev_pos = h.pos
+		sim.next_wave_time = 1000.0
+		var ally_fwd := MatchSim.forward(local_seat)
+		var made: Array[MinionState] = []
+		for team in [local_seat, enemy]:
+			var base := Vector2(0, -1.8 if team == local_seat else 1.8)
+			var dir: Vector2 = MatchSim.forward(team)
+			var row: Array = [[&"shieldbearer", 0.0], [&"melee", -0.9], [&"melee", 0.9], [&"sapper", -0.5], [&"ranged", 0.6]]
+			for k in row.size():
+				var spot := MatchSim.to_team_space(local_seat, base) - dir * (0.0 if k == 0 else (1.3 if k < 3 else 2.5)) + Vector2(row[k][1], 0)
+				var m := sim.spawn_minion(MINIONS[row[k][0]], team, spot)
+				m.max_hp *= 30.0
+				m.hp = m.max_hp
+				made.append(m)
+				if team == local_seat:
+					m.bannered = true
+		sim.banners.append({"id": sim.new_id(), "pos": MatchSim.to_team_space(local_seat, Vector2(-1.6, -6.0)), "expires_at": 1000.0})
+		fast_forward(0.4)
 		return
 	if what == "sprint":
 		# Start in the lane in front of your tower (pair with --walk-up to see a sprint).
