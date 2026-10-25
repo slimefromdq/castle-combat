@@ -34,7 +34,7 @@ func test_lane_walls_stop_the_hero() -> void:
 	var hero := sim.heroes[0]
 	hero.pos = Vector2(0, -15)
 	run_ticks(sim, 120, Vector2.LEFT)
-	check_near(hero.pos.x, -5.0 + hero.radius, 0.05, "rests against the left lane wall")
+	check_near(hero.pos.x, -sim.arena.lane_half_width + hero.radius, 0.05, "rests against the left lane wall")
 
 
 func test_hero_slides_along_a_wall_at_an_angle() -> void:

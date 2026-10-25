@@ -40,6 +40,7 @@ var storm_next := 0.0
 var storm_item: ItemData
 var rhythm_count := 0
 var frenzy_left := 0
+var crest_count := 0
 var aegis_ready_at := 0.0
 var _move_speed_mult := 1.0
 
@@ -60,6 +61,8 @@ var forced_vel := Vector2.ZERO
 var forced_ticks := 0
 var forced_action := Callable()
 ## A channelled ability (Barrage): pulses left, time of the next one, where it lands.
+## Recall: when it completes (-1 = not recalling).
+var recall_at := -1.0
 var channel: AbilityData
 var channel_point := Vector2.ZERO
 var channel_pulses_left := 0

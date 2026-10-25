@@ -43,9 +43,13 @@ There is no attack button on purpose: standing still is how you attack.
 **Gold:** any enemy minion that dies inside the faint gold circle around you pays you its
 gold, whoever killed it. A killing blow from farther away pays too.
 **Denies:** once one of your own minions drops to half health its bar gets a white frame;
-tap it and stand still to finish it yourself, and the enemy only collects half its gold.
+tap it and stand still to finish it yourself: the enemy only collects half its gold, and
+you get a share too.
 
-**Items:** thirteen items in three tiers. Early items (300–400) help in lane, mid items
+**Recall:** press B (or the Recall button) and stand still for 3 seconds to return to your healing pad. Damage or moving cancels it.
+**Shopping:** buy and sell only near your front tower or at your base.
+
+**Items:** sixteen items in three tiers. Early items (300–400) help in lane, mid items
 (900–1,100) answer the enemy (anti-heal, ability resist, damage that hurts tanks) or push
 your plan, and late items (2,000–2,400) change how fights go. Your deck holds eight, you own
 at most three at once, and selling an early item is how you make room for a late one.
