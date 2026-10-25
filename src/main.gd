@@ -75,4 +75,3 @@ func _end_match() -> void:
 		_match.queue_free()
 		_match = null
 	_menu.visible = true
-
