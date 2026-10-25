@@ -10,6 +10,7 @@ signal debug_toggle_pressed
 signal menu_pressed
 signal restart_pressed
 signal drop_pressed
+signal recall_pressed
 signal buy_pressed(slot: int)
 signal sell_pressed(slot: int)
 signal cast_pressed(slot: int)
@@ -34,6 +35,7 @@ var _relay: Label
 var _flash: Label
 var _flash_until := 0
 var _drop: Button
+var _recall: Button
 var _cards: Array[Button] = []
 var _ability_buttons: Array[Button] = []
 var _you_xp: ProgressBar
@@ -108,6 +110,8 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_relay.text = ("OVERTIME · " if sim.overtime else "") + _relay_text(sim, seat)
 	_flash.visible = Time.get_ticks_msec() < _flash_until
 	_drop.visible = me.carrying_relay
+	_recall.visible = me.alive and not me.carrying_relay and not sim.over
+	_recall.text = "Recall\n%.1f" % maxf(0.0, me.recall_at - sim.time) if me.recall_at >= 0.0 else "B\nRecall"
 	if debug_visible:
 		_debug.text = "FPS %d   tick %d   t %.1fs\nyou (%.1f, %.1f) %s" % [
 			fps, sim.tick, sim.time, me.pos.x, me.pos.y, "moving" if me.moving else "stopped"]
@@ -166,10 +170,13 @@ func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
 		var c := _cards[i]
 		var owned := me.owns(item)
 		var problem := Economy.buy_problem(sim, me, i)
-		c.disabled = problem != "" and not owned
+		var in_shop := Economy.in_shop_range(sim, me)
+		c.disabled = (problem != "" and not owned) or not in_shop
 		var status := "%d" % item.cost if problem != "item slots full" else "full"
 		if owned:
 			status = "Sell +%d?" % int(Economy.sell_value(sim, item)) if _sell_armed == i else "OWNED"
+		elif not in_shop:
+			status = "%d · at tower" % item.cost
 		c.text = "%s\n%s" % [item.display_name, status]
 		var color := Color("8fe388") if owned else (Color("f5d76e") if problem == "" else Color(1, 1, 1, 0.45))
 		if owned and _sell_armed == i:
@@ -221,6 +228,12 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 		&"guardian_slam_windup":
 			if data.team != seat and _sim_for_text != null and _sim_for_text.heroes[seat].pos.distance_to(_sim_for_text.get_entity(data.id).pos) < data.radius + 1.5:
 				text = "Guardian slam! Get out!"
+		&"recall_started":
+			if data.team == seat:
+				text = "Recalling... stand still"
+		&"recall_cancelled":
+			if data.team == seat:
+				text = "Recall cancelled"
 		&"item_sold":
 			if data.team == seat:
 				text = "Sold %s for %d" % [_item_name(data.item), int(data.refund)]
@@ -467,6 +480,17 @@ func _build_thumbs() -> void:
 	_drop.pressed.connect(func() -> void: drop_pressed.emit())
 	_drop.visible = false
 	_root.add_child(_drop)
+	# Recall sits where Drop does (you can't recall while carrying). Keyboard: B.
+	_recall = UiKit.button("B\nRecall", Vector2(96, 96))
+	_recall.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_recall.offset_right = _drop.offset_right
+	_recall.offset_left = _drop.offset_left
+	_recall.offset_bottom = _drop.offset_bottom
+	_recall.offset_top = _drop.offset_top
+	_recall.add_theme_font_size_override("font_size", 15)
+	_recall.tooltip_text = "B: recall to your healing pad (stand still %d s; damage cancels)" % int(MatchController.CONFIG.recall_time)
+	_recall.pressed.connect(func() -> void: recall_pressed.emit())
+	_root.add_child(_recall)
 
 
 ## A square button anchored to the bottom right, `right`/`bottom` px in from the corner

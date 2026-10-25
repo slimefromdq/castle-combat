@@ -195,12 +195,27 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
 - [x] 126 tests
 - Bot-vs-bot length: 6:34 to 10:27 (was 8:52 to 11:26)
 
-**Next: recall, shop range, map size and camera, deny gold, basic-attack items; Relay
-comeback (Lucy picking).**
+### M7b: quality of life (Lucy's playtest notes)
+
+- [x] Recall (B or the button above E): stand still 3 s to land on your healing pad.
+      Moving, casting, carrying the Relay, stuns, knockbacks or any damage cancel it.
+      The bot recalls when low and nobody is near
+- [x] Shop range: buy and sell only within 8 m of your front (active) structure or your
+      Core/pad. Cards read "at tower" elsewhere
+- [x] Map +5% (every ArenaData number x1.05: lane 88.2 x 10.5 m), camera 14 m wide (was 16)
+- [x] Denying pays the denier 40% of the bounty (the enemy still gets half by the nearby rule)
+- [x] Basic-attack items: Whetstone (early, 350: +15% damage, +8% attack speed),
+      Executioner's Edge (mid, 1000: +15% damage, +30% basic damage on heroes below half),
+      Duelist's Crest (late, 2200: +20% damage and attack speed, every 3rd hit on the hero
+      adds 7% of its max HP). Default deck and Scout/Gunner bot decks use them
+- [x] 132 tests
+- Bot-vs-bot length: 7:17 to 8:54
+
+**Next: Underdog Relay (Lucy: only when clearly behind, must not be farmable).**
 
 ## Assumptions (change by editing data)
 
-- Map: 10 m wide lane, 84 m long; pockets 5 × 12 m at the centre; pillars split each
+- Map (before the +5% scale in M7b): 10 m wide lane, 84 m long; pockets 5 × 12 m at the centre; pillars split each
   pocket mouth into two 4.5 m entrances. Structures at y = -16, -27, -37 (blue): 11 m from
   Outer to Inner, 10 m from Inner to Core, 32 m between the two Outer Towers.
 - Hero speeds 4.2–5.4 m/s, radius 0.5 m. Combat numbers in `data/heroes/*.tres` are seeds for M1.

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"executioners_edge"
+display_name = "Executioner's Edge"
+cost = 1000
+tier = 1
+summary = "+15% dmg; +30% vs weak heroes"
+damage_bonus = 0.15
+execute_threshold = 0.5
+execute_bonus = 0.3

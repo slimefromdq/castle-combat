@@ -5,7 +5,7 @@ extends Node3D
 
 const PITCH_DEG := 52.0
 ## World metres visible across the screen width.
-const VIEW_WIDTH := 16.0
+const VIEW_WIDTH := 14.0
 ## Look this far ahead of the hero so it sits about 40% up the screen, clear of thumbs.
 const LEAD := 3.3
 const DISTANCE := 40.0

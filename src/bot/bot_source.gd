@@ -14,8 +14,8 @@ var _sim: MatchSim
 ## make room for later ones.
 const WISHLISTS := {
 	&"vanguard": [&"mending_charm", &"trooper_cleaver", &"overcharge_gem", &"stormcrown", &"aegis_mirror"],
-	&"scout": [&"trooper_cleaver", &"spark_band", &"bloodthirst_blade", &"reapers_rhythm", &"aegis_mirror"],
-	&"gunner": [&"mending_charm", &"spark_band", &"overcharge_gem", &"titan_core", &"stormcrown"],
+	&"scout": [&"trooper_cleaver", &"whetstone", &"bloodthirst_blade", &"reapers_rhythm", &"duelists_crest"],
+	&"gunner": [&"mending_charm", &"whetstone", &"executioners_edge", &"duelists_crest", &"titan_core"],
 }
 ## The counter item the bot slots in as its first mid item against each enemy hero.
 const COUNTERS := {
@@ -120,6 +120,13 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	var pad := MatchSim.to_team_space(team, sim.arena.heal_pad)
 	if _healing and (me.pos.distance_to(pad) > sim.arena.heal_pad_radius or sim.can_heal_at_base(me)):
 		cmd.drop_relay = me.carrying_relay
+		# Far from home and nobody close: recall (stand still) instead of walking.
+		var far := me.pos.distance_to(pad) > 12.0
+		var quiet := not (them.alive and them.pos.distance_to(me.pos) < 10.0) \
+				and _enemy_minions_near(sim, me.pos, 7.0) == 0
+		if far and quiet and not me.carrying_relay:
+			cmd.recall = me.recall_at < 0.0
+			return cmd
 		if me.pos.distance_to(pad) > 1.0:
 			cmd.move = _toward(me, _around_core(sim, me, pad))
 		return cmd

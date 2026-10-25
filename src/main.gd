@@ -157,7 +157,7 @@ func _build_menu() -> void:
 	_play.add_theme_font_size_override("font_size", 32)
 	_play.pressed.connect(_start_match)
 	v.add_child(_play)
-	var help := UiKit.label("WASD / arrows move · stop to attack · click a unit to focus it · 1-8 buy items (press an owned one twice to sell) · Tab hide cards · F drop Relay · F2 swap seat · F3 touch · F1 debug · Esc menu", 17, Color(1, 1, 1, 0.5))
+	var help := UiKit.label("WASD / arrows move · stop to attack · click a unit to focus it · 1-8 buy items (press an owned one twice to sell) · Tab hide cards · F drop Relay · B recall · F2 swap seat · F3 touch · F1 debug · Esc menu", 17, Color(1, 1, 1, 0.5))
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(help)

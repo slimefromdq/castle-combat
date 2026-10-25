@@ -76,3 +76,11 @@ enum Tier { EARLY, MID, LATE }
 ## recharges for aegis_recharge seconds.
 @export var aegis_threshold := 0.0
 @export var aegis_recharge := 0.0
+## Executioner's Edge: basic attacks on an enemy hero below execute_threshold of max HP
+## deal execute_bonus more.
+@export var execute_threshold := 0.0
+@export var execute_bonus := 0.0
+## Duelist's Crest: every crest_every-th basic attack on the enemy hero adds
+## crest_fraction of its max HP.
+@export var crest_every := 0
+@export var crest_fraction := 0.0

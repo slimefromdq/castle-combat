@@ -26,6 +26,8 @@ static func tick(sim: MatchSim) -> void:
 static func buy_problem(sim: MatchSim, hero: HeroState, slot: int) -> String:
 	if slot < 0 or slot >= hero.deck.size():
 		return "no such card"
+	if not in_shop_range(sim, hero):
+		return "shop at your tower or base"
 	var item := hero.deck[slot]
 	if hero.owns(item):
 		return "already owned"
@@ -48,12 +50,25 @@ static func try_buy(sim: MatchSim, hero: HeroState, slot: int) -> bool:
 
 
 ## Why selling the card in this deck slot would fail, or "" if it is allowed.
-static func sell_problem(_sim: MatchSim, hero: HeroState, slot: int) -> String:
+static func sell_problem(sim: MatchSim, hero: HeroState, slot: int) -> String:
 	if slot < 0 or slot >= hero.deck.size():
 		return "no such card"
 	if not hero.owns(hero.deck[slot]):
 		return "not owned"
+	if not in_shop_range(sim, hero):
+		return "shop at your tower or base"
 	return ""
+
+
+## Shopping happens near your front structure (the active one) or at your Core.
+static func in_shop_range(sim: MatchSim, hero: HeroState) -> bool:
+	if not hero.alive:
+		return false
+	for s in sim.structures_of(hero.team):
+		if s.alive and (s.tier == 2 or sim.is_exposed(s)) \
+				and hero.pos.distance_to(s.pos) <= sim.config.shop_radius + s.radius:
+			return true
+	return hero.pos.distance_to(MatchSim.to_team_space(hero.team, sim.arena.heal_pad)) <= sim.config.shop_radius
 
 
 ## What selling an item pays back.
@@ -61,7 +76,7 @@ static func sell_value(sim: MatchSim, item: ItemData) -> float:
 	return roundf(item.cost * sim.config.sell_refund_fraction)
 
 
-## Sells an owned item for sell_refund_fraction of its price. Works anywhere, any time.
+## Sells an owned item for sell_refund_fraction of its price (in shop range).
 static func try_sell(sim: MatchSim, hero: HeroState, slot: int) -> bool:
 	if sell_problem(sim, hero, slot) != "":
 		return false
@@ -83,6 +98,7 @@ static func on_kill(sim: MatchSim, target: SimEntity, source: SimEntity) -> void
 		var denied := source is HeroState and source.team == target.team
 		if denied:
 			sim.emit_event(&"minion_denied", {"id": target.id, "team": target.team, "hero": source.id})
+			_award(sim, source, target.data.gold_bounty * sim.config.deny_self_gold_fraction, &"deny")
 		if not hero.alive:
 			return
 		var share: float = sim.config.deny_gold_fraction if denied else 1.0
