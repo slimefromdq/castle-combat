@@ -1,8 +1,14 @@
 class_name Leveling
 ## Hero XP and levels (Lucy's ladder, replacing the GDD's "no levels" rule):
 ## level 1 ability, 2 perk, 3 second ability, 4 perk, 5 ultimate, 6 capstone perk.
-## XP comes from time, minions dying near you (same rule as gold) and knockouts.
+## XP comes mostly from minions dying near you (same rule as gold), then knockouts, with a
+## trickle over time: leaving lane costs levels as well as gold.
+## Each level-up heals and briefly speeds up attacks (the "surge").
 ## A hero behind the enemy hero in level earns more, so a lost fight is not a lost game.
+
+
+## The level that unlocks the ultimate. Whoever gets there first wins the "ult race".
+const ULT_LEVEL := 5
 
 
 static func tick(sim: MatchSim) -> void:
@@ -47,7 +53,20 @@ static func gain(sim: MatchSim, h: HeroState, amount: float) -> void:
 		if h.level % 2 == 0 and h.level / 2 - 1 < 3:
 			h.perk_offered_at[h.level / 2 - 1] = sim.time
 		h.recompute_stats()
+		_surge(sim, h)
 		sim.emit_event(&"level_up", {"hero": h.id, "team": h.team, "level": h.level})
+		if h.level == ULT_LEVEL and sim.ult_race_winner < 0:
+			sim.ult_race_winner = h.team
+			sim.emit_event(&"ult_race_won", {"hero": h.id, "team": h.team})
+
+
+## Level-up surge: a chunk of HP back and a burst of attack speed.
+static func _surge(sim: MatchSim, h: HeroState) -> void:
+	if not h.alive:
+		return
+	sim.heal(h, h.max_hp * sim.config.level_up_heal_fraction)
+	h.surge_bonus = sim.config.level_up_attack_speed
+	h.surge_until = sim.time + sim.config.level_up_surge_time
 
 
 ## 0..1 progress from the current level to the next (1 at max level).

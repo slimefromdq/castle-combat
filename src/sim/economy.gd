@@ -71,9 +71,48 @@ static func in_shop_range(sim: MatchSim, hero: HeroState) -> bool:
 	return hero.pos.distance_to(MatchSim.to_team_space(hero.team, sim.arena.heal_pad)) <= sim.config.shop_radius
 
 
-## What selling an item pays back.
-static func sell_value(sim: MatchSim, item: ItemData) -> float:
-	return roundf(item.cost * sim.config.sell_refund_fraction)
+## What selling an item pays back (a Masterwork's upgrade price too).
+static func sell_value(sim: MatchSim, item: ItemData, hero: HeroState = null) -> float:
+	var paid := float(item.cost)
+	if hero != null and hero.is_masterwork(item):
+		paid += masterwork_cost(sim, item)
+	return roundf(paid * sim.config.sell_refund_fraction)
+
+
+## What making this item a Masterwork costs.
+static func masterwork_cost(sim: MatchSim, item: ItemData) -> float:
+	return roundf(item.cost * sim.config.masterwork_cost_fraction)
+
+
+## Why making the card in this slot a Masterwork would fail, or "" if it is allowed.
+static func masterwork_problem(sim: MatchSim, hero: HeroState, slot: int) -> String:
+	if slot < 0 or slot >= hero.deck.size():
+		return "no such card"
+	var item := hero.deck[slot]
+	if hero.level < sim.config.masterwork_level:
+		return "Masterworks at level %d" % sim.config.masterwork_level
+	if not hero.owns(item):
+		return "not owned"
+	if hero.is_masterwork(item):
+		return "already a Masterwork"
+	if not in_shop_range(sim, hero):
+		return "shop at your tower or base"
+	if hero.gold + 0.0001 < masterwork_cost(sim, item):
+		return "not enough gold"
+	return ""
+
+
+## Late gold sink: pay to boost an owned item's stats and effects by masterwork_bonus.
+static func try_masterwork(sim: MatchSim, hero: HeroState, slot: int) -> bool:
+	if masterwork_problem(sim, hero, slot) != "":
+		return false
+	var item := hero.deck[slot]
+	var cost := masterwork_cost(sim, item)
+	hero.gold = maxf(0.0, hero.gold - cost)
+	hero.masterworks[item.id] = Items.masterwork_copy(item, sim.config.masterwork_bonus)
+	hero.recompute_stats()
+	sim.emit_event(&"masterwork", {"hero": hero.id, "team": hero.team, "item": item.id, "slot": slot, "cost": cost})
+	return true
 
 
 ## Sells an owned item for sell_refund_fraction of its price (in shop range).
@@ -81,8 +120,9 @@ static func try_sell(sim: MatchSim, hero: HeroState, slot: int) -> bool:
 	if sell_problem(sim, hero, slot) != "":
 		return false
 	var item := hero.deck[slot]
-	var refund := sell_value(sim, item)
+	var refund := sell_value(sim, item, hero)
 	hero.items.erase(item)
+	hero.masterworks.erase(item.id)
 	hero.gold += refund
 	hero.recompute_stats()
 	sim.emit_event(&"item_sold", {"hero": hero.id, "team": hero.team, "item": item.id, "slot": slot, "refund": refund})
@@ -117,7 +157,8 @@ static func minion_structure_mult(sim: MatchSim, m: MinionState) -> float:
 	var bonus := 0.0
 	var h := sim.heroes[m.team]
 	if h.alive:
-		for item in h.items:
+		for owned in h.items:
+			var item := h.effective(owned)
 			if item.siege_aura_bonus > 0.0 and h.pos.distance_to(m.pos) <= item.siege_aura_radius:
 				bonus += item.siege_aura_bonus
 	return 1.0 + bonus

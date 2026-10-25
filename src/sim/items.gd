@@ -122,3 +122,23 @@ static func tick(sim: MatchSim) -> void:
 			if t != null and not (t is StructureState):
 				sim.emit_event(&"storm_strike", {"hero": h.id, "target": t.id})
 				sim.apply_damage(t, t.max_hp * crown.storm_fraction, h, &"item")
+
+
+## What a Masterwork boosts: every stat bonus and effect strength. Thresholds, timings,
+## ranges and counts stay as they are.
+const MASTERWORK_FIELDS: Array[StringName] = [
+	&"move_speed_bonus", &"max_hp_bonus", &"damage_bonus", &"attack_speed_bonus", &"range_bonus",
+	&"ability_damage_bonus", &"ability_resist", &"trooper_damage_bonus", &"structure_damage_bonus",
+	&"out_of_combat_speed_bonus", &"low_hp_attack_speed_bonus", &"lifesteal", &"regen_per_second",
+	&"siege_aura_bonus", &"spark_damage", &"wounds_amount", &"overcharge_fraction",
+	&"ult_cooldown_cut", &"storm_fraction", &"rhythm_lifesteal", &"rhythm_shred",
+	&"execute_bonus", &"crest_fraction",
+]
+
+
+## A boosted copy of an item for a Masterwork (same id, so events and lookups still match).
+static func masterwork_copy(item: ItemData, bonus: float) -> ItemData:
+	var copy: ItemData = item.duplicate()
+	for f in MASTERWORK_FIELDS:
+		copy.set(f, float(copy.get(f)) * (1.0 + bonus))
+	return copy

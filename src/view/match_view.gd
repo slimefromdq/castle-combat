@@ -137,6 +137,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
 		if e is HeroState:
 			_sprint_pose(e, node.get_node("Body"), delta)
+			_show_gear(e, node.get_node("Body"))
 			# In the shadows Jack shrinks into a dark pool.
 			var body3: Node3D = node.get_node("Body")
 			var want := 0.45 if e.is_vanished() else 1.0
@@ -149,6 +150,21 @@ func render(alpha: float, delta: float, snap := false) -> void:
 
 
 ## Sprinting heroes lean into the run and bounce (each hero its own way, see HeroData).
+## Item silhouettes: mid items light the weapon, late items add armor or clothing, and a
+## Masterwork floats a gem over the head.
+func _show_gear(h: HeroState, body: Node3D) -> void:
+	var tier := h.top_item_tier()
+	var mid: Node3D = body.get_node("GearMid")
+	mid.visible = tier >= ItemData.Tier.MID
+	if mid.visible:
+		mid.scale = Vector3.ONE * (1.0 + 0.06 * sin(Time.get_ticks_msec() / 120.0))
+	body.get_node("GearLate").visible = tier >= ItemData.Tier.LATE
+	var master: Node3D = body.get_node("GearMaster")
+	master.visible = not h.masterworks.is_empty()
+	if master.visible:
+		master.rotation.y = Time.get_ticks_msec() / 400.0
+
+
 func _sprint_pose(h: HeroState, body: Node3D, delta: float) -> void:
 	var d := h.data
 	var k := 1.0 - exp(-10.0 * delta)

@@ -165,6 +165,8 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	var shop := _shop(sim, me)
 	cmd.buy_slot = shop.x
 	cmd.sell_slot = shop.y
+	if shop == Vector2i(-1, -1):
+		cmd.masterwork_slot = _masterwork(sim, me)
 	if last_hit:
 		cmd.target_id = _last_hit_target(sim, me)
 
@@ -371,11 +373,31 @@ func _shop(sim: MatchSim, me: HeroState) -> Vector2i:
 			var it := me.deck[i]
 			if me.owns(it) and it.tier < want.tier and (sell < 0 or it.cost < me.deck[sell].cost):
 				sell = i
-		if sell >= 0 and me.gold + Economy.sell_value(sim, me.deck[sell]) + 0.0001 >= want.cost:
+		if sell >= 0 and me.gold + Economy.sell_value(sim, me.deck[sell], me) + 0.0001 >= want.cost:
 			_sold[me.deck[sell].id] = true
 			return Vector2i(-1, sell)
 		return Vector2i(-1, -1)
 	return Vector2i(-1, -1)
+
+
+## Level 6 gold sink: once no wishlist upgrade is still to come, make the priciest owned
+## item a Masterwork. -1 for nothing to do.
+func _masterwork(sim: MatchSim, me: HeroState) -> int:
+	if me.level < sim.config.masterwork_level:
+		return -1
+	var low_tier := 99
+	for item in me.items:
+		low_tier = mini(low_tier, item.tier)
+	for id: StringName in _wishlist(sim, me):
+		var slot := _deck_slot(me, id)
+		if slot >= 0 and not me.owns(me.deck[slot]) and not _sold.has(id) \
+				and (me.items.size() < sim.config.max_items or me.deck[slot].tier > low_tier):
+			return -1
+	var best := -1
+	for i in me.deck.size():
+		if Economy.masterwork_problem(sim, me, i) == "" and (best < 0 or me.deck[i].cost > me.deck[best].cost):
+			best = i
+	return best
 
 
 func _deck_slot(me: HeroState, id: StringName) -> int:

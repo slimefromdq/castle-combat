@@ -14,7 +14,8 @@ func _init() -> void:
 	var games := {}
 	var rows: Array[String] = []
 	var lengths: Array[float] = []
-	var level_times := {3: [], 5: [], 6: []}
+	var level_times := {3: [], 4: [], 5: [], 6: []}
+	var extra := {"ult_race": 0, "ult_race_won": 0, "masterworks": 0}
 	for h in heroes:
 		wins[h.id] = 0
 		games[h.id] = 0
@@ -28,7 +29,7 @@ func _init() -> void:
 			for n in per_pair:
 				var picks_a := [n % 2, (n / 2) % 2, (n + 1) % 2]
 				var picks_b := [(n + 1) % 2, n % 2, (n / 2) % 2]
-				var r := _play(heroes[i], heroes[j], picks_a, picks_b, level_times)
+				var r := _play(heroes[i], heroes[j], picks_a, picks_b, level_times, extra)
 				games[heroes[i].id] += 1
 				games[heroes[j].id] += 1
 				lengths.append(r.time)
@@ -61,13 +62,19 @@ func _init() -> void:
 		t.sort()
 		if not t.is_empty():
 			print("Level %d reached: median %s" % [lv, _clock(t[t.size() / 2])])
+	for h in heroes:
+		var t5: Array = extra.get(h.id, [])
+		t5.sort()
+		if not t5.is_empty():
+			print("%s reached Lv5: median %s" % [h.display_name, _clock(t5[t5.size() / 2])])
+	print("First to Lv5 won %d of %d; Masterworks made: %d" % [extra.ult_race_won, extra.ult_race, extra.masterworks])
 	print("")
 	for id: StringName in perk_games:
 		print("  %s: won %d of %d" % [id, perk_wins.get(id, 0), perk_games[id]])
 	quit()
 
 
-func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_times: Dictionary) -> Dictionary:
+func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_times: Dictionary, extra: Dictionary) -> Dictionary:
 	var sim := MatchSim.new()
 	var picks: Array[HeroData] = [blue, red]
 	sim.setup(MatchController.CONFIG, MatchController.ARENA, picks, MatchController.TIERS, MatchController.MINIONS,
@@ -84,10 +91,21 @@ func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_
 			kos[data.team] += 1
 		elif type == &"level_up" and level_times.has(data.level):
 			level_times[data.level].append(sim.time)
+			if data.level == 5:
+				var who: StringName = sim.get_entity(data.hero).data.id
+				if not extra.has(who):
+					extra[who] = []
+				extra[who].append(sim.time)
+		elif type == &"masterwork":
+			extra.masterworks += 1
 	sim.sim_event.connect(listen)
 	while not sim.over and sim.time < MAX_TIME:
 		sim.step([a.build_command(sim), b.build_command(sim)])
 	sim.sim_event.disconnect(listen)
+	if sim.ult_race_winner >= 0 and sim.winner >= 0:
+		extra.ult_race += 1
+		if sim.ult_race_winner == sim.winner:
+			extra.ult_race_won += 1
 	return {"winner": sim.winner, "time": sim.time, "kos": kos}
 
 

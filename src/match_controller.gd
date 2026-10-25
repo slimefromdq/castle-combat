@@ -90,6 +90,7 @@ func _ready() -> void:
 	hud.sell_pressed.connect(func(slot: int) -> void: player.pending_sell = slot)
 	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
 	hud.perk_pressed.connect(func(choice: int) -> void: player.pending_perk = choice)
+	hud.masterwork_pressed.connect(func(slot: int) -> void: player.pending_masterwork = slot)
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
 	player = LocalPlayerSource.new()
 	player.team = local_seat
@@ -143,6 +144,50 @@ func stage(what: String) -> void:
 			h.pos = MatchSim.to_team_space(h.team, Vector2(0.8, -3.0))
 			h.prev_pos = h.pos
 		sim.next_wave_time = 1000.0
+		view.render(1.0, 0.0, true)
+		return
+	if what == "spikes" or what == "ultrace":
+		# "spikes": both heroes at level 6 by your tower, carrying mid and late items (item
+		# silhouettes, Masterwork offers, the enemy spike callout). "ultrace": you just
+		# reached level 5 first (level-up ring and the ult race pillar).
+		for h in sim.heroes:
+			h.pos = MatchSim.to_team_space(local_seat, Vector2(0.6 + (2.2 if h.team != local_seat else -1.2), -10.5 if h.team == local_seat else -6.0))
+			h.prev_pos = h.pos
+		sim.next_wave_time = 1000.0
+		var me_u := sim.heroes[local_seat]
+		if what == "ultrace":
+			Leveling.gain(sim, sim.heroes[enemy], float(sim.config.level_xp[3]) - sim.heroes[enemy].xp + 0.01)
+			Leveling.gain(sim, me_u, float(sim.config.level_xp[3]) - me_u.xp + 0.01)
+			for h in sim.heroes:
+				Leveling.pick_perk(sim, h, 0)
+				Leveling.pick_perk(sim, h, 0)
+			me_u.hp = me_u.max_hp * 0.6
+			view.render(1.0, 0.0, true)
+			Leveling.gain(sim, me_u, float(sim.config.level_xp[4]) - me_u.xp + 0.01)
+			return
+		for h in sim.heroes:
+			Leveling.gain(sim, h, float(sim.config.level_xp[5]) - h.xp + 0.01)
+			for t in 3:
+				Leveling.pick_perk(sim, h, 0)
+			# A mid and a late item from the deck (the cheapest of each).
+			for tier in [ItemData.Tier.MID, ItemData.Tier.LATE]:
+				var pick := -1
+				for i in h.deck.size():
+					if h.deck[i].tier == tier and (pick < 0 or h.deck[i].cost < h.deck[pick].cost):
+						pick = i
+				if pick >= 0:
+					h.gold += h.deck[pick].cost
+					var keep := h.pos
+					h.pos = MatchSim.to_team_space(h.team, sim.arena.heal_pad)
+					Economy.try_buy(sim, h, pick)
+					h.pos = keep
+		var them_s := sim.heroes[enemy]
+		them_s.gold = 2000.0
+		var keep_t := them_s.pos
+		them_s.pos = MatchSim.to_team_space(enemy, sim.arena.heal_pad)
+		Economy.try_masterwork(sim, them_s, them_s.deck.find(them_s.items[-1]))
+		them_s.pos = keep_t
+		me_u.gold = 1400.0
 		view.render(1.0, 0.0, true)
 		return
 	if what == "sprint":

@@ -15,6 +15,8 @@ var pending_sell := -1
 var pending_cast := -1
 ## Perk choice (Z/X or a tapped card), -1 for none.
 var pending_perk := -1
+## Deck slot to make a Masterwork (C/V/B or a tapped button), -1 for none.
+var pending_masterwork := -1
 
 
 func build_command(_sim: MatchSim) -> PlayerCommand:
@@ -35,6 +37,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_buy = -1
 	cmd.sell_slot = pending_sell
 	pending_sell = -1
+	cmd.masterwork_slot = pending_masterwork
+	pending_masterwork = -1
 	return cmd
 
 

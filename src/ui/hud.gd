@@ -14,6 +14,7 @@ signal buy_pressed(slot: int)
 signal sell_pressed(slot: int)
 signal cast_pressed(slot: int)
 signal perk_pressed(choice: int)
+signal masterwork_pressed(slot: int)
 
 const BOTTOM_H := 292.0
 const MARGIN := 12.0
@@ -41,6 +42,17 @@ var _ability_buttons: Array[Button] = []
 var _perk_box: Control
 var _perk_title: Label
 var _perk_buttons: Array[Button] = []
+## Level 6+: Masterwork buttons, one per owned item (C / V / B), shown at the shop.
+var _master_box: Control
+var _master_buttons: Array[Button] = []
+var _master_slots: Array[int] = []
+## Push, then shop: the gold readout pulses while you can afford a card away from the
+## shop, and the first time each card becomes affordable a callout says so.
+var _afford_called := {}
+## Enemy spike callout: their name and items pulse after a mid or late item, a
+## Masterwork, or winning the race to their ultimate.
+var _them_spike_until := 0
+var _them_spike_item := &""
 var _you_xp: ProgressBar
 var _them_xp: ProgressBar
 var _cards_row: Control
@@ -71,6 +83,7 @@ func _ready() -> void:
 	_build_bottom()
 	_build_thumbs()
 	_build_perk_picker()
+	_build_masterwork()
 	_build_status()
 
 
@@ -104,6 +117,8 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_refresh_cards(sim, me)
 	_you_items.text = _items_text(me, sim.config.max_items)
 	_them_items.text = _items_text(them, sim.config.max_items)
+	_refresh_spikes(sim, me)
+	_refresh_masterwork(sim, me)
 	_respawn.visible = not me.alive and not sim.over
 	if _respawn.visible:
 		_respawn.text = "Respawning in %d" % ceili(me.respawn_at - sim.time)
@@ -176,7 +191,10 @@ func toggle_tray() -> void:
 func _items_text(h: HeroState, cap: int) -> String:
 	var names: Array[String] = []
 	for item in h.items:
-		names.append(item.display_name)
+		var name := item.display_name + ("+" if h.is_masterwork(item) else "")
+		if h != _me and item.id == _them_spike_item and Time.get_ticks_msec() < _them_spike_until:
+			name = "NEW " + name
+		names.append(name)
 	for i in cap - h.items.size():
 		names.append("—")
 	return "Items: " + "  ·  ".join(names)
@@ -205,7 +223,7 @@ func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
 		c.disabled = (problem != "" and not owned) or not in_shop
 		var status := "%d" % item.cost if problem != "item slots full" else "full"
 		if owned:
-			status = "Sell +%d?" % int(Economy.sell_value(sim, item)) if _sell_armed == i else "OWNED"
+			status = "Sell +%d?" % int(Economy.sell_value(sim, item, me)) if _sell_armed == i else ("OWNED+" if me.is_masterwork(item) else "OWNED")
 		elif not in_shop:
 			status = "%d · at tower" % item.cost
 		c.text = "%s\n%s" % [item.display_name, status]
@@ -216,6 +234,66 @@ func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
 		c.add_theme_color_override("font_disabled_color", color)
 		c.add_theme_color_override("font_hover_color", color)
 		c.self_modulate = [Color(0.85, 0.95, 1.0), Color(1.0, 0.92, 0.8), Color(1.0, 0.8, 1.0)][item.tier]
+
+
+## Push, then shop: pulse the gold readout while a card is affordable but you are away
+## from the shop (time to push your wave in and head back). Enemy spikes: pulse their
+## name and items for a few seconds after a mid or late item.
+func _refresh_spikes(sim: MatchSim, me: HeroState) -> void:
+	var now := Time.get_ticks_msec()
+	var pulse := 0.5 + 0.5 * sin(now / 140.0)
+	var next := _affordable_card(sim, me)
+	var away := next >= 0 and not Economy.in_shop_range(sim, me)
+	_gold.text = "Gold\n%d%s" % [int(me.gold), "\nShop!" if away else ""]
+	_gold.modulate = Color(1, 1, 1).lerp(Color(1.6, 1.4, 0.6), pulse) if away else Color.WHITE
+	if next >= 0 and not _afford_called.has(me.deck[next].id) and me.alive:
+		_afford_called[me.deck[next].id] = true
+		if away:
+			_show_flash("You can afford %s: push your wave in, then shop" % me.deck[next].display_name)
+	var spiking := now < _them_spike_until
+	var glow := Color(1, 1, 1).lerp(Color(1.8, 1.5, 0.5), pulse) if spiking else Color.WHITE
+	_them_name.modulate = glow
+	_them_items.modulate = glow
+
+
+## The first card you don't own that you could buy now or at the shop, or -1.
+func _affordable_card(sim: MatchSim, me: HeroState) -> int:
+	for i in me.deck.size():
+		var problem := Economy.buy_problem(sim, me, i)
+		if problem == "" or problem == "shop at your tower or base":
+			return i
+	return -1
+
+
+func _refresh_masterwork(sim: MatchSim, me: HeroState) -> void:
+	_master_slots.clear()
+	if me.level >= sim.config.masterwork_level and me.alive and Economy.in_shop_range(sim, me) and not sim.over:
+		for item in me.items:
+			if not me.is_masterwork(item):
+				_master_slots.append(me.deck.find(item))
+	_master_box.visible = not _master_slots.is_empty() and me.pending_perk_tier() < 0
+	if not _master_box.visible:
+		return
+	for k in _master_buttons.size():
+		var b := _master_buttons[k]
+		b.visible = k < _master_slots.size()
+		if not b.visible:
+			continue
+		var slot := _master_slots[k]
+		var item := me.deck[slot]
+		b.text = "%s  %s\n%d gold" % [["C", "V", "B"][k], item.display_name, int(Economy.masterwork_cost(sim, item))]
+		b.disabled = Economy.masterwork_problem(sim, me, slot) != ""
+
+
+## C / V / B: Masterwork the first, second or third item on offer.
+func masterwork_key(k: int) -> void:
+	if _master_box.visible and k < _master_slots.size():
+		masterwork_pressed.emit(_master_slots[k])
+
+
+func _show_flash(text: String) -> void:
+	_flash.text = text
+	_flash_until = Time.get_ticks_msec() + 2600
 
 
 ## A card tap or number key: buys, or for an owned card, asks once and then sells.
@@ -252,6 +330,21 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 		&"item_bought":
 			if data.team == seat:
 				text = "Bought %s" % _item_name(data.item)
+			elif _item_tier(data.item) >= ItemData.Tier.MID:
+				text = "Enemy spike: they finished %s!" % _item_name(data.item)
+				_enemy_spike(data.item)
+		&"masterwork":
+			if data.team == seat:
+				text = "Masterwork %s: +%d%% stats" % [_item_name(data.item), roundi(100.0 * _sim_for_text.config.masterwork_bonus)]
+			else:
+				text = "Enemy spike: Masterwork %s!" % _item_name(data.item)
+				_enemy_spike(data.item)
+		&"ult_race_won":
+			if data.team == seat:
+				text = "You reached Lv5 first! Ultimate ready (R): go fight"
+			else:
+				text = "Enemy hit Lv5 first: their ultimate is up, play safe"
+				_enemy_spike(&"")
 		&"overtime_started":
 			text = "Overtime! Structures are weakened, waves are tankier"
 		&"guardian_fallen":
@@ -281,6 +374,18 @@ func _level_text(lv: int, seat: int) -> String:
 		var a := h.data.abilities[(lv - 1) / 2]
 		return "Level %d: %s unlocked (%s)" % [lv, a.display_name, ["Q", "E", "R"][(lv - 1) / 2]]
 	return "Level %d: pick a perk (Z / X)" % lv
+
+
+func _enemy_spike(item_id: StringName) -> void:
+	_them_spike_until = Time.get_ticks_msec() + 8000
+	_them_spike_item = item_id
+
+
+func _item_tier(id: StringName) -> int:
+	for item in MatchController.ITEMS:
+		if item.id == id:
+			return item.tier
+	return -1
 
 
 func _item_name(id: StringName) -> String:
@@ -533,6 +638,36 @@ func _build_perk_picker() -> void:
 		b.pressed.connect(func() -> void: perk_pressed.emit(k))
 		row.add_child(b)
 		_perk_buttons.append(b)
+
+
+## Masterwork offers sit where the perk cards do, on the left, at the shop from level 6.
+func _build_masterwork() -> void:
+	_master_box = VBoxContainer.new()
+	_master_box.anchor_left = 0.0
+	_master_box.anchor_right = 1.0
+	_master_box.offset_left = MARGIN + 16
+	# Clear of the E button (its left edge sits 28 + 136 + 18 + 108 px from the right).
+	_master_box.offset_right = -(28 + 136 + 18 + 108 + 14)
+	_master_box.anchor_top = 1.0
+	_master_box.anchor_bottom = 1.0
+	_master_box.offset_bottom = -BOTTOM_H - 12
+	_master_box.offset_top = _master_box.offset_bottom - 250
+	_master_box.alignment = BoxContainer.ALIGNMENT_END
+	_master_box.add_theme_constant_override("separation", 6)
+	_master_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_master_box.visible = false
+	_root.add_child(_master_box)
+	var title := UiKit.label("Masterwork: +%d%% to one item" % roundi(100.0 * MatchController.CONFIG.masterwork_bonus), 20, Color("f5d76e"))
+	title.add_theme_constant_override("outline_size", 8)
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_master_box.add_child(title)
+	for k in 3:
+		var b := UiKit.button("", Vector2(0, 62))
+		b.add_theme_font_size_override("font_size", 17)
+		b.add_theme_color_override("font_color", Color("f5d76e"))
+		b.pressed.connect(func() -> void: masterwork_key(k))
+		_master_box.add_child(b)
+		_master_buttons.append(b)
 
 
 ## A square button anchored to the bottom right, `right`/`bottom` px in from the corner
