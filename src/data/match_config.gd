@@ -16,6 +16,14 @@ extends Resource
 @export var wave_interval := 12.0
 @export var wave_melee := 2
 @export var wave_ranged := 1
+## Every special_wave_every-th wave adds a special trooper (Sapper, then Shieldbearer).
+@export var special_wave_every := 3
+## A banner (dropped by a dead special trooper) lasts banner_lifetime seconds; a hero who
+## walks within banner_pickup_radius takes it, and their next wave gets these bonuses.
+@export var banner_lifetime := 15.0
+@export var banner_pickup_radius := 1.0
+@export var banner_hp_bonus := 0.2
+@export var banner_damage_bonus := 0.2
 ## Minions notice enemies this close (metres) and leave the lane to fight them.
 @export var minion_aggro_range := 5.0
 
@@ -66,7 +74,7 @@ extends Resource
 @export_group("Levels")
 ## Total XP needed to reach each level (index 0 = level 1). Abilities unlock at 1, 3, 5;
 ## perks at 2, 4, 6 (the last is the capstone).
-@export var level_xp: Array[int] = [0, 120, 300, 550, 850, 1400]
+@export var level_xp: Array[int] = [0, 120, 300, 560, 920, 1560]
 @export var passive_xp_per_second := 0.35
 ## XP to the opposing hero for a knockout, plus this much per level the victim is above them.
 @export var ko_xp := 90.0
@@ -97,6 +105,8 @@ extends Resource
 ## A dying enemy minion pays its bounty to your hero if you are this close to it (metres),
 ## whoever killed it. Landing the killing blow from farther away still pays.
 @export var minion_gold_radius := 6.0
+## Landing the killing blow on an enemy trooper pays this much more than standing near it.
+@export var last_hit_bonus := 0.15
 ## Denies: a hero may tap and attack its own minion once it is at or below this fraction
 ## of max HP. If the hero lands the killing blow, the enemy collects only deny_gold_fraction
 ## of the bounty (by the usual nearby rule).

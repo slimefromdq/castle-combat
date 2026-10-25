@@ -463,6 +463,13 @@ static func _advance(sim: MatchSim, s: Skillshot) -> void:
 	touched.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0] or (x[0] == y[0] and x[1].id < y[1].id))
 	for pair in touched:
 		var e: SimEntity = pair[1]
+		if e is MinionState and e.shield_left > 0:
+			# A Shieldbearer's shield stops the shot outright.
+			e.shield_left -= 1
+			s.pos += s.dir * float(pair[0])
+			s.done = true
+			sim.emit_event(&"shield_blocked", {"id": e.id, "pos": s.pos, "shot": s.id})
+			return
 		s.hits[e.id] = true
 		_skillshot_hit(sim, s, e)
 		if not s.pierce and (not s.stop_at_hero or e is HeroState):

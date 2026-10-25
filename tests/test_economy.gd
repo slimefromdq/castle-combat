@@ -135,7 +135,7 @@ func test_minion_gold_for_being_nearby() -> void:
 	check_near(blue.gold, before, 0.01, "nothing from outside the radius")
 	var sniped := sim.spawn_minion(melee(), MatchSim.RED, blue.pos + Vector2(0, radius + 1.0))
 	sim.apply_damage(sniped, sniped.max_hp, blue)
-	check_near(blue.gold, before + melee().gold_bounty, 0.01, "a killing blow from farther away still pays")
+	check_near(blue.gold, before + melee().gold_bounty * (1.0 + MatchController.CONFIG.last_hit_bonus), 0.01, "a killing blow from farther away still pays, with the last-hit bonus")
 	var own := sim.spawn_minion(melee(), MatchSim.BLUE, blue.pos + Vector2(1, 0))
 	before = blue.gold
 	sim.apply_damage(own, own.max_hp, red)

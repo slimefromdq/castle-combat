@@ -15,6 +15,11 @@ extends Resource
 @export var attack_interval := 1.0
 ## Multiplier on damage dealt to towers and Cores.
 @export var structure_damage_mult := 1.0
+## Special troopers (every few waves): &"sapper" or &"shieldbearer"; they drop a banner
+## when they die. "" for ordinary troopers.
+@export var special: StringName = &""
+## Enemy skillshots this trooper stops before its shield breaks (Shieldbearer).
+@export var shield_blocks := 0
 ## Gold for the enemy hero who lands the killing blow (a last hit).
 @export var gold_bounty := 20.0
 ## XP for the enemy hero, paid by the same rule as gold (nearby or killing blow).
