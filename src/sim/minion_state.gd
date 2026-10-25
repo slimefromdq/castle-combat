@@ -10,6 +10,11 @@ var is_siege := false
 ## Power minion (after the enemy Guardian fell) and its speed bonus.
 var is_power := false
 var speed_mult := 1.0
+## The wave this minion came with (0 = placed by hand), and whether a banner buffed it.
+var spawn_wave := 0
+var bannered := false
+## Shieldbearer: enemy skillshots this minion still stops.
+var shield_left := 0
 
 
 func setup(minion_data: MinionData, minion_team: int, at: Vector2) -> void:
@@ -26,3 +31,4 @@ func setup(minion_data: MinionData, minion_team: int, at: Vector2) -> void:
 	attack_damage = minion_data.attack_damage
 	attack_windup = minion_data.attack_windup
 	attack_interval = minion_data.attack_interval
+	shield_left = minion_data.shield_blocks

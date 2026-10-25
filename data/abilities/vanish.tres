@@ -6,11 +6,11 @@
 script = ExtResource("1_s")
 id = &"vanish"
 display_name = "Vanish"
-summary = "Vanish 2.5 s (immune, very slow); tap again to burst out: 100 dmg"
+summary = "Vanish 2.5 s (immune, very slow); tap again to burst out: 150 dmg around you"
 effect = &"vanish"
 cooldown = 15.0
 duration = 2.5
-radius = 3.2
-damage = 100.0
-minion_damage = 80.0
+radius = 3.8
+damage = 150.0
+minion_damage = 100.0
 move_mult = 0.35

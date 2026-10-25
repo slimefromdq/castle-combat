@@ -221,6 +221,11 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		if relay_dist < 3.0:
 			cmd.move = _toward(me, relay.pos) if relay_dist > 0.3 else Vector2.ZERO
 			return cmd
+	elif _banner_to_take(sim, me, their_front) != null:
+		# R4. A banner close by and out of their tower's reach: grab it for our next wave.
+		var banner: Dictionary = _banner_to_take(sim, me, their_front)
+		cmd.move = _toward(me, banner.pos)
+		return cmd
 	elif them.alive and them.hp < them.max_hp * 0.35 and me.hp > me.max_hp * 0.5 \
 			and (their_front == null or them.pos.distance_to(their_front.pos) > their_front.attack_range + 1.0):
 		# 4. Punish a weak hero who is away from their tower, whatever their minions do.
@@ -378,6 +383,21 @@ func _shop(sim: MatchSim, me: HeroState) -> Vector2i:
 			return Vector2i(-1, sell)
 		return Vector2i(-1, -1)
 	return Vector2i(-1, -1)
+
+
+## The nearest banner within 10 m that we can take safely, or null.
+func _banner_to_take(sim: MatchSim, me: HeroState, their_front: StructureState) -> Variant:
+	if me.hp < me.max_hp * 0.4:
+		return null
+	var best: Variant = null
+	for b in sim.banners:
+		var d := me.pos.distance_to(b.pos)
+		if d > 10.0 or (best != null and d >= me.pos.distance_to(best.pos)):
+			continue
+		if their_front != null and b.pos.distance_to(their_front.pos) < their_front.attack_range + their_front.radius + 1.0:
+			continue
+		best = b
+	return best
 
 
 ## Level 6 gold sink: once no wishlist upgrade is still to come, make the priciest owned

@@ -33,6 +33,10 @@ var skillshots: Array[Skillshot] = []
 var kill_gold_mult := 1.0
 ## Team of the first hero to reach the ultimate level (Lv5), or -1 while nobody has.
 var ult_race_winner := -1
+## Banners dropped by special troopers: {"id", "pos", "expires_at"} (see Waves).
+var banners: Array[Dictionary] = []
+## Per team: a banner was taken, so that team's next wave spawns buffed.
+var banner_pending: Array[bool] = [false, false]
 ## Siege minions each team has earned (Relay deliveries) for its next wave.
 var pending_siege: Array[int] = [0, 0]
 var over := false
@@ -59,6 +63,8 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	structures.clear()
 	minions.clear()
 	skillshots.clear()
+	banners.clear()
+	banner_pending = [false, false]
 	kill_gold_mult = 1.0
 	ult_race_winner = -1
 	next_wave_time = cfg.first_wave_time
@@ -99,6 +105,7 @@ func step(commands: Array) -> void:
 	Economy.tick(self)
 	Items.tick(self)
 	Leveling.tick(self)
+	Waves.tick(self)
 	Pacing.tick(self)
 	for team in [BLUE, RED]:
 		var cmd: PlayerCommand = commands[team] if team < commands.size() else null
@@ -268,6 +275,7 @@ func queue_siege(team: int) -> void:
 func spawn_minion(data: MinionData, team: int, at: Vector2) -> MinionState:
 	var m := MinionState.new()
 	m.setup(data, team, at)
+	m.spawn_wave = waves_spawned
 	Pacing.scale_minion(self, m)
 	_register(m)
 	minions.append(m)
@@ -285,6 +293,8 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	var killer_team := source.team if source != null else -1
 	emit_event(&"unit_killed", {"id": target.id, "kind": target.kind, "team": target.team, "killer": source.id if source != null else 0, "killer_team": killer_team})
 	Economy.on_kill(self, target, source)
+	if target is MinionState:
+		Waves.on_minion_killed(self, target)
 	if target is HeroState:
 		target.deaths += 1
 		target.respawn_at = time + Pacing.respawn_delay(self, target)
@@ -371,12 +381,22 @@ func _spawn_wave() -> void:
 		for i in config.wave_ranged:
 			var x := (float(i) - (config.wave_ranged - 1) / 2.0) * 1.0
 			spawn_minion(ranged, team, to_team_space(team, spawn + Vector2(x, -0.8)))
+		var special := Waves.special_for_wave(self, waves_spawned)
+		if special != null:
+			var sm := spawn_minion(special, team, to_team_space(team, spawn + Waves.special_offset(special)))
+			emit_event(&"special_spawned", {"id": sm.id, "team": team, "kind": special.special, "wave": waves_spawned})
 		var siege: MinionData = minion_types.get(&"siege")
 		while pending_siege[team] > 0 and siege != null:
 			pending_siege[team] -= 1
-			var m := spawn_minion(siege, team, to_team_space(team, spawn + Vector2(0.0, -1.8)))
+			var m := spawn_minion(siege, team, to_team_space(team, spawn + Vector2(0.0, -2.6)))
 			m.is_siege = true
 			emit_event(&"siege_spawned", {"id": m.id, "team": team})
+		if banner_pending[team]:
+			banner_pending[team] = false
+			for m in minions:
+				if m.team == team and m.spawn_wave == waves_spawned:
+					Waves.apply_banner(self, m)
+			emit_event(&"banner_wave", {"team": team})
 	emit_event(&"wave_spawned", {"wave": waves_spawned})
 
 
@@ -386,6 +406,12 @@ func _remove_dead_minions() -> void:
 		if not m.alive:
 			entities.erase(m.id)
 			minions.remove_at(i)
+
+
+## A fresh id for something that is not an entity (banners).
+func new_id() -> int:
+	_next_id += 1
+	return _next_id - 1
 
 
 func _register(e: SimEntity) -> void:

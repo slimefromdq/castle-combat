@@ -12,6 +12,14 @@ var _parts: Dictionary = {}
 var _shots: Dictionary = {}
 var _rings: Array = []
 var _pillars: Array = []
+const MARKER_HEIGHT := 2.6
+## Banner id -> node.
+var _banners: Dictionary = {}
+## Wave meeting marker: an arrow on each lane edge, and the smoothed drift (m/s, sim y).
+var _marker: Array[MeshInstance3D] = []
+var _meet_y := NAN
+var _meet_time := 0.0
+var _drift := 0.0
 var _ring_mesh := TorusMesh.new()
 ## Sprint speed trail: short streaks left behind a sprinting hero, fading out.
 var _streaks: Array = []
@@ -59,6 +67,12 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			var uh: SimEntity = view.sim.get_entity(data.hero)
 			if uh != null:
 				_spawn_pillar(uh.id, Palette.team_color(uh.team == view.local_seat).lightened(0.5))
+		&"shield_blocked":
+			_spawn_ring(data.pos, 1.2, Color(0.85, 0.95, 1.0), 0.4)
+		&"banner_taken":
+			var bh: SimEntity = view.sim.get_entity(data.hero)
+			if bh != null:
+				_spawn_ring(bh.pos, 2.0, Color("f5d76e"), 0.5)
 		&"masterwork":
 			var mh: SimEntity = view.sim.get_entity(data.hero)
 			if mh != null:
@@ -121,6 +135,8 @@ func render() -> void:
 	_render_skillshots(sim)
 	_update_rings()
 	_update_pillars()
+	_render_banners(sim)
+	_render_wave_marker(sim)
 	_update_streaks(sim)
 
 
@@ -269,6 +285,62 @@ func _update_rings() -> void:
 		(g.node.material_override as StandardMaterial3D).albedo_color.a = 1.0 - k
 
 
+## Banners on the ground: they bob, and blink in their last 4 seconds.
+func _render_banners(sim: MatchSim) -> void:
+	var live := {}
+	for b in sim.banners:
+		live[b.id] = true
+		if not _banners.has(b.id):
+			_banners[b.id] = UnitFactory.make_banner(self)
+		var node: Node3D = _banners[b.id]
+		node.position = MatchView.to_world(b.pos, 0.1 * sin(Time.get_ticks_msec() / 200.0))
+		var left: float = b.expires_at - sim.time
+		node.visible = left > 4.0 or int(Time.get_ticks_msec() / 150) % 2 == 0
+	for id: int in _banners.keys():
+		if not live.has(id):
+			_banners[id].queue_free()
+			_banners.erase(id)
+
+
+## Where the waves meet: an arrow on each lane edge pointing the way the fight is
+## drifting, in your color when it drifts toward the enemy base and theirs when it
+## drifts toward yours; a flat diamond while it holds still.
+func _render_wave_marker(sim: MatchSim) -> void:
+	if _marker.is_empty():
+		var arrow := PrismMesh.new()
+		arrow.size = Vector3(0.9, 1.1, 0.08)
+		for side in 2:
+			_marker.append(UnitFactory.part(self, arrow, Color.WHITE, Vector3.ZERO, Vector3.ZERO, true))
+	var y := Waves.meeting_y(sim)
+	if is_nan(y):
+		for m in _marker:
+			m.visible = false
+		_meet_y = NAN
+		return
+	var dt := sim.time - _meet_time
+	if not is_nan(_meet_y) and dt > 0.0:
+		_drift = lerpf(_drift, (y - _meet_y) / dt, clampf(dt * 1.5, 0.0, 1.0))
+	if dt > 0.0 or is_nan(_meet_y):
+		_meet_y = y
+		_meet_time = sim.time
+	# Toward +y is toward red's base; "forward" for the local seat.
+	var toward_enemy := _drift * MatchSim.forward(view.local_seat).y
+	var still := absf(_drift) < 0.25
+	var color := Color(1, 1, 1, 0.85)
+	if not still:
+		color = Palette.team_color(toward_enemy > 0.0).lightened(0.25)
+	for side in 2:
+		var m := _marker[side]
+		m.visible = true
+		# Floats above the pocket pillars, which stand at mid-lane where waves often meet.
+		var x: float = (side * 2 - 1) * (sim.arena.lane_half_width - 0.8)
+		m.position = MatchView.to_world(Vector2(x, y), MARKER_HEIGHT)
+		# The prism's tip is local +Y; laid flat it points to world -Z (sim +y).
+		m.rotation_degrees = Vector3(-90, 0 if _drift >= 0.0 else 180, 0)
+		m.scale = Vector3(1.0, 0.55, 1.0) if still else Vector3.ONE
+		(m.material_override as StandardMaterial3D).albedo_color = color
+
+
 func _update_pillars() -> void:
 	var delta := get_process_delta_time()
 	for i in range(_pillars.size() - 1, -1, -1):
@@ -316,6 +388,7 @@ func _update_streaks(sim: MatchSim) -> void:
 
 ## Seat swaps rebuild team colors.
 func reset() -> void:
+	_drift = 0.0
 	for id in _parts:
 		for n: Node3D in _parts[id].values():
 			n.queue_free()

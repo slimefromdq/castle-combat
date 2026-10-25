@@ -128,6 +128,11 @@ func render(alpha: float, delta: float, snap := false) -> void:
 		node.visible = e.alive
 		if e is MinionState and e.is_power:
 			node.scale = Vector3.ONE * 1.3
+		if e is MinionState:
+			node.get_node("Flag").visible = e.bannered
+			var shield: Node3D = node.get_node_or_null("Body/Shield")
+			if shield != null:
+				shield.visible = e.shield_left > 0
 		var facing := _facing_of(e)
 		if e is HeroState and e.sprinting and e.data.sprint_moonwalk:
 			facing = -facing  # Moonwalk: glide forward while facing back.

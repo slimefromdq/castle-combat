@@ -143,7 +143,7 @@ static func on_kill(sim: MatchSim, target: SimEntity, source: SimEntity) -> void
 			return
 		var share: float = sim.config.deny_gold_fraction if denied else 1.0
 		if source == hero:
-			_award(sim, hero, target.data.gold_bounty * share * sim.kill_gold_mult, &"last_hit")
+			_award(sim, hero, target.data.gold_bounty * share * sim.kill_gold_mult * (1.0 + sim.config.last_hit_bonus), &"last_hit")
 			Leveling.gain(sim, hero, target.data.xp_bounty * share)
 		elif hero.pos.distance_to(target.pos) <= sim.config.minion_gold_radius:
 			_award(sim, hero, target.data.gold_bounty * share, &"denied" if denied else &"nearby")
