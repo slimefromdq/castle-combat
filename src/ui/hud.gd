@@ -208,10 +208,14 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 	match type:
 		&"relay_spawned":
 			text = "The Relay is up!"
+			if data.get("underdog", -1) >= 0:
+				text = "Comeback Relay at your tower!" if data.underdog == seat else "Comeback Relay at their tower: dive for it"
 		&"relay_picked_up":
 			text = "You have the Relay" if data.team == seat else "The enemy took the Relay"
 		&"relay_dropped":
 			text = "Relay knocked loose!" if data.reason == &"intercepted" else "Relay dropped"
+		&"underdog_reward":
+			text = "Comeback! +%d gold, XP, and your tower is repaired" % int(data.gold) if data.team == seat else "They made a comeback delivery"
 		&"relay_returned":
 			text = "Relay went back to its pocket"
 		&"relay_delivered":
@@ -272,16 +276,23 @@ func _relay_text(sim: MatchSim, seat: int) -> String:
 	match relay.state:
 		RelayController.State.DORMANT:
 			var until := maxf(0.0, relay.next_spawn_time - sim.time)
+			if relay.warned and relay.underdog >= 0:
+				return "Underdog Relay in %d · %s" % [ceili(until), "at your tower!" if relay.underdog == seat else "at their tower"]
 			if relay.warned:
 				return "Relay in %d · %s pocket" % [ceili(until), _side(sim, relay.pickup_pocket, seat)]
 			return "Relay in %d:%02d" % [int(until) / 60, int(until) % 60]
 		RelayController.State.SPAWNED:
+			if relay.underdog >= 0:
+				return "Underdog Relay up · %s · fades in %d" % ["at your tower" if relay.underdog == seat else "at their tower", ceili(relay.expire_at - sim.time)]
 			return "Relay up · %s pocket · fades in %d" % [_side(sim, relay.pickup_pocket, seat), ceili(relay.expire_at - sim.time)]
 		RelayController.State.DROPPED:
 			return "Relay dropped · returns in %d" % ceili(relay.return_at - sim.time)
 		RelayController.State.CARRIED:
 			if me.carrying_relay:
 				var where := "Carry it to the %s pocket" % _side(sim, relay.delivery_pocket, seat)
+				if relay.underdog >= 0:
+					where = "Carry it home to your front structure"
+
 				return where + (" · blocked!" if relay.contested else "")
 			return "Enemy has the Relay! Two hits knock it loose"
 	return ""

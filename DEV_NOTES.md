@@ -211,7 +211,22 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
 - [x] 132 tests
 - Bot-vs-bot length: 7:17 to 8:54
 
-**Next: Underdog Relay (Lucy: only when clearly behind, must not be farmable).**
+### M7c: Underdog Relay (Lucy's pick, with her condition)
+
+- [x] At each Relay warning, a hero is the underdog only if they have lost more structures
+      than the enemy AND are 1+ level behind or the enemy's net worth (gold + item prices)
+      is at least theirs x1.2 + 300. Progress alone never qualifies
+- [x] Underdog Relay: appears 3.5 m in front of the underdog's front structure. Each hero
+      delivers within 3 m of their own front structure, so the leader must dive and then
+      carry it the length of the lane
+- [x] Underdog's delivery: the normal reward plus 30% of the net-worth gap (max 500),
+      40% of the XP gap, and +20% max HP repaired on their front structure. A share of the
+      gap means falling behind is never worth it. The leader's delivery pays the normal reward
+- [x] Gold ring around your drop-off; HUD and callouts say "Underdog/Comeback Relay"
+- [x] Dev arg `--stage=underdog`
+- [x] 135 tests. Bot-vs-bot: fires in about 1 of 6 matches (bots stay close in level)
+
+**Next: Lucy's further Relay ideas; metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)
 

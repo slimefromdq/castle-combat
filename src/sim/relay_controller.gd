@@ -15,6 +15,8 @@ var origin := Vector2.ZERO
 ## Indices into ArenaData.pockets.
 var pickup_pocket := 0
 var delivery_pocket := 1
+## Team this activation is an Underdog Relay for (Comeback), or -1 for a normal one.
+var underdog := -1
 ## Activations so far (the next pickup pocket alternates from relay_first_pocket).
 var activations := 0
 var next_spawn_time := 0.0
@@ -68,6 +70,23 @@ func pickup_rect(sim: MatchSim) -> Rect2:
 	return sim.arena.pockets[pickup_pocket]
 
 
+## Where this team's carrier delivers: the delivery pocket, or for an Underdog Relay, the
+## ground around their own front structure.
+func delivery_point(sim: MatchSim, team: int) -> Vector2:
+	if underdog >= 0:
+		var front := sim.front_structure(team)
+		if front != null:
+			return front.pos - MatchSim.forward(team) * (front.radius + sim.config.underdog_deliver_radius * 0.5)
+	return delivery_rect(sim).get_center()
+
+
+func in_delivery_zone(sim: MatchSim, team: int, p: Vector2) -> bool:
+	if underdog >= 0:
+		var front := sim.front_structure(team)
+		return front != null and p.distance_to(front.pos) <= front.radius + sim.config.underdog_deliver_radius
+	return delivery_rect(sim).has_point(p)
+
+
 ## Called once per tick by MatchSim, after movement and attacks.
 func tick(sim: MatchSim) -> void:
 	prev_pos = pos
@@ -76,7 +95,10 @@ func tick(sim: MatchSim) -> void:
 		State.DORMANT:
 			if not warned and sim.time + 0.0001 >= next_spawn_time - cfg.relay_warning_time:
 				warned = true
-				sim.emit_event(&"relay_warning", {"pocket": pickup_pocket, "at": next_spawn_time})
+				underdog = Comeback.underdog(sim)
+				if underdog >= 0:
+					origin = Comeback.spawn_point(sim, underdog)
+				sim.emit_event(&"relay_warning", {"pocket": pickup_pocket, "at": next_spawn_time, "underdog": underdog})
 			if sim.time + 0.0001 >= next_spawn_time:
 				_spawn(sim)
 		State.SPAWNED:
@@ -133,7 +155,7 @@ func _spawn(sim: MatchSim) -> void:
 	prev_pos = origin
 	expire_at = sim.time + sim.config.relay_expire_time
 	_reset_progress()
-	sim.emit_event(&"relay_spawned", {"pocket": pickup_pocket, "delivery": delivery_pocket})
+	sim.emit_event(&"relay_spawned", {"pocket": pickup_pocket, "delivery": delivery_pocket, "underdog": underdog})
 
 
 ## Standing inside the pickup radius fills that hero's progress; leaving resets it.
@@ -171,10 +193,9 @@ func _tick_carried(sim: MatchSim) -> void:
 		_drop(sim, &"knocked_out")
 		return
 	pos = h.pos
-	var pocket := delivery_rect(sim)
 	var enemy := sim.heroes[1 - h.team]
-	contested = enemy.alive and pocket.has_point(enemy.pos)
-	if not pocket.has_point(h.pos):
+	contested = enemy.alive and in_delivery_zone(sim, h.team, enemy.pos)
+	if not in_delivery_zone(sim, h.team, h.pos):
 		deliver_progress = 0.0
 		return
 	if contested:
@@ -182,6 +203,8 @@ func _tick_carried(sim: MatchSim) -> void:
 	deliver_progress += sim.dt
 	if deliver_progress + 0.0001 >= sim.config.relay_deliver_time:
 		Pacing.on_relay_delivered(sim, h, activations)
+		if h.team == underdog:
+			Comeback.reward(sim, h)
 		_release_carrier(sim)
 		_finish(sim, &"relay_delivered", h.team)
 
@@ -222,6 +245,7 @@ func _choose_pockets(sim: MatchSim) -> void:
 	var n := sim.arena.pockets.size()
 	if n == 0:
 		return
+	underdog = -1
 	pickup_pocket = (sim.config.relay_first_pocket + activations) % n
 	delivery_pocket = (pickup_pocket + 1) % n
 	origin = sim.arena.pockets[pickup_pocket].get_center()

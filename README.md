@@ -66,6 +66,11 @@ always go for structures first. Heal on the green pad behind your Core; it shuts
 once your Guardian falls. Killing a Guardian powers up your minions for good. Respawns get longer as the
 match goes on, and at 10:00 overtime weakens every structure.
 
+**Comeback:** if you have lost more structures than the enemy and are clearly behind in
+level or gold, the next Relay becomes an **Underdog Relay**. It appears in front of your
+tower, you bring it home to that tower, and delivering it pays catch-up gold and XP and
+repairs the tower. If the enemy steals it, they have to carry it all the way back to theirs.
+
 **Watch your aggro.** Hitting the enemy hero calls their nearby minions onto you, and if
 you stand inside their tower's range the tower switches to you too and hits harder. A "!"
 over a minion or tower means it has been called (red = coming for you). Tap a minion to

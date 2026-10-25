@@ -148,7 +148,7 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	var their_relay_dist := them.pos.distance_to(relay.pos) if them.alive else INF
 	if me.carrying_relay:
 		# R1. Carry it to the delivery pocket and stand in the middle until it lands.
-		var drop_off := relay.delivery_rect(sim).get_center()
+		var drop_off := relay.delivery_point(sim, team)
 		if me.pos.distance_to(drop_off) > 0.6:
 			cmd.move = _toward(me, drop_off)
 		return cmd

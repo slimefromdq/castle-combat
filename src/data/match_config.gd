@@ -63,6 +63,24 @@ extends Resource
 ## Expiry timer after a dropped Relay returns home, so it never vanishes without warning.
 @export var relay_return_expire_time := 12.0
 
+@export_group("Relay: underdog")
+## A Relay is an Underdog Relay when one hero has lost more structures AND is behind by
+## underdog_levels_behind levels, or the enemy's net worth (gold + items) is at least
+## theirs x underdog_worth_ratio + underdog_worth_margin. Checked at the spawn warning.
+@export var underdog_levels_behind := 1
+@export var underdog_worth_ratio := 1.2
+@export var underdog_worth_margin := 300.0
+## It appears this far (metres) in front of the underdog's front structure; each hero
+## delivers it within underdog_deliver_radius of their own front structure's edge.
+@export var underdog_spawn_ahead := 3.5
+@export var underdog_deliver_radius := 3.0
+## The underdog's delivery adds (on top of the normal reward) this share of the net-worth
+## gap (capped) and of the XP gap, and repairs their front structure by this fraction.
+@export var underdog_gold_share := 0.3
+@export var underdog_gold_max := 500.0
+@export var underdog_xp_share := 0.4
+@export var underdog_repair := 0.2
+
 @export_group("Levels")
 ## Total XP needed to reach each level (index 0 = level 1). Abilities unlock at 1, 3, 5;
 ## perks at 2, 4, 6 (the last is the capstone).

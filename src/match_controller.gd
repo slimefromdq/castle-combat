@@ -132,6 +132,18 @@ func fast_forward(seconds: float) -> void:
 ## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
+	if what == "underdog":
+		# You lost your Outer Tower and are a level behind: the next Relay is yours.
+		var mine := sim.structures_of(local_seat)
+		sim.apply_damage(mine[0], mine[0].max_hp * 10.0, sim.heroes[enemy])
+		sim.heroes[enemy].level = 3
+		sim.heroes[enemy].xp = 300.0
+		var me_u := sim.heroes[local_seat]
+		me_u.pos = mine[1].pos + MatchSim.forward(local_seat) * 6.0 + Vector2(2.0, 0)
+		me_u.prev_pos = me_u.pos
+		sim.relay.next_spawn_time = sim.time + 1.0
+		fast_forward(1.5)
+		return
 	var theirs := sim.structures_of(enemy)
 	sim.apply_damage(theirs[0], theirs[0].max_hp * 10.0, sim.heroes[local_seat])
 	var g := theirs[1]

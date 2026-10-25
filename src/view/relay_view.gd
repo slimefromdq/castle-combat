@@ -13,6 +13,9 @@ var _deliver_outline: Node3D
 var _deliver_fill: MeshInstance3D
 var _pickup_outline: Node3D
 var _outlines_for := -1
+## Underdog Relay: a ring around the carrier's own front structure (the drop-off) and its fill.
+var _home_ring: MeshInstance3D
+var _home_fill: MeshInstance3D
 
 
 func _ready() -> void:
@@ -37,6 +40,10 @@ func _ready() -> void:
 	_fill = UnitFactory.part(self, UnitFactory.cylinder(1.0, 1.0, 0.02, 32), Color(Palette.RELAY, 0.45), Vector3.ZERO, Vector3.ZERO, true)
 	_beam = UnitFactory.part(self, UnitFactory.cylinder(0.12, 0.25, 7.0, 12), Color(Palette.RELAY, 0.35), Vector3.ZERO, Vector3.ZERO, true)
 	_deliver_fill = UnitFactory.part(self, UnitFactory.box(Vector3.ONE), Color(Palette.RELAY, 0.3), Vector3.ZERO, Vector3.ZERO, true)
+	_home_ring = UnitFactory.part(self, ring, Color(Palette.RELAY, 0.95), Vector3.ZERO, Vector3.ZERO, true)
+	_home_fill = UnitFactory.part(self, UnitFactory.cylinder(1.0, 1.0, 0.02, 32), Color(Palette.RELAY, 0.35), Vector3.ZERO, Vector3.ZERO, true)
+	_home_ring.visible = false
+	_home_fill.visible = false
 
 
 func render(alpha: float) -> void:
@@ -47,8 +54,10 @@ func render(alpha: float) -> void:
 	var active := relay.state != RelayController.State.DORMANT
 	if _outlines_for != relay.activations:
 		_rebuild_outlines(sim)
-	_pickup_outline.visible = relay.state == RelayController.State.SPAWNED or (relay.state == RelayController.State.DORMANT and relay.warned)
-	_deliver_outline.visible = active
+	var underdog := relay.underdog >= 0
+	_pickup_outline.visible = not underdog and (relay.state == RelayController.State.SPAWNED or (relay.state == RelayController.State.DORMANT and relay.warned))
+	_deliver_outline.visible = active and not underdog
+	_render_home(sim, relay)
 	var p := relay.prev_pos.lerp(relay.pos, alpha)
 	match relay.state:
 		RelayController.State.DORMANT:
@@ -87,11 +96,31 @@ func render(alpha: float) -> void:
 			_gem.rotation.y = t * 3.0
 	# Delivery progress fills the delivery pocket from its floor.
 	var k := relay.deliver_progress / cfg.relay_deliver_time if relay.state == RelayController.State.CARRIED else 0.0
-	_deliver_fill.visible = k > 0.0
+	_deliver_fill.visible = k > 0.0 and not underdog
 	if _deliver_fill.visible:
 		var rect := relay.delivery_rect(sim)
 		_deliver_fill.position = MatchView.to_world(rect.get_center(), 0.04)
 		_deliver_fill.scale = Vector3(rect.size.x * k, 0.03, rect.size.y * k)
+
+
+## Underdog Relay drop-off: a gold ring around the carrier's front structure (yours while
+## nobody carries it), filling as the delivery builds.
+func _render_home(sim: MatchSim, relay: RelayController) -> void:
+	var show := relay.underdog >= 0 and relay.state != RelayController.State.DORMANT
+	var carrier := relay.carrier(sim)
+	var team := carrier.team if carrier != null else view.local_seat
+	var front := sim.front_structure(team) if show else null
+	_home_ring.visible = front != null
+	_home_fill.visible = front != null and carrier != null and relay.deliver_progress > 0.0
+	if front == null:
+		return
+	var r := front.radius + sim.config.underdog_deliver_radius
+	_home_ring.position = MatchView.to_world(front.pos, 0.07)
+	_home_ring.scale = Vector3(r, 0.03, r)
+	if _home_fill.visible:
+		var k := clampf(relay.deliver_progress / sim.config.relay_deliver_time, 0.0, 1.0)
+		_home_fill.position = MatchView.to_world(front.pos, 0.05)
+		_home_fill.scale = Vector3(r * k, 1, r * k)
 
 
 func _place_ring(p: Vector2, radius: float, color: Color) -> void:
