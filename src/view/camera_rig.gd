@@ -10,6 +10,10 @@ const VIEW_WIDTH := 14.0
 const LEAD := 3.3
 const DISTANCE := 40.0
 const FOLLOW_SHARPNESS := 8.0
+## The view stops this far (metres) past the end walls, so it never shows the void
+## beyond the map. Screen bands covered by the HUD don't count as visible.
+const EDGE_MARGIN := 0.8
+const HUD_TOP_PX := 150.0
 
 var camera: Camera3D
 var seat := MatchSim.BLUE
@@ -42,12 +46,35 @@ func follow(hero_world: Vector3, delta: float, snap := false) -> void:
 	var target := hero_world + forward * LEAD
 	target.x = clampf(target.x * 0.6, -2.5, 2.5)
 	target.y = 0.0
-	target.z = clampf(target.z, -(half_length - 8.0), half_length - 8.0)
+	target.z = _clamp_to_map(target.z, forward.z)
 	if snap:
 		_focus = target
 	else:
 		_focus = _focus.lerp(target, 1.0 - exp(-FOLLOW_SHARPNESS * delta))
 	_apply()
+
+
+## Keeps the visible stretch of ground (between the HUD bands) inside the map. Along the
+## lane the ground visible above and below the focus is fixed for a given screen, so
+## the focus just gets a range; if the map is shorter than the view, it centres.
+func _clamp_to_map(z: float, fwd_z: float) -> float:
+	var vp := get_viewport()
+	if vp == null:
+		return z
+	var s := vp.get_visible_rect().size
+	if s.x <= 0.0 or s.y <= 0.0:
+		return z
+	var h := camera.size if camera.keep_aspect == Camera3D.KEEP_HEIGHT else camera.size * s.y / s.x
+	var per_px := h / s.y
+	var sin_p := sin(deg_to_rad(PITCH_DEG))
+	var ahead := (h / 2.0 - HUD_TOP_PX * per_px) / sin_p
+	var behind := (h / 2.0 - Hud.BOTTOM_H * per_px) / sin_p
+	var edge := half_length + EDGE_MARGIN
+	var along := z * fwd_z  # Position along the view direction (fwd_z is +-1).
+	var lo := -edge + behind
+	var hi := edge - ahead
+	along = (lo + hi) / 2.0 if lo > hi else clampf(along, lo, hi)
+	return along * fwd_z
 
 
 ## Portrait screens show VIEW_WIDTH metres across. Wider screens (a desktop browser) keep

@@ -98,10 +98,16 @@ extends Resource
 ## The denier collects this fraction of a denied minion's bounty (gold only).
 @export var deny_self_gold_fraction := 0.4
 
-@export_group("Recall")
-## Stand still this long to return to your healing pad. Moving, casting, carrying the
-## Relay, or taking damage cancels it.
-@export var recall_time := 3.0
+@export_group("Sprint")
+## Move this long in roughly one direction, out of combat, to start sprinting.
+@export var sprint_build_time := 3.5
+@export var sprint_speed_mult := 1.45
+## Turning more than this (degrees) away from your running direction resets the build-up.
+@export var sprint_turn_degrees := 50.0
+## How fast the running direction follows gentle curves (0..1 per tick).
+@export var sprint_turn_follow := 0.08
+## No sprint build-up for this long after hero combat or after taking any damage.
+@export var sprint_combat_delay := 3.0
 
 @export_group("Pacing: gold")
 ## All gold (passive, minions, knockouts) grows by gold_ramp_per_minute for every

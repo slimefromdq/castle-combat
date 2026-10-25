@@ -19,6 +19,12 @@ extends Resource
 @export var attack_windup := 0.25
 @export var attack_interval := 0.85
 
+@export_group("Sprint look")
+## Speed-trail colour, forward lean (degrees) and bounce height while sprinting.
+@export var sprint_color := Color(1, 1, 1)
+@export var sprint_lean_deg := 15.0
+@export var sprint_bob := 0.08
+
 @export_group("Kit")
 ## Unlocked at levels 1, 3 and 5 (the last is the ultimate).
 @export var abilities: Array[AbilityData] = []

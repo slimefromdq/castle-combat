@@ -61,8 +61,13 @@ var forced_vel := Vector2.ZERO
 var forced_ticks := 0
 var forced_action := Callable()
 ## A channelled ability (Barrage): pulses left, time of the next one, where it lands.
-## Recall: when it completes (-1 = not recalling).
-var recall_at := -1.0
+## Sprint: build-up seconds, running direction, and the speed multiplier while sprinting.
+var sprint_build := 0.0
+var sprint_dir := Vector2.ZERO
+var sprinting := false
+var sprint_mult := 1.0
+## Last time this hero took damage from anything (towers and minions too).
+var last_damaged_time := -1000.0
 var channel: AbilityData
 var channel_point := Vector2.ZERO
 var channel_pulses_left := 0
@@ -92,7 +97,7 @@ func move_speed() -> float:
 	var mult := _move_speed_mult
 	if _now - last_hero_combat_time >= OUT_OF_COMBAT_DELAY:
 		mult += item_total(&"out_of_combat_speed_bonus")
-	return data.move_speed * mult * (carry_speed_mult if carrying_relay else 1.0) * slowed
+	return data.move_speed * mult * sprint_mult * (carry_speed_mult if carrying_relay else 1.0) * slowed
 
 
 ## Seconds without dealing or taking hero damage before you count as out of combat.

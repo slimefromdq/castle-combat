@@ -197,7 +197,7 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
 
 ### M7b: quality of life (Lucy's playtest notes)
 
-- [x] Recall (B or the button above E): stand still 3 s to land on your healing pad.
+- [x] (Replaced by sprinting in M8.) Recall (B or the button above E): stand still 3 s to land on your healing pad.
       Moving, casting, carrying the Relay, stuns, knockbacks or any damage cancel it.
       The bot recalls when low and nobody is near
 - [x] Shop range: buy and sell only within 8 m of your front (active) structure or your
@@ -211,7 +211,26 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
 - [x] 132 tests
 - Bot-vs-bot length: 7:17 to 8:54
 
-**Next: Underdog Relay (Lucy: only when clearly behind, must not be farmable).**
+Lucy tried an Underdog Relay comeback (PR #12) and dropped it: the Relay stays as it is.
+
+### M8: sprinting and camera clamp (Lucy)
+
+- [x] Recall removed. Sprint instead: 3.5 s of moving in roughly one direction (within
+      50 degrees of a running direction that follows gentle curves), with no hero combat or
+      damage taken in the last 3 s, gives x1.45 move speed. Stopping (attacking), a sharp
+      turn, casting, carrying the Relay, stuns, knockbacks or any damage end it
+- [x] Look: each hero leans and bounces its own way and leaves a coloured speed trail
+      (Vanguard orange, heavy lean; Scout cyan, low dart; Gunner yellow, hopping).
+      Values in the "Sprint look" group of each hero .tres
+- [x] Base round trip (tower front y=-12 or mid-lane y=0, to the pad and back):
+      Vanguard 15.3 -> 13.2 s and 20.2 -> 16.5 s; Scout 12.5 -> 11.1 s and 16.4 -> 13.9 s;
+      Gunner 16.0 -> 13.7 s and 21.1 -> 17.2 s. Sprint saves 12-19%; going home stays a cost
+- [x] Camera clamp: the stretch of ground between the HUD bands never goes past the end
+      walls (+0.8 m), so no void behind either base
+- [x] Dev arg `--stage=sprint` (pair with `--walk-up`)
+- [x] 132 tests. Bot-vs-bot length: 6:16 to 11:04
+
+**Next: metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)
 
