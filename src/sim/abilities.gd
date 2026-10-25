@@ -563,8 +563,12 @@ static func _force(sim: MatchSim, h: HeroState, offset: Vector2, seconds: float,
 	CombatSystem.cancel(sim, h)
 
 
-## Aim: a target if there is one, else the way you're moving, else the way you face.
+## Aim: the player's own aim if they gave one (a real skillshot), else a target if
+## there is one (bots), else the way you're moving, else the way you face.
 static func _dir(h: HeroState, move: Vector2, toward: SimEntity) -> Vector2:
+	if h.aim != Vector2.ZERO:
+		h.facing = h.aim
+		return h.aim
 	if toward != null and toward.pos != h.pos:
 		return (toward.pos - h.pos).normalized()
 	if move.length() > 0.15:

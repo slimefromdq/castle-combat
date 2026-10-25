@@ -68,6 +68,8 @@ var hud: Hud
 var player: LocalPlayerSource
 var bot: BotSource
 var _accumulator := 0.0
+var _mouse_screen := Vector2.ZERO
+var _mouse_seen := false
 
 
 func _ready() -> void:
@@ -90,7 +92,10 @@ func _ready() -> void:
 	hud.drop_pressed.connect(func() -> void: player.pending_drop = true)
 	hud.buy_pressed.connect(func(slot: int) -> void: player.pending_buy = slot)
 	hud.sell_pressed.connect(func(slot: int) -> void: player.pending_sell = slot)
-	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
+	hud.cast_aimed.connect(func(slot: int, screen_dir: Vector2) -> void:
+		player.pending_cast = slot
+		player.pending_aim = LocalPlayerSource.screen_to_sim(screen_dir, local_seat))
+	hud.fullscreen_pressed.connect(func() -> void: UiKit.toggle_fullscreen())
 	hud.perk_pressed.connect(func(choice: int) -> void: player.pending_perk = choice)
 	hud.masterwork_pressed.connect(func(slot: int) -> void: player.pending_masterwork = slot)
 	hud.scroll_pressed.connect(func() -> void: player.pending_scroll = true)
@@ -112,6 +117,25 @@ func _process(delta: float) -> void:
 		_tick()
 	view.render(_accumulator / sim.dt, delta)
 	hud.refresh(sim, local_seat, Engine.get_frames_per_second())
+	hud.set_fullscreen_label(UiKit.is_fullscreen())
+	_update_aim()
+
+
+## Desktop: abilities aim at the ground under the mouse. Touch: the way you move, or the
+## drag on an ability button (shown as an aim line on the ground while you drag).
+func _update_aim() -> void:
+	var me := sim.heroes[local_seat]
+	if not touch_mode and _mouse_seen:
+		var p := view.ground_point(_mouse_screen)
+		if p.distance_to(me.pos) > 0.2:
+			player.aim = (p - me.pos).normalized()
+	var drag: Array = hud.aim_drag()
+	if drag[0] >= 0 and drag[1] != Vector2.ZERO:
+		var a := Abilities.ability_for(sim, me, drag[0])
+		var length := 6.0 if a == null else (a.reach if a.reach > 0.0 else maxf(a.distance, 3.0))
+		view.show_aim(LocalPlayerSource.screen_to_sim(drag[1].normalized(), local_seat), length)
+	else:
+		view.hide_aim()
 
 
 static func bot_deck(hero: HeroData) -> Array[ItemData]:
@@ -217,6 +241,25 @@ func stage(what: String) -> void:
 		sim.banners.append({"id": sim.new_id(), "pos": MatchSim.to_team_space(local_seat, Vector2(-1.6, -6.0)), "expires_at": 1000.0})
 		fast_forward(0.4)
 		return
+	if what == "aim" or what == "shop":
+		# "aim": level 5 in mid-lane, dragging the R button to aim (touch). "shop": level 6
+		# at your base, so the item tray opens with the Masterwork row.
+		var me_a := sim.heroes[local_seat]
+		sim.next_wave_time = 1000.0
+		Leveling.gain(sim, me_a, float(sim.config.level_xp[4 if what == "aim" else 5]) - me_a.xp + 0.01)
+		for t in 3:
+			Leveling.pick_perk(sim, me_a, 0)
+		if what == "aim":
+			me_a.pos = MatchSim.to_team_space(local_seat, Vector2(0.0, -6.0))
+			sim.heroes[enemy].pos = MatchSim.to_team_space(local_seat, Vector2(2.5, 1.0))
+			hud.demo_aim(2, Vector2(0.45, 0.9))
+		else:
+			me_a.gold = 2400.0
+			Economy.try_buy(sim, me_a, 0)
+		for h in sim.heroes:
+			h.prev_pos = h.pos
+		view.render(1.0, 0.0, true)
+		return
 	if what == "bush" or what == "core":
 		# "bush": you hide in the bush ahead of your tower while the enemy walks past (it
 		# can't see you). "core": the enemy Guardian just fell, so their Core is immune.
@@ -273,6 +316,9 @@ func _tick() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		_mouse_screen = event.position
+		_mouse_seen = true
 	# Click or tap a unit to focus it (for last hits); click empty ground to clear.
 	var tap: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	if tap or (event is InputEventScreenTouch and event.pressed):
@@ -306,7 +352,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("drop_relay"):
 		player.pending_drop = true
 	elif event.is_action_pressed("show_deck"):
-		hud.toggle_tray()
+		hud.toggle_details()
 	elif event.is_action_pressed("toggle_debug"):
 		hud.set_debug_visible(not hud.debug_visible)
 	elif event.is_action_pressed("back"):

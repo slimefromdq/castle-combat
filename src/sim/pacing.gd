@@ -118,12 +118,17 @@ static func on_relay_delivered(sim: MatchSim, hero: HeroState, activation: int) 
 	sim.emit_event(&"gold_awarded", {"hero": hero.id, "team": hero.team, "amount": gold, "reason": &"relay"})
 
 
+## When overtime starts: later once any Guardian has fallen (the match is moving).
+static func overtime_at(sim: MatchSim) -> float:
+	for s in sim.structures:
+		if s.is_guardian() and not s.alive:
+			return sim.config.overtime_late_time
+	return sim.config.overtime_time
+
+
 static func tick(sim: MatchSim) -> void:
 	if not sim.overtime:
-		var guardian_down := false
-		for s in sim.structures:
-			guardian_down = guardian_down or (s.is_guardian() and not s.alive)
-		if sim.time >= (sim.config.overtime_late_time if guardian_down else sim.config.overtime_time):
+		if sim.time >= overtime_at(sim):
 			sim.overtime = true
 			sim.emit_event(&"overtime_started", {})
 	for s in sim.structures:

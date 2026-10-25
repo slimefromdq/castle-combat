@@ -19,6 +19,11 @@ var pending_perk := -1
 var pending_masterwork := -1
 ## Buy a siege scroll (N or the button).
 var pending_scroll := false
+## Where you aim (sim space, unit length): the mouse on desktop, the way you move on touch.
+## Kept between casts, so a tap casts the way you last aimed or moved.
+var aim := Vector2.ZERO
+## A drag-to-aim release: aim for the pending cast only (sim space), zero for none.
+var pending_aim := Vector2.ZERO
 
 
 func build_command(_sim: MatchSim) -> PlayerCommand:
@@ -29,6 +34,15 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	cmd.move = screen_to_sim(screen, team)
 	cmd.target_id = pending_target
 	pending_target = 0
+	if joystick != null and joystick.visible and joystick.output.length() > 0.3:
+		aim = cmd.move.normalized()
+	if aim == Vector2.ZERO:
+		aim = screen_to_sim(Vector2(0, 1), team)
+	cmd.aim = aim
+	if pending_cast >= 0 and pending_aim != Vector2.ZERO:
+		cmd.aim = pending_aim
+		aim = pending_aim
+	pending_aim = Vector2.ZERO
 	cmd.cast_slot = pending_cast
 	pending_cast = -1
 	cmd.perk_pick = pending_perk

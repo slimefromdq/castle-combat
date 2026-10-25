@@ -125,6 +125,7 @@ func step(commands: Array) -> void:
 			Economy.try_siege_scroll(self, hero)
 		if cmd.perk_pick >= 0:
 			Leveling.pick_perk(self, hero, cmd.perk_pick)
+		hero.aim = cmd.aim.normalized() if cmd.aim.length() > 0.01 else Vector2.ZERO
 		if cmd.cast_slot >= 0:
 			Abilities.try_cast(self, hero, cmd.cast_slot, cmd.move)
 		Sprint.tick(self, hero, cmd)

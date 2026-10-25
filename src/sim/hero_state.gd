@@ -6,6 +6,8 @@ var data: HeroData
 var spawn_pos := Vector2.ZERO
 ## Unit vector the hero faces, in sim space.
 var facing := MatchSim.BLUE_FORWARD
+## The latest aim from this hero's player (zero: auto-aim). See PlayerCommand.aim.
+var aim := Vector2.ZERO
 ## True on ticks where the hero moved. Basic attacks only wind up while false.
 var moving := false
 ## Tap-to-target override (entity id, 0 = none) and how long it has been out of reach.

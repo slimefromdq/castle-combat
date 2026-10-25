@@ -336,7 +336,26 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
       delivered even with 67 knock-loose hits (carriers pick it back up). Bots alternate
       Masterworks and scrolls (6 scrolls in a 12-match check)
 
-**Next: UI pass (clock, fullscreen, real camera clamp, declutter, aimed skillshots).**
+### M14: playtest UI pass (Lucy)
+
+- [x] Aimed skillshots: `PlayerCommand.aim` (sim space). Judgment Blade, Sweet Talk, Cloak Toss
+      and Spin Dash use it when set; zero keeps the old auto-aim (bots). Desktop aims at the
+      ground under the mouse; touch drags the ability button (`AimButton`, multi-touch like the
+      joystick) with a ground aim line, and a tap casts the way you last moved or aimed
+- [x] Match clock under the top band, with the Relay timer and "Overtime in N" in the last
+      minute (`Pacing.overtime_at`)
+- [x] Cleaner HUD: slim top and bottom bands, structure pips instead of six health bars, item
+      cards only in shop range (Masterwork and scroll row at Lv6), details panel on Tab / i,
+      tool buttons folded into a ☰ menu, debug readout off by default
+- [x] Fullscreen: F11 anywhere or the ☰ menu (`UiKit.toggle_fullscreen`); wide screens put the
+      HUD in a centred column (max 1000 px or 0.8 x height)
+- [x] Camera clamp: sideways it now stays inside the map's sides and always keeps your hero
+      1.4 m inside the screen edge (the side pockets used to push you off screen); bands
+      come from `Hud.TOP_BAND` / `Hud.BOTTOM_BAND`
+- [x] Dev: `--stage=aim`, `--stage=shop`
+- [x] 176 tests
+
+**Next: metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)
 
