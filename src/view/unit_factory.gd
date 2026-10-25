@@ -75,8 +75,14 @@ static func make_hero(hero: HeroState, is_ally: bool) -> Node3D:
 	var body := Node3D.new()
 	body.name = "Body"
 	root.add_child(body)
-	var c := Palette.team_color(is_ally)
-	match hero.data.shape:
+	hero_body(body, hero.data.shape, Palette.team_color(is_ally))
+	root.set_meta("bar_height", 2.0)
+	return root
+
+
+## The hero silhouette alone (also used by the menu's hero showcase).
+static func hero_body(body: Node3D, shape: String, c: Color) -> void:
+	match shape:
 		"cone":
 			# Scout: an arrowhead lying flat, point forward.
 			part(body, cylinder(0.0, 0.48, 1.35, 20), c, Vector3(0, 0.48, 0), Vector3(-90, 0, 0))
@@ -90,8 +96,6 @@ static func make_hero(hero: HeroState, is_ally: bool) -> Node3D:
 			# Vanguard: chunky block with a shield slab in front.
 			part(body, box(Vector3(0.95, 0.9, 0.75)), c, Vector3(0, 0.45, 0))
 			part(body, box(Vector3(1.2, 0.85, 0.14)), Palette.ACCENT, Vector3(0, 0.47, -0.5))
-	root.set_meta("bar_height", 2.0)
-	return root
 
 
 ## Root holds "Body" (pillar or gem plus the lock "Dome") and "Rubble", shown once destroyed.

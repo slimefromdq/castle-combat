@@ -25,7 +25,7 @@ input/ + bot/  --PlayerCommand per tick-->  sim/ (MatchSim, 30 Hz)  --state + ev
 - `src/ui/` — `Hud` (top band = them, bottom band = you + item tray, thumbs in between),
   `ThumbStick` (floating joystick; `use_mouse` = mouse-as-touch on desktop).
 - `src/match_controller.gd` — owns one match: fixed-tick loop, wiring, debug toggles.
-- `src/main.gd` — hero select and dev command-line flags.
+- `src/main.gd` — boots the main menu (`src/ui/menu/`) and dev command-line flags.
 - Input actions are registered in code by the `InputSetup` autoload (`src/input/input_setup.gd`).
 
 Visual language: you are always blue with a circle under your units; the opponent is
@@ -229,6 +229,22 @@ Lucy tried an Underdog Relay comeback (PR #12) and dropped it: the Relay stays a
       walls (+0.8 m), so no void behind either base
 - [x] Dev arg `--stage=sprint` (pair with `--walk-up`)
 - [x] 132 tests. Bot-vs-bot length: 6:16 to 11:04
+
+### M9: main menu (Lucy: Clash Royale layout, zine look)
+
+- [x] `MainMenu` (`src/ui/menu/`): top bar (level, name, trophies, coins, gems: placeholders),
+      swipeable pages, bottom tab bar Shop · Heroes & Items · Battle · Clan · Tournaments
+- [x] Battle: your hero's match model on a turning paper pedestal (`HeroStage`, ink outline),
+      arrows to change hero, blurb, deck strip (tap to edit), big PLAY! (sends you to
+      Heroes & Items if the deck is short)
+- [x] Heroes & Items: hero cards with 3D models and their kit, your 8-card deck, all 16 items
+      by tier, tap to add/remove, detail footer. Replaces the old pre-match picker
+- [x] Shop, Clan, Tournaments: "coming soon" pages
+- [x] Zine kit: `ZineBox` (crooked cut-paper StyleBox, hard shadow, tape, halftone),
+      `ZinePaper` collage backdrop, `RansomText` cut-out lettering, `DoodleIcon` tab icons.
+      Fonts in `assets/fonts` (Luckiest Guy, Permanent Marker, Patrick Hand; Apache/OFL)
+- [x] Dev args `--tab=shop|heroes|battle|clan|tournaments`, `--hero=N` for menu screenshots
+- [x] 135 tests (3 menu tests)
 
 **Next: metrics runner; M5 iOS.**
 
