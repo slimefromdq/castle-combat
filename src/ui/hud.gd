@@ -1,74 +1,93 @@
 class_name Hud
 extends CanvasLayer
-## Portrait HUD. Top band: the opponent. Bottom band: you, gold and the item tray.
-## Between them the lane stays clear; thumbs live just above the bottom band.
+## Portrait HUD, kept light so the lane stays readable:
+## - a slim top band for the opponent (health, level, three structure pips),
+## - the match clock under it, with the next timer (the Relay, overtime),
+## - a slim bottom band for you (health, XP, gold),
+## - ability buttons you can drag to aim, joystick on touch,
+## - item cards only while you stand in shop range (they can't be bought elsewhere),
+## - a details panel (Tab or the i button) with items and structure health for both sides.
+## On wide screens (desktop, fullscreen) everything sits in a centred column.
 ## Reads the sim, never writes to it: buttons raise signals the match controller handles.
 
 signal seat_toggle_pressed
 signal touch_toggle_pressed
 signal debug_toggle_pressed
+signal fullscreen_pressed
 signal menu_pressed
 signal restart_pressed
 signal drop_pressed
 signal buy_pressed(slot: int)
 signal sell_pressed(slot: int)
-signal cast_pressed(slot: int)
+## A cast from an ability button: screen_dir is the drag-to-aim direction (y up), or zero
+## for a tap.
+signal cast_aimed(slot: int, screen_dir: Vector2)
 signal perk_pressed(choice: int)
 signal masterwork_pressed(slot: int)
+signal scroll_pressed
 
-const BOTTOM_H := 292.0
+## Heights (design px) of the bands that cover the map. The camera keeps the ground
+## between them inside the map.
+const TOP_BAND := 92.0
+const BOTTOM_BAND := 104.0
 const MARGIN := 12.0
+## Height of one row of shop buttons in the tray.
+const TRAY_ROW := 58.0
+## Wide screens: the HUD column is at most this wide, or 0.8 of the screen height.
+const COLUMN_MAX := 1000.0
 
 var joystick: ThumbStick
-var debug_visible := true
+var debug_visible := false
 
 var _root: Control
 var _top: PanelContainer
 var _bottom: PanelContainer
 var _them_name: Label
 var _them_hp: ProgressBar
-var _them_structs: Array = []
+var _them_xp: ProgressBar
+var _them_pips: StructPips
 var _you_name: Label
 var _you_hp: ProgressBar
-var _you_structs: Array = []
+var _you_xp: ProgressBar
+var _you_pips: StructPips
 var _gold: Label
-var _relay: Label
+var _clock: Label
+var _clock_sub: Label
 var _flash: Label
 var _flash_until := 0
 var _drop: Button
+var _tray: PanelContainer
 var _cards: Array[Button] = []
-var _ability_buttons: Array[Button] = []
-## Level-up perk choice: two cards, shown while a pick is waiting.
+var _master_row: HBoxContainer
+var _master_buttons: Array[Button] = []
+var _master_slots: Array[int] = []
+var _scroll_button: Button
+var _ability_buttons: Array[AimButton] = []
+var _ability_offsets: Array = []
 var _perk_box: Control
 var _perk_title: Label
 var _perk_buttons: Array[Button] = []
-## Level 6+: Masterwork buttons, one per owned item (C / V / B), shown at the shop.
-var _master_box: Control
-var _master_buttons: Array[Button] = []
-var _master_slots: Array[int] = []
-## Push, then shop: the gold readout pulses while you can afford a card away from the
-## shop, and the first time each card becomes affordable a callout says so.
-var _afford_called := {}
-## Enemy spike callout: their name and items pulse after a mid or late item, a
-## Masterwork, or winning the race to their ultimate.
-var _them_spike_until := 0
-var _them_spike_item := &""
-var _you_xp: ProgressBar
-var _them_xp: ProgressBar
-var _cards_row: Control
-var _them_items: Label
-var _you_items: Label
-var _deck_seen: Array[ItemData] = []
-## Selling takes two presses: the first arms the card (shows the refund), the second sells.
-var _sell_armed := -1
-var _sell_armed_until := 0
-var _me: HeroState
-var _debug: Label
+var _details: PanelContainer
+var _details_text: RichTextLabel
+var _menu_box: VBoxContainer
 var _touch_button: Button
 var _seat_button: Button
+var _fullscreen_button: Button
+var _debug: Label
 var _respawn: Label
 var _result: PanelContainer
 var _result_title: Label
+## Cards announced as affordable once (so the callout fires once per item).
+var _afford_called := {}
+var _them_spike_until := 0
+var _them_spike_item := &""
+var _deck_seen: Array[ItemData] = []
+## Owned card tapped once: a second tap within the window sells it.
+var _sell_armed := -1
+var _sell_armed_until := 0
+var _me: HeroState
+var _sim_for_text: MatchSim
+var _thumb_base := -1.0
 
 
 func _ready() -> void:
@@ -79,19 +98,26 @@ func _ready() -> void:
 	add_child(_root)
 	var inset := _top_safe_inset()
 	_build_top(inset)
-	_build_tools(inset)
+	_build_clock(inset)
+	_build_menu(inset)
 	_build_bottom()
+	_build_tray()
 	_build_thumbs()
 	_build_perk_picker()
-	_build_masterwork()
+	_build_details(inset)
 	_build_status()
+	_place_thumbs(BOTTOM_BAND)
+	set_debug_visible(false)
 
 
 func set_touch_mode(on: bool, mouse_emulation: bool) -> void:
 	joystick.visible = on
 	joystick.use_mouse = mouse_emulation
 	joystick.release()
-	_touch_button.text = "Touch: on" if on else "Touch: off"
+	for b in _ability_buttons:
+		b.use_mouse = mouse_emulation or not on
+		b.cancel()
+	_touch_button.text = "Touch controls: on" if on else "Touch controls: off"
 
 
 func set_debug_visible(on: bool) -> void:
@@ -99,26 +125,48 @@ func set_debug_visible(on: bool) -> void:
 	_debug.visible = on
 
 
+func set_fullscreen_label(on: bool) -> void:
+	_fullscreen_button.text = "Exit fullscreen" if on else "Fullscreen (F11)"
+
+
+## Dev screenshots: show a drag-to-aim in progress on an ability button.
+func demo_aim(slot: int, screen_dir: Vector2) -> void:
+	var b := _ability_buttons[slot]
+	b.aiming = true
+	b.aim_dir = screen_dir
+	b.set("_start", b.custom_minimum_size / 2.0)
+	b.queue_redraw()
+
+
+## The ability button being dragged to aim, and its aim (screen space, y up), or [-1, 0].
+func aim_drag() -> Array:
+	for i in _ability_buttons.size():
+		if _ability_buttons[i].aiming:
+			return [i, _ability_buttons[i].aim_dir]
+	return [-1, Vector2.ZERO]
+
+
 func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_sim_for_text = sim
+	_fit_column()
 	var me := sim.heroes[seat]
 	var them := sim.heroes[1 - seat]
-	_you_name.text = "You · %s · Lv %d" % [me.data.display_name, me.level]
-	_them_name.text = "Them · %s · Lv %d" % [them.data.display_name, them.level]
+	_me = me
+	_you_name.text = "%s · Lv %d" % [me.data.display_name, me.level]
+	_them_name.text = "%s · Lv %d" % [them.data.display_name, them.level]
 	_you_xp.value = Leveling.progress(sim, me)
 	_them_xp.value = Leveling.progress(sim, them)
-	_refresh_abilities(sim, me)
-	_refresh_perks(sim, me)
 	_you_hp.value = me.hp / me.max_hp
 	_them_hp.value = them.hp / them.max_hp
-	_fill_structs(sim, seat, _you_structs)
-	_fill_structs(sim, 1 - seat, _them_structs)
-	_gold.text = "Gold\n%d" % int(me.gold)
-	_refresh_cards(sim, me)
-	_you_items.text = _items_text(me, sim.config.max_items)
-	_them_items.text = _items_text(them, sim.config.max_items)
+	_you_pips.refresh(sim, seat)
+	_them_pips.refresh(sim, 1 - seat)
+	_refresh_clock(sim, seat)
+	_refresh_abilities(sim, me)
+	_refresh_perks(sim, me)
+	_refresh_tray(sim, me)
 	_refresh_spikes(sim, me)
-	_refresh_masterwork(sim, me)
+	if _details.visible:
+		_refresh_details(sim, seat)
 	_respawn.visible = not me.alive and not sim.over
 	if _respawn.visible:
 		_respawn.text = "Respawning in %d" % ceili(me.respawn_at - sim.time)
@@ -126,14 +174,43 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 		_result_title.text = "Victory!" if sim.winner == seat else "Defeat"
 		_result_title.add_theme_color_override("font_color", Palette.ALLY.lightened(0.3) if sim.winner == seat else Palette.ENEMY.lightened(0.2))
 		_result.visible = true
-	_seat_button.text = "Seat: %s" % ("blue" if seat == MatchSim.BLUE else "red")
-	_relay.text = ("OVERTIME · " if sim.overtime else "") + _relay_text(sim, seat)
+	_seat_button.text = "Seat: %s (F2)" % ("blue" if seat == MatchSim.BLUE else "red")
 	_flash.visible = Time.get_ticks_msec() < _flash_until
 	_drop.visible = me.carrying_relay
 	if debug_visible:
 		_debug.text = "FPS %d   tick %d   t %.1fs\nyou (%.1f, %.1f) %s" % [
 			fps, sim.tick, sim.time, me.pos.x, me.pos.y, "moving" if me.moving else "stopped"]
 
+
+## Wide screens: keep the HUD in a centred column so the thumbs and the lane stay close.
+func _fit_column() -> void:
+	var vp := _root.get_viewport_rect().size
+	var col := minf(vp.x, maxf(720.0, minf(COLUMN_MAX, vp.y * 0.8)))
+	var side := maxf(0.0, (vp.x - col) / 2.0)
+	_root.offset_left = side
+	_root.offset_right = -side
+
+
+# ------------------------------------------------------------------ clock
+
+func _refresh_clock(sim: MatchSim, seat: int) -> void:
+	var t := int(sim.time)
+	_clock.text = "%d:%02d" % [t / 60, t % 60]
+	_clock.add_theme_color_override("font_color", Color("ff7a6e") if sim.overtime else Color.WHITE)
+	var lines: Array[String] = []
+	if sim.overtime:
+		lines.append("OVERTIME")
+	else:
+		var until := Pacing.overtime_at(sim) - sim.time
+		if until <= 60.0:
+			lines.append("Overtime in %d" % ceili(until))
+	var relay := _relay_text(sim, seat)
+	if relay != "":
+		lines.append(relay)
+	_clock_sub.text = "\n".join(lines)
+
+
+# ------------------------------------------------------------------ abilities
 
 ## Ability buttons: key, name, and either a cooldown, the unlock level, a follow-up
 ## ("Again!", "Fire!", "Blink!", "Burst!"), or nothing.
@@ -164,7 +241,7 @@ func _refresh_abilities(sim: MatchSim, me: HeroState) -> void:
 			status = "(copied)"
 		b.text = "%s\n%s\n%s" % [KEYS[i], title, status]
 		b.disabled = problem != ""
-		b.tooltip_text = "%s (%s)\n%s\nCooldown %.0f s" % [title, KEYS[i], a.summary, me.ability_cooldown(i)]
+		b.tooltip_text = "%s (%s)\n%s\nCooldown %.0f s\nAims at the mouse; on touch, drag the button to aim." % [title, KEYS[i], a.summary, me.ability_cooldown(i)]
 
 
 ## The level-up perk choice: two cards while a pick is waiting (Z / X on a keyboard).
@@ -183,27 +260,34 @@ func _refresh_perks(sim: MatchSim, me: HeroState) -> void:
 			b.text = "%s  %s\n%s" % [["Z", "X"][k], options[k].display_name, options[k].summary]
 
 
-## Tab: collapse or open the item cards (gold and owned items stay visible).
-func toggle_tray() -> void:
-	_cards_row.visible = not _cards_row.visible
+# ------------------------------------------------------------------ shop tray
+
+## Tab (or the i button): open or close the details panel.
+func toggle_details() -> void:
+	_details.visible = not _details.visible
+	if _details.visible and _sim_for_text != null:
+		_refresh_details(_sim_for_text, _me.team if _me != null else MatchSim.BLUE)
 
 
-func _items_text(h: HeroState, cap: int) -> String:
-	var names: Array[String] = []
-	for item in h.items:
-		var name := item.display_name + ("+" if h.is_masterwork(item) else "")
-		if h != _me and item.id == _them_spike_item and Time.get_ticks_msec() < _them_spike_until:
-			name = "NEW " + name
-		names.append(name)
-	for i in cap - h.items.size():
-		names.append("—")
-	return "Items: " + "  ·  ".join(names)
+## The tray of item cards shows only in shop range (at your tower or base), with a
+## Masterwork / siege scroll row from level 6. The thumbs move up to make room.
+func _refresh_tray(sim: MatchSim, me: HeroState) -> void:
+	var open := me.alive and Economy.in_shop_range(sim, me) and not sim.over
+	_tray.visible = open
+	var lv6 := open and me.level >= sim.config.masterwork_level
+	_master_row.visible = lv6
+	if open:
+		_refresh_cards(sim, me)
+		if lv6:
+			_refresh_masterwork(sim, me)
+	var rows := (2 if open else 0) + (1 if lv6 else 0)
+	var tray_h := 0.0 if rows == 0 else rows * TRAY_ROW + (rows - 1) * 5.0 + 24.0 + 8.0
+	_place_thumbs(BOTTOM_BAND + tray_h)
 
 
 ## Card text and state: owned (tap twice to sell), affordable, saving up, or locked out
 ## by full slots. Card colors hint the tier: early, mid, late.
 func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
-	_me = me
 	if _deck_seen != me.deck:
 		_deck_seen = me.deck.duplicate()
 		for i in _cards.size():
@@ -219,13 +303,10 @@ func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
 		var c := _cards[i]
 		var owned := me.owns(item)
 		var problem := Economy.buy_problem(sim, me, i)
-		var in_shop := Economy.in_shop_range(sim, me)
-		c.disabled = (problem != "" and not owned) or not in_shop
+		c.disabled = problem != "" and not owned
 		var status := "%d" % item.cost if problem != "item slots full" else "full"
 		if owned:
 			status = "Sell +%d?" % int(Economy.sell_value(sim, item, me)) if _sell_armed == i else ("OWNED+" if me.is_masterwork(item) else "OWNED")
-		elif not in_shop:
-			status = "%d · at tower" % item.cost
 		c.text = "%s\n%s" % [item.display_name, status]
 		var color := Color("8fe388") if owned else (Color("f5d76e") if problem == "" else Color(1, 1, 1, 0.45))
 		if owned and _sell_armed == i:
@@ -236,44 +317,11 @@ func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
 		c.self_modulate = [Color(0.85, 0.95, 1.0), Color(1.0, 0.92, 0.8), Color(1.0, 0.8, 1.0)][item.tier]
 
 
-## Push, then shop: pulse the gold readout while a card is affordable but you are away
-## from the shop (time to push your wave in and head back). Enemy spikes: pulse their
-## name and items for a few seconds after a mid or late item.
-func _refresh_spikes(sim: MatchSim, me: HeroState) -> void:
-	var now := Time.get_ticks_msec()
-	var pulse := 0.5 + 0.5 * sin(now / 140.0)
-	var next := _affordable_card(sim, me)
-	var away := next >= 0 and not Economy.in_shop_range(sim, me)
-	_gold.text = "Gold\n%d%s" % [int(me.gold), "\nShop!" if away else ""]
-	_gold.modulate = Color(1, 1, 1).lerp(Color(1.6, 1.4, 0.6), pulse) if away else Color.WHITE
-	if next >= 0 and not _afford_called.has(me.deck[next].id) and me.alive:
-		_afford_called[me.deck[next].id] = true
-		if away:
-			_show_flash("You can afford %s: push your wave in, then shop" % me.deck[next].display_name)
-	var spiking := now < _them_spike_until
-	var glow := Color(1, 1, 1).lerp(Color(1.8, 1.5, 0.5), pulse) if spiking else Color.WHITE
-	_them_name.modulate = glow
-	_them_items.modulate = glow
-
-
-## The first card you don't own that you could buy now or at the shop, or -1.
-func _affordable_card(sim: MatchSim, me: HeroState) -> int:
-	for i in me.deck.size():
-		var item := me.deck[i]
-		if not me.owns(item) and me.items.size() < sim.config.max_items and me.gold + 0.0001 >= item.cost:
-			return i
-	return -1
-
-
 func _refresh_masterwork(sim: MatchSim, me: HeroState) -> void:
 	_master_slots.clear()
-	if me.level >= sim.config.masterwork_level and me.alive and Economy.in_shop_range(sim, me) and not sim.over:
-		for item in me.items:
-			if not me.is_masterwork(item):
-				_master_slots.append(me.deck.find(item))
-	_master_box.visible = not _master_slots.is_empty() and me.pending_perk_tier() < 0
-	if not _master_box.visible:
-		return
+	for item in me.items:
+		if not me.is_masterwork(item):
+			_master_slots.append(me.deck.find(item))
 	for k in _master_buttons.size():
 		var b := _master_buttons[k]
 		b.visible = k < _master_slots.size()
@@ -281,19 +329,17 @@ func _refresh_masterwork(sim: MatchSim, me: HeroState) -> void:
 			continue
 		var slot := _master_slots[k]
 		var item := me.deck[slot]
-		b.text = "%s  %s\n%d gold" % [["C", "V", "B"][k], item.display_name, int(Economy.masterwork_cost(sim, item))]
+		b.text = "%s Masterwork\n%s %d" % [["C", "V", "B"][k], item.display_name, int(Economy.masterwork_cost(sim, item))]
 		b.disabled = Economy.masterwork_problem(sim, me, slot) != ""
+	var scroll_problem := Economy.siege_scroll_problem(sim, me)
+	_scroll_button.text = "N Siege scroll\n%s" % ("queued" if scroll_problem == "siege troopers already waiting" else "%d gold" % int(Economy.siege_scroll_cost(sim, me)))
+	_scroll_button.disabled = scroll_problem != ""
 
 
 ## C / V / B: Masterwork the first, second or third item on offer.
 func masterwork_key(k: int) -> void:
-	if _master_box.visible and k < _master_slots.size():
+	if _master_row.visible and k < _master_slots.size():
 		masterwork_pressed.emit(_master_slots[k])
-
-
-func _show_flash(text: String) -> void:
-	_flash.text = text
-	_flash_until = Time.get_ticks_msec() + 2600
 
 
 ## A card tap or number key: buys, or for an owned card, asks once and then sells.
@@ -311,7 +357,74 @@ func card_pressed(i: int) -> void:
 		_sell_armed_until = Time.get_ticks_msec() + 2500
 
 
-## Short event callouts under the Relay line ("Relay knocked loose!").
+## Push, then shop: pulse the gold readout while a card is affordable but you are away
+## from the shop (time to push your wave in and head back). Enemy spikes: pulse their
+## name for a few seconds after a mid or late item.
+func _refresh_spikes(sim: MatchSim, me: HeroState) -> void:
+	var now := Time.get_ticks_msec()
+	var pulse := 0.5 + 0.5 * sin(now / 140.0)
+	var next := _affordable_card(sim, me)
+	var away := next >= 0 and not Economy.in_shop_range(sim, me)
+	_gold.text = "%d%s" % [int(me.gold), "\nShop!" if away else " gold"]
+	_gold.modulate = Color(1, 1, 1).lerp(Color(1.6, 1.4, 0.6), pulse) if away else Color.WHITE
+	if next >= 0 and not _afford_called.has(me.deck[next].id) and me.alive:
+		_afford_called[me.deck[next].id] = true
+		if away:
+			_show_flash("You can afford %s: push your wave in, then shop" % me.deck[next].display_name)
+	var spiking := now < _them_spike_until
+	_them_name.modulate = Color(1, 1, 1).lerp(Color(1.8, 1.5, 0.5), pulse) if spiking else Color.WHITE
+
+
+## The first card you don't own that you could buy now or at the shop, or -1.
+func _affordable_card(sim: MatchSim, me: HeroState) -> int:
+	for i in me.deck.size():
+		var item := me.deck[i]
+		if not me.owns(item) and me.items.size() < sim.config.max_items and me.gold + 0.0001 >= item.cost:
+			return i
+	return -1
+
+
+# ------------------------------------------------------------------ details panel
+
+func _refresh_details(sim: MatchSim, seat: int) -> void:
+	var t := ""
+	for side in [1 - seat, seat]:
+		var h := sim.heroes[side]
+		var color := Palette.ALLY.lightened(0.3) if side == seat else Palette.ENEMY.lightened(0.25)
+		t += "[color=#%s][b]%s %s · Lv %d[/b][/color]\n" % [color.to_html(false), "You:" if side == seat else "Them:", h.data.display_name, h.level]
+		t += "Items: %s\n" % _items_text(h, sim.config.max_items)
+		var parts: Array[String] = []
+		for s in sim.structures_of(side):
+			var state := "%d%%" % ceili(100.0 * s.hp / s.max_hp) if s.alive else "down"
+			if s.alive and not sim.is_exposed(s):
+				state += " (locked)"
+			if s.alive and sim.time < s.immune_until:
+				state += " (immune %d)" % ceili(s.immune_until - sim.time)
+			parts.append("%s %s" % [s.data.display_name, state])
+		t += "  ·  ".join(parts) + "\n\n"
+	_details_text.text = t.strip_edges()
+
+
+func _items_text(h: HeroState, cap: int) -> String:
+	var names: Array[String] = []
+	for item in h.items:
+		var name := item.display_name + ("+" if h.is_masterwork(item) else "")
+		if h != _me and item.id == _them_spike_item and Time.get_ticks_msec() < _them_spike_until:
+			name = "NEW " + name
+		names.append(name)
+	for i in cap - h.items.size():
+		names.append("—")
+	return "  ·  ".join(names)
+
+
+# ------------------------------------------------------------------ callouts
+
+func _show_flash(text: String) -> void:
+	_flash.text = text
+	_flash_until = Time.get_ticks_msec() + 2600
+
+
+## Short event callouts under the clock ("Relay knocked loose!").
 func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 	var text := ""
 	match type:
@@ -335,7 +448,7 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 				_enemy_spike(data.item)
 		&"masterwork":
 			if data.team == seat:
-				text = "Masterwork %s: +%d%% stats" % [_item_name(data.item), roundi(100.0 * _sim_for_text.config.masterwork_bonus)]
+				text = "Masterwork %s: +%d%% stats" % [_item_name(data.item), roundi(100.0 * MatchController.CONFIG.masterwork_bonus)]
 			else:
 				text = "Enemy spike: Masterwork %s!" % _item_name(data.item)
 				_enemy_spike(data.item)
@@ -355,6 +468,11 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 				_enemy_spike(&"")
 		&"overtime_started":
 			text = "Overtime! Structures are weakened, waves are tankier"
+		&"core_immune":
+			text = "Your Core is immune for %d s: regroup!" % roundi(data.seconds) if data.team == seat \
+					else "Their Core is shielded for %d s" % roundi(data.seconds)
+		&"siege_scroll":
+			text = "Siege scroll: a siege trooper joins your next wave" if data.team == seat else "Enemy read a siege scroll: a siege trooper is coming"
 		&"guardian_fallen":
 			text = "Your Guardian fell!" if data.team == seat else "Enemy Guardian down! Your minions are powered up"
 		&"guardian_slam_windup":
@@ -367,11 +485,7 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 			if data.team == seat:
 				text = _level_text(data.level, seat)
 	if text != "":
-		_flash.text = text
-		_flash_until = Time.get_ticks_msec() + 2600
-
-
-var _sim_for_text: MatchSim
+		_show_flash(text)
 
 
 func _level_text(lv: int, seat: int) -> String:
@@ -420,7 +534,7 @@ func _relay_text(sim: MatchSim, seat: int) -> String:
 			if me.carrying_relay:
 				var where := "Carry it to the %s pocket" % _side(sim, relay.delivery_pocket, seat)
 				return where + (" · blocked!" if relay.contested else "")
-			return "Enemy has the Relay! Two hits knock it loose"
+			return "Enemy has the Relay! One hit knocks it loose"
 	return ""
 
 
@@ -432,31 +546,31 @@ func _side(sim: MatchSim, pocket: int, seat: int) -> String:
 	return "left" if x < 0.0 else "right"
 
 
-func _fill_structs(sim: MatchSim, team: int, widgets: Array) -> void:
-	var list := sim.structures_of(team)
-	for i in list.size():
-		var s := list[i]
-		var w: Dictionary = widgets[i]
-		w.bar.value = s.hp / s.max_hp
-		var locked := not sim.is_exposed(s)
-		w.label.text = ("%s · locked" % s.data.display_name) if locked else s.data.display_name
-		w.label.modulate.a = 0.55 if locked else 1.0
+# ------------------------------------------------------------------ building
 
-
-func _struct_row(color: Color, into: Array) -> HBoxContainer:
+## One band row: name, health and XP bars, structure pips, and optional extra buttons.
+func _band_row(color: Color, name_color: Color) -> Dictionary:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	for i in 3:
-		var col := VBoxContainer.new()
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.add_theme_constant_override("separation", 2)
-		var l := UiKit.label("", 17, Color(1, 1, 1, 0.85))
-		var b := UiKit.bar(color.darkened(0.15), 10)
-		col.add_child(l)
-		col.add_child(b)
-		row.add_child(col)
-		into.append({"label": l, "bar": b})
-	return row
+	row.add_theme_constant_override("separation", 12)
+	var name := UiKit.label("", 22, name_color)
+	name.custom_minimum_size = Vector2(170, 0)
+	name.clip_text = true
+	row.add_child(name)
+	var bars := VBoxContainer.new()
+	bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bars.add_theme_constant_override("separation", 3)
+	var hp := UiKit.bar(color, 20)
+	bars.add_child(hp)
+	var xp := UiKit.bar(Color("f5d76e"), 5)
+	bars.add_child(xp)
+	row.add_child(bars)
+	var pips := StructPips.new()
+	pips.color = color
+	pips.custom_minimum_size = Vector2(84, 28)
+	pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(pips)
+	return {"row": row, "name": name, "hp": hp, "xp": xp, "pips": pips}
 
 
 func _build_top(inset: float) -> void:
@@ -467,68 +581,87 @@ func _build_top(inset: float) -> void:
 	_top.offset_top = MARGIN + inset
 	_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_top)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	_top.add_child(v)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	_them_name = UiKit.label("Them", 22, Palette.ENEMY.lightened(0.2))
-	_them_name.custom_minimum_size = Vector2(270, 0)
-	_them_hp = UiKit.bar(Palette.ENEMY, 20)
-	_them_hp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(_them_name)
-	var them_bars := VBoxContainer.new()
-	them_bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	them_bars.add_theme_constant_override("separation", 3)
-	them_bars.add_child(_them_hp)
-	_them_xp = UiKit.bar(Color("f5d76e"), 5)
-	them_bars.add_child(_them_xp)
-	row.add_child(them_bars)
-	v.add_child(row)
-	v.add_child(_struct_row(Palette.ENEMY, _them_structs))
-	# GDD 8: you can always see the opponent's equipped items (not their deck).
-	_them_items = UiKit.label("Items:", 16, Color(1, 1, 1, 0.7))
-	v.add_child(_them_items)
+	var r := _band_row(Palette.ENEMY, Palette.ENEMY.lightened(0.2))
+	_them_name = r.name
+	_them_hp = r.hp
+	_them_xp = r.xp
+	_them_pips = r.pips
+	var info := UiKit.button("i", Vector2(44, 44))
+	info.add_theme_font_size_override("font_size", 22)
+	info.tooltip_text = "Tab: items and structure health"
+	info.pressed.connect(toggle_details)
+	r.row.add_child(info)
+	var menu := UiKit.button("☰", Vector2(44, 44))
+	menu.add_theme_font_size_override("font_size", 22)
+	menu.tooltip_text = "Settings: fullscreen, touch controls, menu"
+	menu.pressed.connect(func() -> void: _menu_box.visible = not _menu_box.visible)
+	r.row.add_child(menu)
+	_top.add_child(r.row)
 
 
-func _build_tools(inset: float) -> void:
-	var tools := HBoxContainer.new()
-	tools.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	tools.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	tools.offset_top = 156 + inset
-	tools.offset_right = -MARGIN
-	tools.add_theme_constant_override("separation", 6)
-	_root.add_child(tools)
-	_seat_button = _tool_button(tools, "Seat: blue", "F2: swap seats (camera turns 180°)", seat_toggle_pressed)
-	_touch_button = _tool_button(tools, "Touch: off", "F3: phone controls, driven by the mouse", touch_toggle_pressed)
-	_tool_button(tools, "Debug", "F1: debug readout", debug_toggle_pressed)
-	_tool_button(tools, "Menu", "Esc: back to hero select", menu_pressed)
-	_relay = UiKit.label("Relay", 22, Palette.RELAY)
-	_relay.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_relay.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_relay.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_relay.offset_top = 210 + inset
-	_root.add_child(_relay)
-	_flash = UiKit.label("", 20, Color(1, 1, 1, 0.95))
-	_flash.set_anchors_preset(Control.PRESET_CENTER_TOP)
+## The match clock, under the top band in the middle, with the next timer below it.
+func _build_clock(inset: float) -> void:
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.offset_top = TOP_BAND + 4 + inset
+	box.add_theme_constant_override("separation", 0)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(box)
+	var pill := PanelContainer.new()
+	pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.08, 0.1, 0.72)
+	style.set_corner_radius_all(16)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	pill.add_theme_stylebox_override("panel", style)
+	box.add_child(pill)
+	_clock = UiKit.label("0:00", 30)
+	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pill.add_child(_clock)
+	_clock_sub = _outlined(UiKit.label("", 19, Palette.RELAY))
+	_clock_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_clock_sub)
+	_flash = _outlined(UiKit.label("", 20, Color(1, 1, 1, 0.95)))
 	_flash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_flash.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_flash.offset_top = 242 + inset
-	_flash.add_theme_constant_override("outline_size", 8)
-	_flash.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_flash.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_flash.custom_minimum_size = Vector2(640, 0)
 	_flash.visible = false
-	_root.add_child(_flash)
+	box.add_child(_flash)
 	_debug = UiKit.label("", 18, Color(1, 1, 1, 0.75))
-	_debug.position = Vector2(MARGIN + 4, 278 + inset)
+	_debug.position = Vector2(MARGIN + 4, TOP_BAND + 8 + inset)
 	_root.add_child(_debug)
 
 
-func _tool_button(parent: Control, text: String, tip: String, sig: Signal) -> Button:
-	var b := UiKit.button(text, Vector2(0, 44))
-	b.add_theme_font_size_override("font_size", 18)
-	b.tooltip_text = tip
-	b.pressed.connect(func() -> void: sig.emit())
-	parent.add_child(b)
+func _build_menu(inset: float) -> void:
+	_menu_box = VBoxContainer.new()
+	_menu_box.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_menu_box.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_menu_box.offset_top = TOP_BAND + 8 + inset
+	_menu_box.offset_right = -MARGIN
+	_menu_box.add_theme_constant_override("separation", 6)
+	_menu_box.visible = false
+	_root.add_child(_menu_box)
+	_fullscreen_button = _menu_button("Fullscreen (F11)", fullscreen_pressed)
+	_touch_button = _menu_button("Touch controls: off", touch_toggle_pressed)
+	_touch_button.tooltip_text = "F3: phone controls, driven by the mouse"
+	_seat_button = _menu_button("Seat: blue (F2)", seat_toggle_pressed)
+	_seat_button.tooltip_text = "Debug: swap seats (camera turns 180°)"
+	_menu_button("Debug readout (F1)", debug_toggle_pressed)
+	_menu_button("Hero select (Esc)", menu_pressed)
+
+
+func _menu_button(text: String, sig: Signal) -> Button:
+	var b := UiKit.button(text, Vector2(260, 52))
+	b.add_theme_font_size_override("font_size", 19)
+	b.pressed.connect(func() -> void:
+		_menu_box.visible = false
+		sig.emit())
+	_menu_box.add_child(b)
 	return b
 
 
@@ -537,48 +670,46 @@ func _build_bottom() -> void:
 	_bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_bottom.offset_left = MARGIN
 	_bottom.offset_right = -MARGIN
-	_bottom.offset_top = -BOTTOM_H
+	_bottom.offset_top = -BOTTOM_BAND
 	_bottom.offset_bottom = -MARGIN
 	_bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_bottom)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	_bottom.add_child(v)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	_you_name = UiKit.label("You", 22, Palette.ALLY.lightened(0.25))
-	_you_name.custom_minimum_size = Vector2(270, 0)
-	_you_hp = UiKit.bar(Palette.ALLY, 20)
-	_you_hp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(_you_name)
-	var you_bars := VBoxContainer.new()
-	you_bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	you_bars.add_theme_constant_override("separation", 3)
-	you_bars.add_child(_you_hp)
-	_you_xp = UiKit.bar(Color("f5d76e"), 5)
-	you_bars.add_child(_you_xp)
-	row.add_child(you_bars)
-	v.add_child(row)
-	v.add_child(_struct_row(Palette.ALLY, _you_structs))
-	_you_items = UiKit.label("Items:", 16, Color(1, 1, 1, 0.7))
-	v.add_child(_you_items)
-	var tray := HBoxContainer.new()
-	tray.add_theme_constant_override("separation", 6)
-	_gold = UiKit.label("Gold\n0", 20, Color("f5d76e"))
-	_gold.custom_minimum_size = Vector2(76, 0)
+	var r := _band_row(Palette.ALLY, Palette.ALLY.lightened(0.25))
+	_you_name = r.name
+	_you_hp = r.hp
+	_you_xp = r.xp
+	_you_pips = r.pips
+	_gold = UiKit.label("0 gold", 20, Color("f5d76e"))
+	_gold.custom_minimum_size = Vector2(92, 0)
 	_gold.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_gold.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tray.add_child(_gold)
+	r.row.add_child(_gold)
+	_bottom.add_child(r.row)
+
+
+## The shop tray just above the bottom band: eight cards, plus Masterworks and the siege
+## scroll from level 6. Visible only in shop range.
+func _build_tray() -> void:
+	_tray = PanelContainer.new()
+	_tray.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_tray.offset_left = MARGIN
+	_tray.offset_right = -MARGIN
+	_tray.offset_bottom = -BOTTOM_BAND - 4
+	_tray.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tray.visible = false
+	_root.add_child(_tray)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 5)
+	_tray.add_child(v)
 	var cards := GridContainer.new()
 	cards.columns = 4
-	cards.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cards.add_theme_constant_override("h_separation", 5)
 	cards.add_theme_constant_override("v_separation", 5)
-	tray.add_child(cards)
-	_cards_row = cards
+	v.add_child(cards)
 	for i in MatchController.CONFIG.deck_size:
 		# One tap buys: no shop screen (GDD 8). Keys 1-8 do the same.
-		var card := UiKit.button("", Vector2(0, 58))
+		var card := UiKit.button("", Vector2(0, TRAY_ROW))
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.custom_minimum_size.x = 50
 		card.add_theme_font_size_override("font_size", 14)
@@ -587,7 +718,26 @@ func _build_bottom() -> void:
 		card.pressed.connect(func() -> void: card_pressed(i))
 		cards.add_child(card)
 		_cards.append(card)
-	v.add_child(tray)
+	_master_row = HBoxContainer.new()
+	_master_row.add_theme_constant_override("separation", 5)
+	v.add_child(_master_row)
+	for k in 3:
+		var b := UiKit.button("", Vector2(0, TRAY_ROW))
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.add_theme_font_size_override("font_size", 14)
+		b.clip_text = true
+		b.add_theme_color_override("font_color", Color("f5d76e"))
+		b.tooltip_text = "C / V / B: pay half the item's price for +%d%% to its stats" % roundi(100.0 * MatchController.CONFIG.masterwork_bonus)
+		b.pressed.connect(func() -> void: masterwork_key(k))
+		_master_row.add_child(b)
+		_master_buttons.append(b)
+	_scroll_button = UiKit.button("", Vector2(0, TRAY_ROW))
+	_scroll_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll_button.add_theme_font_size_override("font_size", 14)
+	_scroll_button.add_theme_color_override("font_color", Palette.RELAY)
+	_scroll_button.tooltip_text = "N: a single-use scroll that adds a siege trooper to your next wave"
+	_scroll_button.pressed.connect(func() -> void: scroll_pressed.emit())
+	_master_row.add_child(_scroll_button)
 
 
 func _build_thumbs() -> void:
@@ -596,27 +746,59 @@ func _build_thumbs() -> void:
 	joystick.anchor_right = 0.55
 	joystick.anchor_top = 1.0
 	joystick.anchor_bottom = 1.0
-	joystick.offset_top = -BOTTOM_H - 320
-	joystick.offset_bottom = -BOTTOM_H - 4
 	joystick.visible = false
 	_root.add_child(joystick)
 	# No basic-attack button by design: stopping is the attack. Q is the big thumb button,
 	# E sits to its left, R (the ultimate) above it. Keyboard: Q / E / R.
-	_ability_buttons.append(_corner_button(136, 28, 28, 0))
-	_ability_buttons.append(_corner_button(108, 28 + 136 + 18, 28, 1))
-	_ability_buttons.append(_corner_button(108, 28 + 14, 28 + 136 + 18, 2))
+	_ability_buttons.append(_ability_button(136, 28, 28, 0))
+	_ability_buttons.append(_ability_button(108, 28 + 136 + 18, 28, 1))
+	_ability_buttons.append(_ability_button(108, 28 + 14, 28 + 136 + 18, 2))
 	# Shown only while you carry the Relay (keyboard: F).
 	_drop = UiKit.button("F\nDrop", Vector2(96, 96))
 	_drop.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_drop.offset_right = -(28 + 136 + 18)
-	_drop.offset_left = _drop.offset_right - 96
-	_drop.offset_bottom = -BOTTOM_H - (28 + 108 + 18)
-	_drop.offset_top = _drop.offset_bottom - 96
 	_drop.add_theme_color_override("font_color", Palette.RELAY)
 	_drop.tooltip_text = "F: drop the Relay"
 	_drop.pressed.connect(func() -> void: drop_pressed.emit())
 	_drop.visible = false
 	_root.add_child(_drop)
+
+
+## A square drag-to-aim ability button in the bottom right, `right`/`bottom` px in from
+## the corner of the free area above the bottom band (and the tray, when open).
+func _ability_button(size: float, right: float, bottom: float, slot: int) -> AimButton:
+	var b := AimButton.new()
+	b.custom_minimum_size = Vector2(size, size)
+	b.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	b.add_theme_font_size_override("font_size", 14 if slot > 0 else 17)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.clip_text = true
+	b.cast.connect(func(dir: Vector2) -> void: cast_aimed.emit(slot, dir))
+	_root.add_child(b)
+	_ability_offsets.append([size, right, bottom])
+	return b
+
+
+## Moves everything that sits on top of the bottom band (thumbs, perk cards) to `base`
+## px above the screen bottom.
+func _place_thumbs(base: float) -> void:
+	if is_equal_approx(base, _thumb_base):
+		return
+	_thumb_base = base
+	joystick.offset_top = -base - 320
+	joystick.offset_bottom = -base - 4
+	for i in _ability_buttons.size():
+		var b := _ability_buttons[i]
+		var o: Array = _ability_offsets[i]
+		b.offset_right = -o[1]
+		b.offset_left = -o[1] - o[0]
+		b.offset_bottom = -base - o[2]
+		b.offset_top = -base - o[2] - o[0]
+	_drop.offset_right = -(28 + 136 + 18)
+	_drop.offset_left = _drop.offset_right - 96
+	_drop.offset_bottom = -base - (28 + 108 + 18)
+	_drop.offset_top = _drop.offset_bottom - 96
+	_perk_box.offset_bottom = -base - 330
+	_perk_box.offset_top = _perk_box.offset_bottom - 150
 
 
 func _build_perk_picker() -> void:
@@ -625,15 +807,11 @@ func _build_perk_picker() -> void:
 	_perk_box.anchor_right = 0.96
 	_perk_box.anchor_top = 1.0
 	_perk_box.anchor_bottom = 1.0
-	_perk_box.offset_bottom = -BOTTOM_H - 330
-	_perk_box.offset_top = _perk_box.offset_bottom - 150
 	_perk_box.add_theme_constant_override("separation", 6)
 	_perk_box.visible = false
 	_root.add_child(_perk_box)
-	_perk_title = UiKit.label("", 24, Palette.RELAY)
+	_perk_title = _outlined(UiKit.label("", 24, Palette.RELAY))
 	_perk_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_perk_title.add_theme_constant_override("outline_size", 8)
-	_perk_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_perk_box.add_child(_perk_title)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -648,61 +826,34 @@ func _build_perk_picker() -> void:
 		_perk_buttons.append(b)
 
 
-## Masterwork offers sit where the perk cards do, on the left, at the shop from level 6.
-func _build_masterwork() -> void:
-	_master_box = VBoxContainer.new()
-	_master_box.anchor_left = 0.0
-	_master_box.anchor_right = 1.0
-	_master_box.offset_left = MARGIN + 16
-	# Clear of the E button (its left edge sits 28 + 136 + 18 + 108 px from the right).
-	_master_box.offset_right = -(28 + 136 + 18 + 108 + 14)
-	_master_box.anchor_top = 1.0
-	_master_box.anchor_bottom = 1.0
-	_master_box.offset_bottom = -BOTTOM_H - 12
-	_master_box.offset_top = _master_box.offset_bottom - 250
-	_master_box.alignment = BoxContainer.ALIGNMENT_END
-	_master_box.add_theme_constant_override("separation", 6)
-	_master_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_master_box.visible = false
-	_root.add_child(_master_box)
-	var title := UiKit.label("Masterwork: +%d%% to one item" % roundi(100.0 * MatchController.CONFIG.masterwork_bonus), 20, Color("f5d76e"))
-	title.add_theme_constant_override("outline_size", 8)
-	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-	_master_box.add_child(title)
-	for k in 3:
-		var b := UiKit.button("", Vector2(0, 62))
-		b.add_theme_font_size_override("font_size", 17)
-		b.add_theme_color_override("font_color", Color("f5d76e"))
-		b.pressed.connect(func() -> void: masterwork_key(k))
-		_master_box.add_child(b)
-		_master_buttons.append(b)
-
-
-## A square button anchored to the bottom right, `right`/`bottom` px in from the corner
-## (above the bottom band).
-func _corner_button(size: float, right: float, bottom: float, slot: int) -> Button:
-	var b := UiKit.button("", Vector2(size, size))
-	b.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	b.offset_right = -right
-	b.offset_left = -right - size
-	b.offset_bottom = -BOTTOM_H - bottom
-	b.offset_top = -BOTTOM_H - bottom - size
-	b.add_theme_font_size_override("font_size", 14 if slot > 0 else 17)
-	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	b.clip_text = true
-	b.pressed.connect(func() -> void: cast_pressed.emit(slot))
-	_root.add_child(b)
-	return b
+func _build_details(inset: float) -> void:
+	_details = PanelContainer.new()
+	_details.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_details.offset_left = MARGIN + 20
+	_details.offset_right = -MARGIN - 20
+	_details.offset_top = TOP_BAND + 90 + inset
+	_details.visible = false
+	_root.add_child(_details)
+	_details_text = RichTextLabel.new()
+	_details_text.bbcode_enabled = true
+	_details_text.fit_content = true
+	_details_text.scroll_active = false
+	_details_text.add_theme_font_size_override("normal_font_size", 18)
+	_details_text.add_theme_font_size_override("bold_font_size", 20)
+	_details_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_details.add_child(_details_text)
+	# Tap anywhere on the panel to close it.
+	_details.gui_input.connect(func(e: InputEvent) -> void:
+		if (e is InputEventMouseButton and e.pressed) or (e is InputEventScreenTouch and e.pressed):
+			_details.visible = false)
 
 
 func _build_status() -> void:
-	_respawn = UiKit.label("", 40, Color(1, 1, 1, 0.95))
+	_respawn = _outlined(UiKit.label("", 40, Color(1, 1, 1, 0.95)))
 	_respawn.set_anchors_preset(Control.PRESET_CENTER)
 	_respawn.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_respawn.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_respawn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_respawn.add_theme_constant_override("outline_size", 10)
-	_respawn.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_respawn.visible = false
 	_root.add_child(_respawn)
 	_result = PanelContainer.new()
@@ -726,6 +877,12 @@ func _build_status() -> void:
 	v.add_child(menu)
 
 
+func _outlined(l: Label) -> Label:
+	l.add_theme_constant_override("outline_size", 8)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	return l
+
+
 ## Keeps the top band clear of notches on phones. Desktop windows have no inset.
 func _top_safe_inset() -> float:
 	if not OS.has_feature("mobile"):
@@ -735,3 +892,55 @@ func _top_safe_inset() -> float:
 	if window_h <= 0.0:
 		return 0.0
 	return safe.position.y * get_viewport().get_visible_rect().size.y / window_h
+
+
+## Three small markers for a side's structures, front to back: filled while standing,
+## bright outline when it can be hit now, gold outline while immune, a dim cross once
+## fallen, and a flash when it takes damage. Health numbers live in the details panel.
+class StructPips extends Control:
+	var color := Color.WHITE
+	var _states: Array = []
+	var _last_hp: Array[float] = []
+	var _flash_until: Array[int] = [0, 0, 0]
+
+	func refresh(sim: MatchSim, team: int) -> void:
+		var list := sim.structures_of(team)
+		var now := Time.get_ticks_msec()
+		if _last_hp.size() != list.size():
+			_last_hp.resize(list.size())
+			for i in list.size():
+				_last_hp[i] = list[i].hp
+		_flash_until.resize(list.size())
+		var states: Array = []
+		for i in list.size():
+			var s := list[i]
+			if s.hp < _last_hp[i] - 0.01:
+				_flash_until[i] = now + 900
+			_last_hp[i] = s.hp
+			states.append([s.alive, sim.is_exposed(s), s.alive and sim.time < s.immune_until, now < _flash_until[i]])
+		if states != _states:
+			_states = states
+			queue_redraw()
+
+	func _draw() -> void:
+		var n := _states.size()
+		var cell := size.x / maxf(1.0, n)
+		var side := minf(cell - 8.0, size.y - 4.0)
+		for i in n:
+			var st: Array = _states[i]
+			var c := Vector2(cell * (i + 0.5), size.y / 2.0)
+			var r := Rect2(c - Vector2(side, side) / 2.0, Vector2(side, side))
+			if not st[0]:
+				var dim := Color(1, 1, 1, 0.3)
+				draw_rect(r, Color(0, 0, 0, 0.35))
+				draw_line(r.position, r.end, dim, 2.0)
+				draw_line(Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), dim, 2.0)
+				continue
+			var fill := color if st[1] else color.darkened(0.45)
+			if st[3]:
+				fill = fill.lerp(Color.WHITE, 0.6)
+			draw_rect(r, fill)
+			if st[2]:
+				draw_rect(r.grow(2.0), Color("f5d76e"), false, 3.0)
+			elif st[1]:
+				draw_rect(r.grow(1.0), Color(1, 1, 1, 0.85), false, 2.0)

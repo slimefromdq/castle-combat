@@ -84,6 +84,36 @@ static func masterwork_cost(sim: MatchSim, item: ItemData) -> float:
 	return roundf(item.cost * sim.config.masterwork_cost_fraction)
 
 
+## What this hero's next siege scroll costs.
+static func siege_scroll_cost(sim: MatchSim, hero: HeroState) -> float:
+	return sim.config.siege_scroll_cost + sim.config.siege_scroll_cost_step * hero.scrolls_bought
+
+
+## Why buying a siege scroll would fail, or "" if it is allowed.
+static func siege_scroll_problem(sim: MatchSim, hero: HeroState) -> String:
+	if hero.level < sim.config.masterwork_level:
+		return "siege scrolls at level %d" % sim.config.masterwork_level
+	if not in_shop_range(sim, hero):
+		return "shop at your tower or base"
+	if sim.pending_siege[hero.team] >= sim.config.siege_scroll_max:
+		return "siege troopers already waiting"
+	if hero.gold + 0.0001 < siege_scroll_cost(sim, hero):
+		return "not enough gold"
+	return ""
+
+
+## Late gold sink: a single-use scroll that adds a siege trooper to your next wave.
+static func try_siege_scroll(sim: MatchSim, hero: HeroState) -> bool:
+	if siege_scroll_problem(sim, hero) != "":
+		return false
+	var cost := siege_scroll_cost(sim, hero)
+	hero.gold = maxf(0.0, hero.gold - cost)
+	hero.scrolls_bought += 1
+	sim.pending_siege[hero.team] += 1
+	sim.emit_event(&"siege_scroll", {"hero": hero.id, "team": hero.team, "cost": cost})
+	return true
+
+
 ## Why making the card in this slot a Masterwork would fail, or "" if it is allowed.
 static func masterwork_problem(sim: MatchSim, hero: HeroState, slot: int) -> String:
 	if slot < 0 or slot >= hero.deck.size():

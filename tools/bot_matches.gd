@@ -15,7 +15,7 @@ func _init() -> void:
 	var rows: Array[String] = []
 	var lengths: Array[float] = []
 	var level_times := {3: [], 4: [], 5: [], 6: []}
-	var extra := {"ult_race": 0, "ult_race_won": 0, "masterworks": 0}
+	var extra := {"ult_race": 0, "ult_race_won": 0, "masterworks": 0, "delivered": 0, "intercepted": 0, "spawned": 0, "scrolls": 0}
 	for h in heroes:
 		wins[h.id] = 0
 		games[h.id] = 0
@@ -67,6 +67,7 @@ func _init() -> void:
 		t5.sort()
 		if not t5.is_empty():
 			print("%s reached Lv5: median %s" % [h.display_name, _clock(t5[t5.size() / 2])])
+	print("Relays: %d spawned, %d delivered, %d knocked loose; siege scrolls read: %d" % [extra.spawned, extra.delivered, extra.intercepted, extra.scrolls])
 	print("First to Lv5 won %d of %d; Masterworks made: %d" % [extra.ult_race_won, extra.ult_race, extra.masterworks])
 	print("")
 	for id: StringName in perk_games:
@@ -98,6 +99,14 @@ func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_
 				extra[who].append(sim.time)
 		elif type == &"masterwork":
 			extra.masterworks += 1
+		elif type == &"relay_delivered":
+			extra.delivered += 1
+		elif type == &"relay_spawned":
+			extra.spawned += 1
+		elif type == &"relay_dropped" and data.get("reason") == &"intercepted":
+			extra.intercepted += 1
+		elif type == &"siege_scroll":
+			extra.scrolls += 1
 	sim.sim_event.connect(listen)
 	while not sim.over and sim.time < MAX_TIME:
 		sim.step([a.build_command(sim), b.build_command(sim)])

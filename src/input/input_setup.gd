@@ -16,6 +16,7 @@ const BINDINGS := {
 	"master_1": [KEY_C],
 	"master_2": [KEY_V],
 	"master_3": [KEY_B],
+	"siege_scroll": [KEY_N],
 	"show_deck": [KEY_TAB],
 	"buy_1": [KEY_1],
 	"buy_2": [KEY_2],
@@ -29,11 +30,19 @@ const BINDINGS := {
 	"toggle_seat": [KEY_F2],
 	"toggle_touch": [KEY_F3],
 	"back": [KEY_ESCAPE],
+	"toggle_fullscreen": [KEY_F11],
 }
 
 
 func _enter_tree() -> void:
 	register()
+
+
+## F11 anywhere (menus too). On the web this must come from a key or click, which it does.
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_fullscreen"):
+		UiKit.toggle_fullscreen()
+		get_viewport().set_input_as_handled()
 
 
 static func register() -> void:

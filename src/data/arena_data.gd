@@ -12,6 +12,8 @@ extends Resource
 @export var pockets: Array[Rect2] = []
 ## Solid walls. They block movement and line of sight.
 @export var walls: Array[Rect2] = []
+## Bushes: a hero standing in one is hidden from the enemy (see MatchSim.is_hidden).
+@export var bushes: Array[Rect2] = []
 ## Blue positions for Outer Tower, Guardian, Core (in that order).
 @export var structure_positions: Array[Vector2] = []
 @export var hero_spawn := Vector2(2.6, -35.0)

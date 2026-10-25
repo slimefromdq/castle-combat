@@ -13,6 +13,8 @@ var beam_last := -10.0
 var slam_at := -1.0
 var slams_used := 0
 var disabled_until := 0.0
+## A Core takes no damage until this sim time (set when its Guardian falls).
+var immune_until := 0.0
 
 
 func setup(structure_data: StructureData, structure_tier: int, structure_team: int, at: Vector2) -> void:

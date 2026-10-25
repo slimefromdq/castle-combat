@@ -27,18 +27,20 @@ six hero levels that unlock three abilities and three perks.
 | Move | WASD / arrow keys | Floating joystick: drag in the lower left |
 | Attack | Stand still: the nearest valid target is attacked automatically | Same |
 | Focus a target (for last hits) | Left-click an enemy unit; click the ground to clear | Tap an enemy unit |
-| Abilities (unlock at Lv 1 / 3 / 5), press again for a follow-up | Q / E / R | Right-thumb buttons |
+| Abilities (unlock at Lv 1 / 3 / 5), press again for a follow-up | Q / E / R: cast toward the mouse | Drag a button to aim, let go to cast (a tap casts the way you move) |
 | Pick a level-up perk | Z / X | Tap a perk card |
-| Buy item card | 1–8 | Tap a card |
+| Buy item card (cards appear at the shop) | 1–8 | Tap a card |
 | Sell an owned item (half price back) | Its number twice | Tap its card twice |
 | Make an owned item a Masterwork (Lv 6, at the shop) | C / V / B | Tap a Masterwork button |
-| Hide / show the item cards | Tab | — |
+| Read a siege scroll (Lv 6, at the shop) | N | Tap the scroll button |
+| Items and structure health for both sides | Tab | i button |
+| Fullscreen | F11 | ☰ menu |
 | Pick up / deliver the Relay | Stand in the gold ring / the outlined pocket | Same |
 | Drop the Relay | F | Drop button while carrying |
-| Swap seat (debug) | F2 | Seat button |
-| Touch mode (mouse drives the joystick) | F3 | Touch button |
-| Debug readout | F1 | Debug button |
-| Back to hero select | Esc | Menu button |
+| Swap seat (debug) | F2 | ☰ menu |
+| Touch mode (mouse drives the joystick) | F3 | ☰ menu |
+| Debug readout | F1 | ☰ menu |
+| Back to hero select | Esc | ☰ menu |
 
 There is no attack button on purpose: standing still is how you attack.
 
@@ -46,7 +48,7 @@ There is no attack button on purpose: standing still is how you attack.
 gold, whoever killed it. A killing blow from farther away pays too, and a killing blow
 always pays 15% more, so last hits are worth timing.
 
-**Waves:** every 3rd wave brings a special trooper, alternating a **Sapper** (carries a
+**Waves:** every 4th wave brings a special trooper, alternating a **Sapper** (carries a
 bomb, hits structures five times harder; kill it before it reaches your tower) and a
 **Shieldbearer** (a big shield that stops the first enemy skillshot that touches it,
 protecting the troopers behind). A special trooper drops a **banner** where it dies:
@@ -58,8 +60,24 @@ in theirs when it drifts toward yours, and flatten while it holds.
 tap it and stand still to finish it yourself: the enemy only collects half its gold, and
 you get a share too.
 
+**Bushes:** eight bushes sit along the lane edges and in the two side pockets at mid. Stand in one and the
+enemy can't see or target you (their bot can't either). Attacking, casting or taking a hit
+from the enemy hero reveals you for 1.5 s, and an enemy who walks within 2.2 m sees you.
+**The Relay:** one hit from the enemy hero knocks it loose (troopers and towers don't), so
+carrying it past a pushing wave and its hero is a gamble.
+**Last stand:** when your Guardian falls, your Core is immune for 8 s (a dome over it, a
+countdown on its label) so you get a breather.
+**Siege scrolls (Lv 6 gold sink):** at the shop, read a scroll to send a siege monster with
+your next wave, same as delivering the Relay. 350 gold, then 450; at most 2 waiting.
+
 **Sprint:** keep moving in roughly one direction, out of combat, for 3.5 seconds and your hero breaks into a sprint (45% faster, with a speed trail). Stopping, turning sharply, casting, carrying the Relay or taking damage ends it.
-**Camera:** it follows you but stops at the ends of the map.
+**Camera:** it follows you, never shows past the ends or sides of the map, and always keeps
+you on screen (side pockets included). On a wide screen or in fullscreen the HUD sits in a
+centred column.
+**HUD:** the match clock sits under the top band, with the next timer (the Relay, overtime in
+the last minute). Structures show as three pips per side: filled while standing, outlined
+when they can be hit, gold while immune, crossed out once fallen, flashing when hit. Item
+cards only appear in shop range; Tab or the i button shows items and structure health.
 **Shopping:** buy and sell only near your front tower or at your base.
 
 **Items:** sixteen items in three tiers. Early items (300–400) help in lane, mid items
@@ -102,8 +120,9 @@ Lv6 around 5:30.
   out (teleporting to the cloak while vanished bursts there). *Encore Performance* casts
   the enemy hero's ultimate, on Jack's own cooldown.
 
-Skillshots (Judgment Blade, Sweet Talk, Cloak Toss) fly toward where the target was, so
-they can be dodged; walls stop them.
+Skillshots (Judgment Blade, Sweet Talk, Cloak Toss) and Spin Dash go where you aim: at the
+mouse on desktop, or the way you drag the button on touch. Nothing aims for you, so they
+can miss and be dodged; walls stop them. (The bot still aims at where you stand.)
 
 **Matches speed up.** Gold and Relay rewards grow over time; towers start tough and get
 weaker; each base has a **Guardian** whose beam grows the longer it focuses one target, and
