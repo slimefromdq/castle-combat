@@ -111,19 +111,19 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	if last_hit:
 		cmd.target_id = _last_hit_target(sim, me)
 
-	# 1. Low on health: walk home and heal at the Core, then come back.
+	# 1. Low on health: walk to the healing pad behind the Core, then come back.
 	#    A carrier keeps going unless it is nearly dead.
 	if me.hp < me.max_hp * (0.2 if me.carrying_relay else 0.35):
 		_healing = true
 	elif me.hp > me.max_hp * 0.9:
 		_healing = false
-	if _healing:
+	var pad := MatchSim.to_team_space(team, sim.arena.heal_pad)
+	if _healing and (me.pos.distance_to(pad) > sim.arena.heal_pad_radius or sim.can_heal_at_base(me)):
 		cmd.drop_relay = me.carrying_relay
-		var core: StructureState = sim.structures_of(team)[sim.structures_of(team).size() - 1]
-		var spot := core.pos + fwd * 3.0
-		if me.pos.distance_to(spot) > 1.0:
-			cmd.move = _toward(me, spot)
+		if me.pos.distance_to(pad) > 1.0:
+			cmd.move = _toward(me, _around_core(sim, me, pad))
 		return cmd
+	_healing = false  # The pad is off once our Guardian falls: fight on.
 
 	# 2. Never tank a tower: leave its range if it is shooting us or nothing of ours is there.
 	if their_front != null and me.pos.distance_to(their_front.pos) < their_front.attack_range + their_front.radius + 0.8:
@@ -205,6 +205,18 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 
 
 ## Direction to walk toward p, going around walls through the pocket entrances.
+## The healing pad sits behind the Core: step around the Core's side first.
+func _around_core(sim: MatchSim, me: HeroState, goal: Vector2) -> Vector2:
+	var core: StructureState = sim.structures_of(team)[sim.structures_of(team).size() - 1]
+	var local := MatchSim.to_team_space(team, me.pos)
+	var core_local := MatchSim.to_team_space(team, core.pos)
+	var clearance := core.radius + me.radius + 0.6
+	if core.alive and local.y > core_local.y - 0.3 and absf(local.x - core_local.x) < clearance:
+		var side := 1.0 if local.x >= core_local.x else -1.0
+		return MatchSim.to_team_space(team, Vector2(core_local.x + side * (clearance + 0.3), core_local.y))
+	return goal
+
+
 func _toward(me: HeroState, p: Vector2) -> Vector2:
 	var next := _next_waypoint(_sim, me, p)
 	var d := next - me.pos

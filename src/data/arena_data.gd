@@ -15,6 +15,10 @@ extends Resource
 ## Blue positions for Outer Tower, Guardian, Core (in that order).
 @export var structure_positions: Array[Vector2] = []
 @export var hero_spawn := Vector2(2.6, -35.0)
+## Blue's healing pad, behind the Core (mirrored for red). Heroes standing on it heal
+## until their Guardian falls.
+@export var heal_pad := Vector2(0.0, -40.3)
+@export var heal_pad_radius := 2.6
 @export var minion_spawn := Vector2(0.0, -34.0)
 
 

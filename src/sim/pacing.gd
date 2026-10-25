@@ -126,13 +126,15 @@ static func tick(sim: MatchSim) -> void:
 			_tick_slam(sim, s)
 
 
-## Guardian slam: telegraph, then knock back and stun every enemy hero still inside.
+## Guardian stomp: each health threshold crossed starts a long telegraph; then every
+## enemy inside the (large) radius is hit. Heroes: damage, knockback, stun. Minions:
+## a big chunk of their health and a shove. The Guardian then rests, which is the
+## opening for a dive.
 static func _tick_slam(sim: MatchSim, s: StructureState) -> void:
 	var d := s.data
-	var enemy := sim.heroes[1 - s.team]
 	if s.slam_at < 0.0:
-		if sim.time >= s.slam_ready_at and sim.time >= s.disabled_until and enemy.alive \
-				and enemy.pos.distance_to(s.pos) <= d.slam_radius + enemy.radius:
+		if s.slams_used < d.slam_hp_thresholds.size() and s.hp <= s.max_hp * d.slam_hp_thresholds[s.slams_used]:
+			s.slams_used += 1
 			s.slam_at = sim.time + d.slam_windup
 			CombatSystem.cancel(sim, s)
 			sim.emit_event(&"guardian_slam_windup", {"id": s.id, "team": s.team, "radius": d.slam_radius, "at": s.slam_at})
@@ -140,10 +142,16 @@ static func _tick_slam(sim: MatchSim, s: StructureState) -> void:
 	if sim.time + 0.0001 < s.slam_at:
 		return
 	s.slam_at = -1.0
-	s.slam_ready_at = sim.time + d.slam_cooldown
 	s.disabled_until = sim.time + d.slam_recover
+	var enemy := sim.heroes[1 - s.team]
 	var hit := enemy.alive and enemy.pos.distance_to(s.pos) <= d.slam_radius + enemy.radius
 	sim.emit_event(&"guardian_slam", {"id": s.id, "team": s.team, "radius": d.slam_radius, "hit": hit})
+	for m in sim.minions:
+		if m.alive and m.team != s.team and m.pos.distance_to(s.pos) <= d.slam_radius + m.radius:
+			sim.apply_damage(m, m.max_hp * d.slam_minion_fraction, s)
+			if m.alive:
+				var push := m.pos - s.pos
+				m.pos = Movement.slide(sim, m, m.pos, (push.normalized() if push.length() > 0.01 else MatchSim.forward(s.team)) * d.slam_knockback * 0.5)
 	if not hit:
 		return
 	sim.apply_damage(enemy, d.slam_damage, s)

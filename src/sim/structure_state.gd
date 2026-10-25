@@ -8,10 +8,10 @@ var tier := 0
 var beam_target := 0
 var beam_since := 0.0
 var beam_last := -10.0
-## Guardian slam: when the current windup lands (-1 = none), when the next may start,
-## and until when the Guardian can't attack after slamming.
+## Guardian stomp: when the current windup lands (-1 = none), how many health
+## thresholds have triggered one, and until when it can't attack after stomping.
 var slam_at := -1.0
-var slam_ready_at := 0.0
+var slams_used := 0
 var disabled_until := 0.0
 
 

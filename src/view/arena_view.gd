@@ -38,6 +38,12 @@ func build(arena: ArenaData, local_seat: int) -> void:
 			var x: float = side * (arena.lane_half_width - 0.2)
 			UnitFactory.part(self, UnitFactory.box(Vector3(0.22, 0.02, half - 6.0)), c, MatchView.to_world(Vector2(x, end_sign * (half + 6.0) / 2.0), 0.01), Vector3.ZERO, true)
 		UnitFactory.part(self, UnitFactory.box(Vector3(lane_w, 0.02, 16.0)), Color(c, 0.18), MatchView.to_world(Vector2(0, end_sign * (half - 8.0)), 0.008), Vector3.ZERO, true)
+	# Healing pads behind each Core.
+	for team in [MatchSim.BLUE, MatchSim.RED]:
+		var at := MatchView.to_world(MatchSim.to_team_space(team, arena.heal_pad), 0.015)
+		var pad_c := Palette.team_color(team == local_seat).lightened(0.5)
+		UnitFactory.part(self, UnitFactory.cylinder(arena.heal_pad_radius, arena.heal_pad_radius, 0.02, 32), Color(0.55, 1.0, 0.65, 0.35), at, Vector3.ZERO, true)
+		UnitFactory.part(self, UnitFactory.cylinder(arena.heal_pad_radius * 0.35, arena.heal_pad_radius * 0.35, 0.03, 4), Color(pad_c, 0.8), at + Vector3(0, 0.01, 0), Vector3(0, 45, 0), true)
 	# Gold centre line between the pockets.
 	UnitFactory.part(self, UnitFactory.box(Vector3(lane_w, 0.02, 0.3)), Palette.CENTER_LINE, MatchView.to_world(Vector2.ZERO, 0.012), Vector3.ZERO, true)
 	# Walls: sandstone with a lighter cap, below hero height so the camera never loses a unit.

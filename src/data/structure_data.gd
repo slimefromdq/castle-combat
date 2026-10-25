@@ -22,13 +22,16 @@ extends Resource
 ## Beam damage multiplier gained per second on the same target, and its cap.
 @export var beam_ramp_per_second := 0.0
 @export var beam_max_mult := 1.0
-## Slam: when an enemy hero comes within slam_radius, wind up for slam_windup seconds,
-## then hit every enemy hero still inside for slam_damage, knock back and stun them.
-## Afterwards the Guardian can't attack for slam_recover seconds.
+## Stomp: each time the Guardian's health drops past one of slam_hp_thresholds (fractions
+## of max HP), it winds up for slam_windup seconds, then hits every enemy within
+## slam_radius: heroes take slam_damage, are knocked back and stunned; minions lose
+## slam_minion_fraction of their max HP and are knocked back. Afterwards the Guardian
+## can't attack for slam_recover seconds.
+@export var slam_hp_thresholds: Array[float] = []
 @export var slam_radius := 0.0
-@export var slam_windup := 0.9
+@export var slam_windup := 1.5
 @export var slam_damage := 0.0
+@export var slam_minion_fraction := 0.0
 @export var slam_knockback := 0.0
 @export var slam_stun := 0.0
 @export var slam_recover := 0.0
-@export var slam_cooldown := 12.0

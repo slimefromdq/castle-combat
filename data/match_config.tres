@@ -7,7 +7,6 @@ script = ExtResource("1_cfg")
 tick_rate = 30
 move_dead_zone = 0.15
 respawn_time = 4.0
-base_heal_radius = 7.0
 base_heal_per_second = 0.12
 first_wave_time = 3.0
 wave_interval = 12.0

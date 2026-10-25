@@ -178,7 +178,25 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
   waves stack up and all turn into power minions at once (snowball by design, but steep).
   Heroes sit on 3,000+ unspendable gold late; a gold sink (consumables?) may be needed.
 
-**Next: metrics runner and tuning, then M5 iOS.**
+### M7a: structure polish (Lucy's playtest notes)
+
+- [x] Structures stay dormant (can't be hit, don't attack) until the one in front falls
+- [x] Troopers hard-focus structures: any structure in reach beats minions and heroes
+- [x] Towers drop a hero target the moment a trooper is in range
+- [x] Guardian rework: 5,000 HP, 7 m range, weaker beam (9 per 0.3 s, +50%/s up to x4),
+      drawn whenever it fires, colour heats with the ramp, a pulsing ring marks the target.
+      Stomp only at 66% and 33% health: 1.5 s telegraph (red disk filling a 7.5 m ring),
+      then 220 + knockback + 1.5 s stun to the hero, 60% max HP to every enemy trooper
+      inside (and a shove), then 3 s rest
+- [x] Outer Tower HP 1,300 (was 1,000) to keep match length after the changes
+- [x] Healing pad behind each Core (2.6 m, 12% max HP/s); heroes spawn on it. It shuts off
+      once your Guardian falls, so the Core is never a healing fortress
+- [x] Dev arg `--stage=guardian|stomp` sets up a Guardian dive for screenshots
+- [x] 126 tests
+- Bot-vs-bot length: 6:34 to 10:27 (was 8:52 to 11:26)
+
+**Next: recall, shop range, map size and camera, deny gold, basic-attack items; Relay
+comeback (Lucy picking).**
 
 ## Assumptions (change by editing data)
 
@@ -190,7 +208,8 @@ all numbers in `match_config.tres` ("Pacing: ..." groups) and `data/structures/*
 - The local human is always shown as blue at the bottom; F2 tests the other seat.
 - No Godot physics or navigation server: circles and rectangles on a plane.
 - Heroes walk through minions; minions push apart from each other only.
-- **Base healing (not in the GDD):** heroes within 7 m of their own Core heal 12% max HP/s.
+- **Base healing (not in the GDD):** heroes on the pad behind their own Core heal 12% max HP/s
+  (off once their Guardian falls).
   Without it damage is permanent until death, since the GDD has no regen outside an item.
 - The Core shoots like a tower.
 - **Hero-hit aggro replaces GDD 5's fixed priorities.** GDD: minions hit minions > heroes >

@@ -56,8 +56,10 @@ perks. Falling behind in level earns you bonus XP.
 
 **Matches speed up.** Gold and Relay rewards grow over time; towers start tough and get
 weaker; each base has a **Guardian** whose beam grows the longer it focuses one target, and
-which slams anyone who gets close (walk out of the red ring, then hit it while it
-recovers). Killing a Guardian powers up your minions for good. Respawns get longer as the
+which stomps at 66% and 33% health (walk out of the red ring, then hit it while it
+recovers). A structure can't be hit until the one in front of it falls, and troopers
+always go for structures first. Heal on the green pad behind your Core; it shuts off
+once your Guardian falls. Killing a Guardian powers up your minions for good. Respawns get longer as the
 match goes on, and at 10:00 overtime weakens every structure.
 
 **Watch your aggro.** Hitting the enemy hero calls their nearby minions onto you, and if

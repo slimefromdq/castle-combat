@@ -61,3 +61,22 @@ func test_restart_returns_a_clean_state() -> void:
 	check(not sim.over and sim.winner == -1, "no winner")
 	for e: SimEntity in sim.entities.values():
 		check(e.hp == e.max_hp and e.alive, "unit %d at full health" % e.id)
+
+
+func test_minions_hard_focus_structures() -> void:
+	var sim := new_sim()
+	var tower := sim.structures_of(MatchSim.RED)[0]
+	var mine := sim.spawn_minion(melee(), MatchSim.BLUE, tower.pos + Vector2(0, -(tower.radius + 0.6)))
+	var theirs := sim.spawn_minion(melee(), MatchSim.RED, mine.pos + Vector2(0.6, 0))
+	check(Targeting.for_minion(sim, mine, sim.config.minion_aggro_range) == tower, "a minion next to an enemy tower hits the tower, not the minion beside it")
+	theirs.alive = false
+
+
+func test_towers_drop_a_hero_for_minions() -> void:
+	var sim := new_sim()
+	var tower := sim.structures_of(MatchSim.RED)[0]
+	var blue := sim.heroes[0]
+	place(blue, tower.pos + Vector2(0, -4.0))
+	check(Targeting.for_structure(sim, tower, 0) == blue, "a lone hero is the target")
+	var m := sim.spawn_minion(melee(), MatchSim.BLUE, tower.pos + Vector2(1.0, -3.0))
+	check(Targeting.for_structure(sim, tower, blue.id) == m, "once a minion is in range, an uncalled tower switches to it")
