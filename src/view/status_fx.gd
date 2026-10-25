@@ -26,6 +26,10 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			var g: SimEntity = view.sim.get_entity(data.id)
 			if g != null:
 				_spawn_ring(g.pos, data.radius + 1.0, Color(1.0, 0.35, 0.2))
+		&"recalled":
+			var rh: SimEntity = view.sim.get_entity(data.hero)
+			if rh != null:
+				_spawn_ring(rh.pos, 2.0, Color(0.55, 1.0, 0.7))
 		&"barrage_pulse":
 			var h: SimEntity = view.sim.get_entity(data.hero)
 			_spawn_ring(data.point, data.radius, Palette.team_color(h != null and h.team == view.local_seat).lightened(0.2))
@@ -52,6 +56,13 @@ func render() -> void:
 		p.frenzy.visible = h.alive and h.frenzy_left > 0
 		p.frenzy.position = at + Vector3(0, 0.14, 0)
 		p.frenzy.scale = Vector3.ONE * (0.6 + 0.06 * sin(Time.get_ticks_msec() / 45.0))
+		# Recall: a ring that closes in on the hero as the recall completes.
+		p.recall.visible = h.alive and h.recall_at >= 0.0
+		if p.recall.visible:
+			var k := clampf(1.0 - (h.recall_at - sim.time) / sim.config.recall_time, 0.0, 1.0)
+			var rr := lerpf(1.8, 0.55, k)
+			p.recall.position = at + Vector3(0, 0.1 + 1.6 * k, 0)
+			p.recall.scale = Vector3(rr, 0.05, rr)
 		p.zone.visible = h.alive and h.is_channeling()
 		if p.zone.visible:
 			var r := h.channel.radius
@@ -135,6 +146,7 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"zone": UnitFactory.part(self, _ring_mesh, Color(team_c.lightened(0.2), 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"wounds": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.05, 0.1, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"frenzy": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.2, 0.25, 0.9), Vector3.ZERO, Vector3.ZERO, true),
+		"recall": UnitFactory.part(self, _ring_mesh, Color(0.55, 1.0, 0.7, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 	}
 	parts.wounds.scale = Vector3(1.05, 0.03, 1.05)
 	parts.shield.scale = Vector3(0.95, 0.95, 0.95)

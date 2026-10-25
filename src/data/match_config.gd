@@ -92,6 +92,16 @@ extends Resource
 @export var max_items := 3
 ## Selling an item pays back this fraction of its price.
 @export var sell_refund_fraction := 0.5
+## Buying and selling only work this close (metres, from the edge) to your front
+## structure, or to your Core (your base).
+@export var shop_radius := 8.0
+## The denier collects this fraction of a denied minion's bounty (gold only).
+@export var deny_self_gold_fraction := 0.4
+
+@export_group("Recall")
+## Stand still this long to return to your healing pad. Moving, casting, carrying the
+## Relay, or taking damage cancels it.
+@export var recall_time := 3.0
 
 @export_group("Pacing: gold")
 ## All gold (passive, minions, knockouts) grows by gold_ramp_per_minute for every

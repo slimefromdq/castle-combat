@@ -33,14 +33,17 @@ const ITEMS: Array[ItemData] = [
 	preload("res://data/items/reapers_rhythm.tres"),
 	preload("res://data/items/aegis_mirror.tres"),
 	preload("res://data/items/titan_core.tres"),
+	preload("res://data/items/whetstone.tres"),
+	preload("res://data/items/executioners_edge.tres"),
+	preload("res://data/items/duelists_crest.tres"),
 ]
 ## Indices into ITEMS: the deck you start with in the menu.
-const DEFAULT_DECK := [0, 1, 3, 4, 5, 6, 9, 11]
+const DEFAULT_DECK := [0, 1, 13, 4, 5, 14, 9, 15]
 ## The bot's deck for each hero it plays.
 const BOT_DECKS := {
 	&"vanguard": [0, 1, 2, 6, 7, 8, 9, 11],
-	&"scout": [0, 2, 3, 4, 5, 6, 10, 11],
-	&"gunner": [0, 1, 3, 5, 6, 7, 9, 12],
+	&"scout": [0, 13, 3, 4, 5, 14, 10, 15],
+	&"gunner": [0, 1, 13, 5, 6, 14, 12, 15],
 }
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
@@ -83,6 +86,7 @@ func _ready() -> void:
 	hud.menu_pressed.connect(func() -> void: exit_requested.emit())
 	hud.restart_pressed.connect(func() -> void: restart_requested.emit())
 	hud.drop_pressed.connect(func() -> void: player.pending_drop = true)
+	hud.recall_pressed.connect(func() -> void: player.pending_recall = true)
 	hud.buy_pressed.connect(func(slot: int) -> void: player.pending_buy = slot)
 	hud.sell_pressed.connect(func(slot: int) -> void: player.pending_sell = slot)
 	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
@@ -179,6 +183,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_touch()
 	elif event.is_action_pressed("drop_relay"):
 		player.pending_drop = true
+	elif event.is_action_pressed("recall"):
+		player.pending_recall = true
 	elif event.is_action_pressed("show_deck"):
 		hud.toggle_tray()
 	elif event.is_action_pressed("toggle_debug"):

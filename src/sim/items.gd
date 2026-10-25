@@ -16,9 +16,22 @@ static func outgoing(sim: MatchSim, src: HeroState, target: SimEntity, amount: f
 		mult += src.item_total(&"trooper_damage_bonus")
 	elif target is StructureState:
 		mult += src.item_total(&"structure_damage_bonus")
-	if target is HeroState and target.team != src.team and sim.time < target.shred_until:
+	var enemy_hero := target is HeroState and target.team != src.team
+	if enemy_hero and sim.time < target.shred_until:
 		mult += target.shred_amount
+	if enemy_hero and kind == &"basic":
+		var edge := src.item_with(&"execute_threshold")
+		if edge != null and target.hp < target.max_hp * edge.execute_threshold:
+			mult += edge.execute_bonus
 	amount *= mult
+	if enemy_hero and kind == &"basic":
+		var crest := src.item_with(&"crest_every")
+		if crest != null:
+			src.crest_count += 1
+			if src.crest_count >= crest.crest_every:
+				src.crest_count = 0
+				amount += target.max_hp * crest.crest_fraction
+				sim.emit_event(&"item_proc", {"hero": src.id, "item": crest.id, "target": target.id})
 	if kind == &"basic" and sim.time < src.spark_until:
 		src.spark_until = 0.0
 		var spark := src.item_with(&"spark_damage")
