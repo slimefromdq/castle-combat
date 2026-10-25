@@ -7,9 +7,8 @@ extends Resource
 @export var move_dead_zone := 0.15
 ## Base respawn time; it grows over the match (see Pacing: respawn).
 @export var respawn_time := 4.0
-## Heroes standing this close to their own Core heal (not in the GDD; added so damage
-## isn't permanent without the Recovery Sigil item). Fraction of max HP per second.
-@export var base_heal_radius := 7.0
+## Heroes on their own healing pad (ArenaData.heal_pad, behind the Core) heal this
+## fraction of max HP per second, until their Guardian falls.
 @export var base_heal_per_second := 0.12
 
 @export_group("Waves")

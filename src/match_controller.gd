@@ -124,6 +124,28 @@ func fast_forward(seconds: float) -> void:
 	view.render(1.0, 0.0, true)
 
 
+## Dev: set up a moment for screenshots. "guardian" = your wave beside the enemy
+## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
+func stage(what: String) -> void:
+	var enemy := 1 - local_seat
+	var theirs := sim.structures_of(enemy)
+	sim.apply_damage(theirs[0], theirs[0].max_hp * 10.0, sim.heroes[local_seat])
+	var g := theirs[1]
+	var toward_me := MatchSim.forward(local_seat) * -1.0
+	var me := sim.heroes[local_seat]
+	me.pos = g.pos + toward_me * 8.5 + Vector2(1.5, 0)
+	me.prev_pos = me.pos
+	for i in 4:
+		var m := sim.spawn_minion(MINIONS[&"melee"], local_seat, g.pos + toward_me * (2.6 + 0.6 * i) + Vector2(-1.2 + 0.8 * i, 0))
+		m.max_hp *= 20.0
+		m.hp = m.max_hp
+	g.hp = g.max_hp * 0.7
+	fast_forward(2.5)
+	if what == "stomp":
+		g.hp = g.max_hp * 0.6
+		fast_forward(0.9)
+
+
 func _tick() -> void:
 	var commands: Array = [null, null]
 	if autopilot != null:

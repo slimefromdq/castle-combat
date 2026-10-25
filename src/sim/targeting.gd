@@ -29,7 +29,8 @@ static func for_hero(sim: MatchSim, hero: HeroState) -> SimEntity:
 
 
 ## A hero who hit this minion's hero nearby comes first (hero-hit aggro). Otherwise
-## GDD 5: opposing minions first, then heroes, then the next exposed structure.
+## Otherwise an enemy structure within reach, then opposing minions, then heroes, then the
+## next exposed structure (Lucy: troopers hard-focus structures).
 ## search adds to attack range so minions can notice and walk toward things.
 static func for_minion(sim: MatchSim, m: MinionState, search: float) -> SimEntity:
 	if m.is_called(sim.time):
@@ -38,6 +39,10 @@ static func for_minion(sim: MatchSim, m: MinionState, search: float) -> SimEntit
 				and ArenaGeometry.has_line_of_sight(sim.arena, m.pos, caller.pos):
 			return caller
 		m.called_target = 0
+	# Structures first: a minion that can reach an enemy tower, Guardian or Core hits it.
+	var structure := _nearest_structure(sim, m, 0.5)
+	if structure != null:
+		return structure
 	var best: SimEntity = null
 	for other in sim.minions:
 		if _in_reach(sim, m, other, search) and (best == null or _closer(m, other, best)):
@@ -54,19 +59,20 @@ static func for_minion(sim: MatchSim, m: MinionState, search: float) -> SimEntit
 
 ## A hero who hit this tower's hero while in its range comes first (hero-hit aggro).
 ## Otherwise towers prefer hostile minions, then hostile heroes, and stick to a target
-## while it stays valid.
+## while it stays valid (a hero only while no minion is in range).
 static func for_structure(sim: MatchSim, s: StructureState, previous_id: int) -> SimEntity:
 	if s.is_called(sim.time):
 		var caller := sim.get_entity(s.called_target)
 		if _ok(sim, s, caller):
 			return caller
-	var previous: SimEntity = sim.get_entity(previous_id)
-	if _ok(sim, s, previous):
-		return previous
 	var best: SimEntity = null
 	for m in sim.minions:
 		if _ok(sim, s, m) and (best == null or _closer(s, m, best)):
 			best = m
+	# Stick to the current target, except that an uncalled hero loses out to minions.
+	var previous: SimEntity = sim.get_entity(previous_id)
+	if _ok(sim, s, previous) and not (previous is HeroState and best != null):
+		return previous
 	if best != null:
 		return best
 	for h in sim.heroes:

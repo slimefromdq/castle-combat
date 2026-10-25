@@ -122,7 +122,8 @@ func step(commands: Array) -> void:
 		CombatSystem.tick_attack(self, hero, may_attack, Targeting.for_hero.bind(self, hero))
 	for s in structures:
 		var previous := s.attack_target
-		CombatSystem.tick_attack(self, s, s.alive and not s.is_busy(time), func() -> SimEntity: return Targeting.for_structure(self, s, previous))
+		# Locked structures stay dormant: no attacks until the one in front falls.
+		CombatSystem.tick_attack(self, s, s.alive and is_exposed(s) and not s.is_busy(time), func() -> SimEntity: return Targeting.for_structure(self, s, previous))
 	relay.tick(self)
 	_remove_dead_minions()
 	tick += 1
@@ -295,11 +296,18 @@ func _respawn_heroes() -> void:
 
 func _heal_at_base() -> void:
 	for h in heroes:
-		if not h.alive or h.hp >= h.max_hp:
-			continue
-		var core := structures_of(h.team)[structures_of(h.team).size() - 1]
-		if h.pos.distance_to(core.pos) <= config.base_heal_radius:
+		if h.alive and h.hp < h.max_hp and can_heal_at_base(h):
 			heal(h, h.max_hp * config.base_heal_per_second * dt)
+
+
+## True while this hero stands on its own healing pad and its Guardian still stands.
+func can_heal_at_base(h: HeroState) -> bool:
+	if h.pos.distance_to(to_team_space(h.team, arena.heal_pad)) > arena.heal_pad_radius:
+		return false
+	for s in structures_of(h.team):
+		if s.is_guardian() and not s.alive:
+			return false
+	return true
 
 
 func _apply_target_command(hero: HeroState, cmd: PlayerCommand) -> void:

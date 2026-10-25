@@ -39,6 +39,8 @@ func _apply_dev_args(args: PackedStringArray) -> void:
 			_match.autopilot = BotSource.new()
 		elif a.begins_with("--skip="):
 			_match.fast_forward(float(a.get_slice("=", 1)))
+		elif a.begins_with("--stage="):
+			_match.stage(a.get_slice("=", 1))
 		elif a == "--walk-up":
 			Input.action_press("move_up")
 		elif a.begins_with("--frames="):

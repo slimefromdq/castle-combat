@@ -63,50 +63,61 @@ func render() -> void:
 	_update_rings()
 
 
-## Guardian beam (thicker and hotter as it ramps), slam telegraph and recovery dimming.
+## Guardian beam (always visible while it has a target, hotter as it ramps, with a
+## marker on whoever it is burning), stomp telegraph and recovery label.
 func _render_guardian(s: StructureState) -> void:
 	var sim := view.sim
 	if not _parts.has(s.id):
 		var beam := MeshInstance3D.new()
 		beam.mesh = UnitFactory.cylinder(1.0, 1.0, 1.0, 8)
-		beam.material_override = UnitFactory.material(Color(1.0, 0.45, 0.2, 0.85), true)
+		beam.material_override = UnitFactory.material(Color(1.0, 0.45, 0.2, 0.9), true)
 		add_child(beam)
 		_parts[s.id] = {
 			"beam": beam,
-			"tele": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.25, 0.2, 0.9), Vector3.ZERO, Vector3.ZERO, true),
-			"zone": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.25, 0.2, 0.25), Vector3.ZERO, Vector3.ZERO, true),
+			"mark": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.3, 0.15, 0.95), Vector3.ZERO, Vector3.ZERO, true),
+			"tele": UnitFactory.part(self, UnitFactory.cylinder(1.0, 1.0, 0.02, 48), Color(1.0, 0.2, 0.15, 0.3), Vector3.ZERO, Vector3.ZERO, true),
+			"edge": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.25, 0.2, 0.95), Vector3.ZERO, Vector3.ZERO, true),
 			"rest": UnitFactory.label(self, "Recovering", 0.0, 40),
 		}
 	var p: Dictionary = _parts[s.id]
 	var center := MatchView.to_world(s.pos, 0.0)
-	var target := sim.get_entity(s.beam_target)
-	var firing := s.alive and target != null and target.alive and sim.time - s.beam_last < s.attack_interval + 0.15
+	var target := sim.get_entity(s.attack_target if s.attack_target != 0 else s.beam_target)
+	var active := s.alive and sim.is_exposed(s) and not s.is_busy(sim.time)
+	var firing := active and target != null and target.alive and CombatSystem.in_range(sim, s, target, 0.5) \
+			and (s.is_winding_up() or sim.time - s.beam_last < 0.8)
 	p.beam.visible = firing
+	p.mark.visible = firing
 	if firing:
 		var from := center + Vector3(0, s.data.height + 0.6, 0)
 		var to := view.unit_position(target.id) + Vector3(0, 0.6, 0)
-		var ramp := clampf((sim.time - s.beam_since) * s.data.beam_ramp_per_second / maxf(0.01, s.data.beam_max_mult - 1.0), 0.0, 1.0)
-		var width := lerpf(0.06, 0.28, ramp)
+		var ramp := 0.0
+		if s.beam_target == target.id:
+			ramp = clampf((sim.time - s.beam_since) * s.data.beam_ramp_per_second / maxf(0.01, s.data.beam_max_mult - 1.0), 0.0, 1.0)
+		var width := lerpf(0.14, 0.34, ramp)
+		var length := from.distance_to(to)
 		p.beam.position = (from + to) / 2.0
-		var dir := (to - from).normalized()
-		p.beam.basis = Basis(Quaternion(Vector3.UP, dir)).scaled(Vector3(width, from.distance_to(to), width))
-		(p.beam.material_override as StandardMaterial3D).albedo_color = Color(1.0, lerpf(0.7, 0.15, ramp), 0.2, 0.9)
-	# Slam: a ring that closes in until it lands; a faint ring shows the slam area.
+		p.beam.basis = Basis(Quaternion(Vector3.UP, (to - from).normalized())).scaled(Vector3(width, length, width))
+		var hot := Color(1.0, lerpf(0.85, 0.15, ramp), lerpf(0.4, 0.1, ramp), 0.95)
+		(p.beam.material_override as StandardMaterial3D).albedo_color = hot
+		p.mark.position = view.unit_position(target.id) + Vector3(0, 0.07, 0)
+		var r := target.radius + 0.55 + 0.08 * sin(Time.get_ticks_msec() / 70.0)
+		p.mark.scale = Vector3(r, 0.05, r)
+		(p.mark.material_override as StandardMaterial3D).albedo_color = hot
+	# Stomp telegraph: the full area fills in red while the edge pulses, so the way out is clear.
 	var winding := s.alive and s.slam_at >= 0.0
 	p.tele.visible = winding
-	var r := s.data.slam_radius
+	p.edge.visible = winding
 	if winding:
+		var rad := s.data.slam_radius
 		var k := clampf(1.0 - (s.slam_at - sim.time) / maxf(0.01, s.data.slam_windup), 0.0, 1.0)
-		p.tele.position = center + Vector3(0, 0.12, 0)
-		p.tele.scale = Vector3(r * lerpf(0.2, 1.0, k), 0.05, r * lerpf(0.2, 1.0, k))
+		p.tele.position = center + Vector3(0, 0.05, 0)
+		p.tele.scale = Vector3(rad * k, 1.0, rad * k)
+		(p.tele.material_override as StandardMaterial3D).albedo_color.a = lerpf(0.15, 0.45, k)
+		p.edge.position = center + Vector3(0, 0.1, 0)
+		p.edge.scale = Vector3(rad, 0.06, rad)
+		(p.edge.material_override as StandardMaterial3D).albedo_color.a = 0.6 + 0.4 * sin(Time.get_ticks_msec() / 60.0)
 	p.rest.visible = s.alive and sim.time < s.disabled_until
 	p.rest.position = center + Vector3(0, s.data.height + 2.4, 0)
-	var me := sim.heroes[view.local_seat]
-	p.zone.visible = s.alive and s.team != view.local_seat and me.alive and me.pos.distance_to(s.pos) < r + 4.0
-	p.zone.position = center + Vector3(0, 0.08, 0)
-	p.zone.scale = Vector3(r, 0.03, r)
-	var ready := sim.time >= s.slam_ready_at and not winding
-	(p.zone.material_override as StandardMaterial3D).albedo_color.a = 0.35 if ready else 0.1
 
 
 func _parts_for(h: HeroState) -> Dictionary:
