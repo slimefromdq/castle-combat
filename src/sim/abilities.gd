@@ -70,6 +70,7 @@ static func try_cast(sim: MatchSim, h: HeroState, slot: int, move: Vector2) -> b
 	# Casting anything else ends a channel, except Showstopper's dash mid-dance.
 	if h.channel != null and not (slot == 0 and h.has_special(&"showstopper") > 0.0):
 		_end_channel(sim, h)
+	sim.reveal(h)
 	var key := sim.next_cast_key()
 	var info := {"hero": h.id, "team": h.team, "slot": slot, "ability": a.id, "pos": h.pos, "recast": recast}
 	var start_cooldown := true
@@ -573,7 +574,7 @@ static func _dir(h: HeroState, move: Vector2, toward: SimEntity) -> Vector2:
 
 static func _aim_hero(sim: MatchSim, h: HeroState, reach: float) -> HeroState:
 	var them := sim.heroes[1 - h.team]
-	if them.alive and not them.is_vanished() and h.pos.distance_to(them.pos) <= reach + them.radius \
+	if them.alive and not them.is_vanished() and not sim.is_hidden(them) and h.pos.distance_to(them.pos) <= reach + them.radius \
 			and ArenaGeometry.has_line_of_sight(sim.arena, h.pos, them.pos):
 		return them
 	return null

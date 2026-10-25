@@ -16,6 +16,7 @@ const BINDINGS := {
 	"master_1": [KEY_C],
 	"master_2": [KEY_V],
 	"master_3": [KEY_B],
+	"siege_scroll": [KEY_N],
 	"show_deck": [KEY_TAB],
 	"buy_1": [KEY_1],
 	"buy_2": [KEY_2],

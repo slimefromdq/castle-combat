@@ -121,6 +121,8 @@ func step(commands: Array) -> void:
 			Economy.try_buy(self, hero, cmd.buy_slot)
 		if cmd.masterwork_slot >= 0:
 			Economy.try_masterwork(self, hero, cmd.masterwork_slot)
+		if cmd.buy_scroll:
+			Economy.try_siege_scroll(self, hero)
 		if cmd.perk_pick >= 0:
 			Leveling.pick_perk(self, hero, cmd.perk_pick)
 		if cmd.cast_slot >= 0:
@@ -197,9 +199,13 @@ func front_structure(team: int) -> StructureState:
 func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &"basic") -> float:
 	if not target.alive or amount <= 0.0:
 		return 0.0
-	if target is StructureState and not is_exposed(target):
+	if target is StructureState and (not is_exposed(target) or time < target.immune_until):
 		return 0.0
 	var hero_src := source as HeroState
+	if hero_src != null:
+		reveal(hero_src)
+	if target is HeroState and source != null and source.team != target.team:
+		reveal(target)
 	if hero_src != null:
 		amount = Items.outgoing(self, hero_src, target, amount, kind)
 	var raw := amount
@@ -406,6 +412,33 @@ func _remove_dead_minions() -> void:
 		if not m.alive:
 			entities.erase(m.id)
 			minions.remove_at(i)
+
+
+## The index of the bush at p, or -1.
+func bush_at(p: Vector2) -> int:
+	for i in arena.bushes.size():
+		if arena.bushes[i].has_point(p):
+			return i
+	return -1
+
+
+## True if the enemy hero can't see this hero: it stands in a bush, hasn't just given
+## itself away, and the enemy hero is neither in the same bush nor right next to it.
+func is_hidden(h: HeroState) -> bool:
+	if not h.alive or time < h.revealed_until:
+		return false
+	var bush := bush_at(h.pos)
+	if bush < 0:
+		return false
+	var them := heroes[1 - h.team]
+	if them.alive and (bush_at(them.pos) == bush or them.pos.distance_to(h.pos) <= config.bush_reveal_radius):
+		return false
+	return true
+
+
+## Attacking, casting and hero damage give a bush hider away for a moment.
+func reveal(h: HeroState) -> void:
+	h.revealed_until = maxf(h.revealed_until, time + config.bush_reveal_time)
 
 
 ## A fresh id for something that is not an entity (banners).

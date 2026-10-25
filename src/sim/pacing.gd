@@ -93,6 +93,11 @@ static func on_structure_killed(sim: MatchSim, s: StructureState) -> void:
 	if not s.is_guardian():
 		return
 	sim.power_minions[winner] = true
+	# The Core behind a fallen Guardian gets a few seconds of breathing room.
+	var core := sim.structures_of(s.team)[-1]
+	if core.alive and core.tier == 2:
+		core.immune_until = sim.time + sim.config.core_immunity_time
+		sim.emit_event(&"core_immune", {"id": core.id, "team": s.team, "until": core.immune_until, "seconds": sim.config.core_immunity_time})
 	for m in sim.minions:
 		if m.alive and m.team == winner:
 			make_power(sim, m)

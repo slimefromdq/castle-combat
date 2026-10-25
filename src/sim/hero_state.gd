@@ -44,6 +44,8 @@ var crest_count := 0
 var aegis_ready_at := 0.0
 ## Masterwork items (by id) and their boosted copies, which item_with and item_total use.
 var masterworks: Dictionary = {}
+## Siege scrolls bought this match (each one costs more).
+var scrolls_bought := 0
 ## Level-up surge: extra attack speed until this sim time.
 var surge_until := 0.0
 var surge_bonus := 0.0
@@ -105,6 +107,8 @@ var sprint_build := 0.0
 var sprint_dir := Vector2.ZERO
 var sprinting := false
 var sprint_mult := 1.0
+## Bushes: attacking, casting or hero damage reveals a hidden hero until this sim time.
+var revealed_until := 0.0
 ## Last time this hero took damage from anything (towers and minions too).
 var last_damaged_time := -1000.0
 ## A channelled ability (Last Tango): pulses left, time of the next one, where it lands

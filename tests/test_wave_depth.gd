@@ -22,16 +22,16 @@ func test_last_hit_pays_more_than_standing_near() -> void:
 	check_near(blue.gold - gold, melee().gold_bounty * (1.0 + _cfg().last_hit_bonus), 0.01, "last hit: +15%")
 
 
-func test_every_third_wave_brings_a_special_trooper() -> void:
+func test_every_fourth_wave_brings_a_special_trooper() -> void:
 	var sim := new_sim(true)
 	var kinds: Array = []
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void:
 		if type == &"special_spawned":
 			kinds.append([data.wave, data.team, data.kind]))
-	run_ticks(sim, int((_cfg().first_wave_time + _cfg().wave_interval * 5.0 + 0.5) / sim.dt))
-	check(sim.waves_spawned == 6, "six waves (got %d)" % sim.waves_spawned)
-	check(kinds == [[3, 0, &"sapper"], [3, 1, &"sapper"], [6, 0, &"shieldbearer"], [6, 1, &"shieldbearer"]],
-			"Sapper on wave 3, Shieldbearer on wave 6, for both teams (got %s)" % [kinds])
+	run_ticks(sim, int((_cfg().first_wave_time + _cfg().wave_interval * 7.0 + 0.5) / sim.dt))
+	check(sim.waves_spawned == 8, "eight waves (got %d)" % sim.waves_spawned)
+	check(kinds == [[4, 0, &"sapper"], [4, 1, &"sapper"], [8, 0, &"shieldbearer"], [8, 1, &"shieldbearer"]],
+			"Sapper on wave 4, Shieldbearer on wave 8, for both teams (got %s)" % [kinds])
 
 
 func test_special_trooper_stats() -> void:

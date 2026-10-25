@@ -17,7 +17,7 @@ extends Resource
 @export var wave_melee := 2
 @export var wave_ranged := 1
 ## Every special_wave_every-th wave adds a special trooper (Sapper, then Shieldbearer).
-@export var special_wave_every := 3
+@export var special_wave_every := 4
 ## A banner (dropped by a dead special trooper) lasts banner_lifetime seconds; a hero who
 ## walks within banner_pickup_radius takes it, and their next wave gets these bonuses.
 @export var banner_lifetime := 15.0
@@ -26,6 +26,12 @@ extends Resource
 @export var banner_damage_bonus := 0.2
 ## Minions notice enemies this close (metres) and leave the lane to fight them.
 @export var minion_aggro_range := 5.0
+
+@export_group("Bushes")
+## A hero in a bush is hidden unless the enemy hero is in the same bush or this close.
+@export var bush_reveal_radius := 2.2
+## Attacking, casting, or dealing or taking hero damage reveals a hidden hero this long.
+@export var bush_reveal_time := 1.5
 
 @export_group("Targeting")
 ## A tapped target stays preferred until it is out of range or sight this long (seconds).
@@ -60,7 +66,7 @@ extends Resource
 @export var relay_pickup_time := 0.5
 @export var relay_carrier_speed_mult := 0.9
 ## This many enemy-hero hits on the carrier within the window force a drop.
-@export var relay_intercept_hits := 2
+@export var relay_intercept_hits := 1
 @export var relay_intercept_window := 3.0
 @export var relay_drop_lockout := 0.75
 ## A dropped Relay left alone this long goes back to its pickup spot.
@@ -96,6 +102,11 @@ extends Resource
 @export var masterwork_level := 6
 @export var masterwork_cost_fraction := 0.5
 @export var masterwork_bonus := 0.25
+## Siege scrolls (from masterwork_level): pay to add a siege trooper to your next wave.
+## The price rises with each scroll a hero buys; at most siege_scroll_max wait at once.
+@export var siege_scroll_cost := 350.0
+@export var siege_scroll_cost_step := 100.0
+@export var siege_scroll_max := 2
 
 @export_group("Economy")
 @export var passive_gold_per_second := 2.0
@@ -177,6 +188,8 @@ extends Resource
 @export var respawn_per_death := 1.0
 @export var respawn_max := 30.0
 @export var guardian_fall_respawn_mult := 0.4
+## When a Guardian falls, its Core takes no damage for this long (breathing room).
+@export var core_immunity_time := 8.0
 
 @export_group("Pacing: overtime")
 ## Overtime starts at overtime_time if no Guardian has fallen, else at overtime_late_time.

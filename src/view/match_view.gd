@@ -123,9 +123,11 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			node.get_node("Body").visible = e.alive
 			node.get_node("Rubble").visible = not e.alive
 			var locked := not sim.is_exposed(e)
-			node.get_node("Body/Dome").visible = locked
+			node.get_node("Body/Dome").visible = locked or sim.time < e.immune_until
 			continue
 		node.visible = e.alive
+		if e is HeroState and e.team != local_seat and sim.is_hidden(e):
+			node.visible = false  # In a bush: the enemy is out of sight.
 		if e is MinionState and e.is_power:
 			node.scale = Vector3.ONE * 1.3
 		if e is MinionState:

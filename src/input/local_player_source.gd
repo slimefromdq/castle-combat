@@ -17,6 +17,8 @@ var pending_cast := -1
 var pending_perk := -1
 ## Deck slot to make a Masterwork (C/V/B or a tapped button), -1 for none.
 var pending_masterwork := -1
+## Buy a siege scroll (N or the button).
+var pending_scroll := false
 
 
 func build_command(_sim: MatchSim) -> PlayerCommand:
@@ -39,6 +41,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_sell = -1
 	cmd.masterwork_slot = pending_masterwork
 	pending_masterwork = -1
+	cmd.buy_scroll = pending_scroll
+	pending_scroll = false
 	return cmd
 
 

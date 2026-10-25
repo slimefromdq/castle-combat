@@ -32,6 +32,7 @@ six hero levels that unlock three abilities and three perks.
 | Buy item card | 1–8 | Tap a card |
 | Sell an owned item (half price back) | Its number twice | Tap its card twice |
 | Make an owned item a Masterwork (Lv 6, at the shop) | C / V / B | Tap a Masterwork button |
+| Read a siege scroll (Lv 6, at the shop) | N | Tap the scroll button |
 | Hide / show the item cards | Tab | — |
 | Pick up / deliver the Relay | Stand in the gold ring / the outlined pocket | Same |
 | Drop the Relay | F | Drop button while carrying |
@@ -46,7 +47,7 @@ There is no attack button on purpose: standing still is how you attack.
 gold, whoever killed it. A killing blow from farther away pays too, and a killing blow
 always pays 15% more, so last hits are worth timing.
 
-**Waves:** every 3rd wave brings a special trooper, alternating a **Sapper** (carries a
+**Waves:** every 4th wave brings a special trooper, alternating a **Sapper** (carries a
 bomb, hits structures five times harder; kill it before it reaches your tower) and a
 **Shieldbearer** (a big shield that stops the first enemy skillshot that touches it,
 protecting the troopers behind). A special trooper drops a **banner** where it dies:
@@ -57,6 +58,16 @@ in theirs when it drifts toward yours, and flatten while it holds.
 **Denies:** once one of your own minions drops to half health its bar gets a white frame;
 tap it and stand still to finish it yourself: the enemy only collects half its gold, and
 you get a share too.
+
+**Bushes:** eight bushes sit along the lane edges and in the two side pockets at mid. Stand in one and the
+enemy can't see or target you (their bot can't either). Attacking, casting or taking a hit
+from the enemy hero reveals you for 1.5 s, and an enemy who walks within 2.2 m sees you.
+**The Relay:** one hit from the enemy hero knocks it loose (troopers and towers don't), so
+carrying it past a pushing wave and its hero is a gamble.
+**Last stand:** when your Guardian falls, your Core is immune for 8 s (a dome over it, a
+countdown on its label) so you get a breather.
+**Siege scrolls (Lv 6 gold sink):** at the shop, read a scroll to send a siege monster with
+your next wave, same as delivering the Relay. 350 gold, then 450; at most 2 waiting.
 
 **Sprint:** keep moving in roughly one direction, out of combat, for 3.5 seconds and your hero breaks into a sprint (45% faster, with a speed trail). Stopping, turning sharply, casting, carrying the Relay or taking damage ends it.
 **Camera:** it follows you but stops at the ends of the map.

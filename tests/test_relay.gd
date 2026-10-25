@@ -90,18 +90,13 @@ func test_carrier_is_slower() -> void:
 	check(sim.relay.pos == blue.pos, "Relay travels with the carrier")
 
 
-func test_two_hero_hits_in_the_window_force_a_drop() -> void:
+func test_one_hero_hit_forces_a_drop() -> void:
 	var sim := _blue_carrying()
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
+	check(MatchController.CONFIG.relay_intercept_hits == 1, "Lucy: one hit knocks it loose")
 	sim.relay.on_hero_hit(sim, red, blue)
-	check(sim.relay.state == RelayController.State.CARRIED, "one hit is not enough")
-	sim.time += MatchController.CONFIG.relay_intercept_window + 0.5
-	sim.relay.on_hero_hit(sim, red, blue)
-	check(sim.relay.state == RelayController.State.CARRIED, "hits further apart than the window don't add up")
-	sim.time += 1.0
-	sim.relay.on_hero_hit(sim, red, blue)
-	check(sim.relay.state == RelayController.State.DROPPED, "second hit inside the window drops it")
+	check(sim.relay.state == RelayController.State.DROPPED, "one enemy-hero hit drops it")
 	check(_event(&"relay_dropped").get("reason") == &"intercepted", "drop reason")
 	check(not blue.carrying_relay, "blue no longer carrying")
 

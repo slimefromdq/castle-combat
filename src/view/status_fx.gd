@@ -86,7 +86,15 @@ func render() -> void:
 	var sim := view.sim
 	for h in sim.heroes:
 		var p := _parts_for(h)
+		var hidden := sim.is_hidden(h)
+		if hidden and h.team != view.local_seat:
+			for n: Node3D in p.values():
+				n.visible = false
+			continue
 		var at := view.unit_position(h.id)
+		# Your own hero in a bush: a leafy ring says the enemy can't see you.
+		p.hidden.visible = hidden
+		p.hidden.position = at + Vector3(0, 0.06, 0)
 		var shielded := h.alive and h.shield_hp > 0.0
 		p.shield.visible = shielded
 		p.shield.position = at + Vector3(0, 0.7, 0)
@@ -248,7 +256,9 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"zone": UnitFactory.part(self, _ring_mesh, Color(team_c.lightened(0.2), 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"wounds": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.05, 0.1, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"frenzy": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.2, 0.25, 0.9), Vector3.ZERO, Vector3.ZERO, true),
+		"hidden": UnitFactory.part(self, _ring_mesh, Color(0.55, 1.0, 0.55, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 	}
+	parts.hidden.scale = Vector3(0.85, 0.03, 0.85)
 	parts.wounds.scale = Vector3(1.05, 0.03, 1.05)
 	parts.shield.scale = Vector3(0.95, 0.95, 0.95)
 	parts.stun.scale = Vector3(0.45, 0.05, 0.45)

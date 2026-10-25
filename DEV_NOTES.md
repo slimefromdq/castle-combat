@@ -318,7 +318,25 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
       (the bot can't play Jack's range-and-cloak style; Lucy finds him strong by hand);
       length median 8:42; Lv3 1:29, Lv5 3:17, Lv6 5:18
 
-**Next: metrics runner; M5 iOS.**
+### M13: playtest gameplay pass (Lucy)
+
+- [x] Special troopers every 4th wave (`special_wave_every` 3 -> 4): first towers fell too fast
+- [x] Relay: one enemy-hero hit knocks it loose (`relay_intercept_hits` 1). Minions and towers don't
+- [x] Bushes (`ArenaData.bushes`, mirrored): a hidden enemy hero can't be targeted, aimed at or
+      seen. Attacking, casting or an enemy-hero hit reveals for `bush_reveal_time` 1.5 s; an
+      enemy within `bush_reveal_radius` 2.2 m sees you. Bots treat a hidden hero as absent
+- [x] Map 5% bigger (lane length, width, structure and wall positions x1.05)
+- [x] Core immune for `core_immunity_time` 8 s after its Guardian falls (dome + countdown)
+- [x] Siege scrolls: Lv6, at the shop, 350 gold (+100 each), at most 2 pending; adds to
+      `pending_siege` like a Relay delivery. Bots read them once their Masterworks are done
+- [x] Fix from M11: C/V/B Masterwork keys were never wired (wrong indent in an edit)
+- [x] Dev: `--stage=bush`, `--stage=core`; bot runner prints Relay and scroll counts
+- [x] 170 tests. Bot matches (4 per pairing and seat): Avery 13/16, Jose 10/16, Jack 1/16;
+      length median 9:22 (was 8:42); Lv3 1:25, Lv5 3:37, Lv6 5:55. Relays: 138 of 155
+      delivered even with 67 knock-loose hits (carriers pick it back up). Bots alternate
+      Masterworks and scrolls (6 scrolls in a 12-match check)
+
+**Next: UI pass (clock, fullscreen, real camera clamp, declutter, aimed skillshots).**
 
 ## Assumptions (change by editing data)
 

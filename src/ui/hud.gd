@@ -15,6 +15,7 @@ signal sell_pressed(slot: int)
 signal cast_pressed(slot: int)
 signal perk_pressed(choice: int)
 signal masterwork_pressed(slot: int)
+signal scroll_pressed
 
 const BOTTOM_H := 292.0
 const MARGIN := 12.0
@@ -42,8 +43,10 @@ var _ability_buttons: Array[Button] = []
 var _perk_box: Control
 var _perk_title: Label
 var _perk_buttons: Array[Button] = []
-## Level 6+: Masterwork buttons, one per owned item (C / V / B), shown at the shop.
+## Level 6+: Masterwork buttons, one per owned item (C / V / B), and a siege scroll
+## button (N), shown at the shop.
 var _master_box: Control
+var _scroll_button: Button
 var _master_buttons: Array[Button] = []
 var _master_slots: Array[int] = []
 ## Push, then shop: the gold readout pulses while you can afford a card away from the
@@ -271,9 +274,13 @@ func _refresh_masterwork(sim: MatchSim, me: HeroState) -> void:
 		for item in me.items:
 			if not me.is_masterwork(item):
 				_master_slots.append(me.deck.find(item))
-	_master_box.visible = not _master_slots.is_empty() and me.pending_perk_tier() < 0
+	var shop_open := me.level >= sim.config.masterwork_level and me.alive and Economy.in_shop_range(sim, me) and not sim.over
+	_master_box.visible = shop_open and me.pending_perk_tier() < 0
 	if not _master_box.visible:
 		return
+	var scroll_problem := Economy.siege_scroll_problem(sim, me)
+	_scroll_button.text = "N  Siege scroll\n%d gold%s" % [int(Economy.siege_scroll_cost(sim, me)), "  (queued)" if scroll_problem == "siege troopers already waiting" else ""]
+	_scroll_button.disabled = scroll_problem != ""
 	for k in _master_buttons.size():
 		var b := _master_buttons[k]
 		b.visible = k < _master_slots.size()
@@ -335,7 +342,7 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 				_enemy_spike(data.item)
 		&"masterwork":
 			if data.team == seat:
-				text = "Masterwork %s: +%d%% stats" % [_item_name(data.item), roundi(100.0 * _sim_for_text.config.masterwork_bonus)]
+				text = "Masterwork %s: +%d%% stats" % [_item_name(data.item), roundi(100.0 * MatchController.CONFIG.masterwork_bonus)]
 			else:
 				text = "Enemy spike: Masterwork %s!" % _item_name(data.item)
 				_enemy_spike(data.item)
@@ -355,6 +362,11 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 				_enemy_spike(&"")
 		&"overtime_started":
 			text = "Overtime! Structures are weakened, waves are tankier"
+		&"core_immune":
+			text = "Your Core is immune for %d s: regroup!" % roundi(data.seconds) if data.team == seat \
+					else "Their Core is shielded for %d s" % roundi(data.seconds)
+		&"siege_scroll":
+			text = "Siege scroll: a siege trooper joins your next wave" if data.team == seat else "Enemy read a siege scroll: a siege trooper is coming"
 		&"guardian_fallen":
 			text = "Your Guardian fell!" if data.team == seat else "Enemy Guardian down! Your minions are powered up"
 		&"guardian_slam_windup":
@@ -420,7 +432,7 @@ func _relay_text(sim: MatchSim, seat: int) -> String:
 			if me.carrying_relay:
 				var where := "Carry it to the %s pocket" % _side(sim, relay.delivery_pocket, seat)
 				return where + (" · blocked!" if relay.contested else "")
-			return "Enemy has the Relay! Two hits knock it loose"
+			return "Enemy has the Relay! One hit knocks it loose"
 	return ""
 
 
@@ -440,6 +452,8 @@ func _fill_structs(sim: MatchSim, team: int, widgets: Array) -> void:
 		w.bar.value = s.hp / s.max_hp
 		var locked := not sim.is_exposed(s)
 		w.label.text = ("%s · locked" % s.data.display_name) if locked else s.data.display_name
+		if s.alive and sim.time < s.immune_until:
+			w.label.text = "%s · immune %d" % [s.data.display_name, ceili(s.immune_until - sim.time)]
 		w.label.modulate.a = 0.55 if locked else 1.0
 
 
@@ -659,13 +673,13 @@ func _build_masterwork() -> void:
 	_master_box.anchor_top = 1.0
 	_master_box.anchor_bottom = 1.0
 	_master_box.offset_bottom = -BOTTOM_H - 12
-	_master_box.offset_top = _master_box.offset_bottom - 250
+	_master_box.offset_top = _master_box.offset_bottom - 330
 	_master_box.alignment = BoxContainer.ALIGNMENT_END
 	_master_box.add_theme_constant_override("separation", 6)
 	_master_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_master_box.visible = false
 	_root.add_child(_master_box)
-	var title := UiKit.label("Masterwork: +%d%% to one item" % roundi(100.0 * MatchController.CONFIG.masterwork_bonus), 20, Color("f5d76e"))
+	var title := UiKit.label("Lv6 shop: Masterwork (+%d%%) or siege scroll" % roundi(100.0 * MatchController.CONFIG.masterwork_bonus), 20, Color("f5d76e"))
 	title.add_theme_constant_override("outline_size", 8)
 	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_master_box.add_child(title)
@@ -676,6 +690,12 @@ func _build_masterwork() -> void:
 		b.pressed.connect(func() -> void: masterwork_key(k))
 		_master_box.add_child(b)
 		_master_buttons.append(b)
+	_scroll_button = UiKit.button("", Vector2(0, 62))
+	_scroll_button.add_theme_font_size_override("font_size", 17)
+	_scroll_button.add_theme_color_override("font_color", Palette.RELAY)
+	_scroll_button.tooltip_text = "N: a single-use scroll that adds a siege trooper to your next wave"
+	_scroll_button.pressed.connect(func() -> void: scroll_pressed.emit())
+	_master_box.add_child(_scroll_button)
 
 
 ## A square button anchored to the bottom right, `right`/`bottom` px in from the corner

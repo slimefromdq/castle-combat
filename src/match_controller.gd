@@ -93,6 +93,7 @@ func _ready() -> void:
 	hud.cast_pressed.connect(func(slot: int) -> void: player.pending_cast = slot)
 	hud.perk_pressed.connect(func(choice: int) -> void: player.pending_perk = choice)
 	hud.masterwork_pressed.connect(func(slot: int) -> void: player.pending_masterwork = slot)
+	hud.scroll_pressed.connect(func() -> void: player.pending_scroll = true)
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
 	player = LocalPlayerSource.new()
 	player.team = local_seat
@@ -216,6 +217,26 @@ func stage(what: String) -> void:
 		sim.banners.append({"id": sim.new_id(), "pos": MatchSim.to_team_space(local_seat, Vector2(-1.6, -6.0)), "expires_at": 1000.0})
 		fast_forward(0.4)
 		return
+	if what == "bush" or what == "core":
+		# "bush": you hide in the bush ahead of your tower while the enemy walks past (it
+		# can't see you). "core": the enemy Guardian just fell, so their Core is immune.
+		var me_b := sim.heroes[local_seat]
+		var them_b := sim.heroes[enemy]
+		sim.next_wave_time = 1000.0
+		if what == "bush":
+			var bush := sim.arena.bushes[0] if local_seat == MatchSim.BLUE else sim.arena.bushes[1]
+			me_b.pos = bush.get_center()
+			them_b.pos = bush.get_center() + MatchSim.forward(local_seat) * 5.0 + Vector2(3.5 * (1 if local_seat == MatchSim.BLUE else -1), 0)
+		else:
+			var theirs_c := sim.structures_of(enemy)
+			sim.apply_damage(theirs_c[0], theirs_c[0].max_hp * 10.0, me_b)
+			sim.apply_damage(theirs_c[1], theirs_c[1].max_hp * 10.0, me_b)
+			me_b.pos = theirs_c[2].pos - MatchSim.forward(local_seat) * 6.0
+			them_b.pos = theirs_c[2].pos + Vector2(3.0, 0)
+		for h in sim.heroes:
+			h.prev_pos = h.pos
+		fast_forward(0.1)
+		return
 	if what == "sprint":
 		# Start in the lane in front of your tower (pair with --walk-up to see a sprint).
 		var me_s := sim.heroes[local_seat]
@@ -266,6 +287,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.is_action_pressed("perk_%d" % (i + 1)):
 			player.pending_perk = i
 			return
+	for i in 3:
+		if event.is_action_pressed("master_%d" % (i + 1)):
+			hud.masterwork_key(i)
+			return
+	if event.is_action_pressed("siege_scroll"):
+		player.pending_scroll = true
+		return
 	for i in CONFIG.deck_size:
 		if event.is_action_pressed("buy_%d" % (i + 1)):
 			# A card you own sells on a second press (the HUD asks first).
