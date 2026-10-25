@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/cleave.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/oath.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/judgment_blade.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/mercy.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/steadfast.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/shatter.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/charge.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/judgment.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/sanctuary.tres" id="p5"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"avery"
+display_name = "Avery"
+shape = "paladin"
+blurb = "Tanky paladin. Plant your feet, swing hard, and heal off every slash."
+max_hp = 780.0
+move_speed = 4.6
+radius = 0.5
+attack_range = 2.6
+attack_damage = 62.0
+attack_windup = 0.4
+attack_interval = 1.3
+sprint_color = Color(1, 0.88, 0.55, 1)
+sprint_lean_deg = 18.0
+sprint_bob = 0.06
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])

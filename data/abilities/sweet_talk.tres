@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"sweet_talk"
+display_name = "Sweet Talk"
+summary = "Tap to charge, tap to fire: 70-200 dmg shot, 11 m"
+effect = &"sweet_talk"
+cooldown = 9.0
+reach = 11.0
+speed = 26.0
+width = 0.45
+damage = 70.0
+max_damage = 200.0
+minion_damage = 60.0
+charge_time = 1.2
+move_mult = 0.7

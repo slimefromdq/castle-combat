@@ -1,11 +1,15 @@
 class_name StatusFx
 extends Node3D
-## Ability visuals that follow hero state: shield bubble, stun halo, slow and
-## Flurry rings, Wounds and Frenzy rings (items), and the Barrage target zone. Plus one-shot rings for area casts.
+## Ability visuals that follow hero state: shield bubble, stun halo, slow and haste
+## rings, Wounds and Frenzy rings (items), Jose's dance zone and charge ring, marks and
+## blindness, Jack's shadow, cloak and decoy. Plus skillshots in flight and one-shot
+## rings for area casts.
 
 var view: MatchView
-## Per hero id: {"shield", "stun", "slow", "flurry", "zone"} nodes.
+## Per hero id: {"shield", "stun", "slow", "haste", "zone", ...} nodes.
 var _parts: Dictionary = {}
+## Skillshot id -> node.
+var _shots: Dictionary = {}
 var _rings: Array = []
 var _ring_mesh := TorusMesh.new()
 ## Sprint speed trail: short streaks left behind a sprinting hero, fading out.
@@ -35,9 +39,16 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			var sh: HeroState = view.sim.get_entity(data.hero) as HeroState
 			if sh != null:
 				_spawn_ring(sh.pos, 1.3, sh.data.sprint_color)
-		&"barrage_pulse":
+		&"channel_pulse":
 			var h: SimEntity = view.sim.get_entity(data.hero)
 			_spawn_ring(data.point, data.radius, Palette.team_color(h != null and h.team == view.local_seat).lightened(0.2))
+		&"vanish_burst":
+			_spawn_ring(data.pos, data.radius, Color("9b6bff"))
+		&"shield_shattered":
+			_spawn_ring(data.pos, data.radius, Color(0.8, 0.95, 1.0))
+		&"teleported":
+			_spawn_ring(data.from, 1.2, Color("9b6bff"))
+			_spawn_ring(data.to, 1.6, Color("c9a7ff"))
 
 
 func render() -> void:
@@ -53,9 +64,30 @@ func render() -> void:
 		p.stun.rotation.y = Time.get_ticks_msec() / 150.0
 		p.slow.visible = h.alive and sim.time < h.slow_until
 		p.slow.position = at + Vector3(0, 0.08, 0)
-		p.flurry.visible = h.alive and sim.time < h.flurry_until
-		p.flurry.position = at + Vector3(0, 0.1, 0)
-		p.flurry.scale = Vector3.ONE * (1.0 + 0.08 * sin(Time.get_ticks_msec() / 60.0))
+		p.haste.visible = h.alive and sim.time < h.haste_until
+		p.haste.position = at + Vector3(0, 0.1, 0)
+		p.haste.scale = Vector3(0.75, 0.03, 0.75) * (1.0 + 0.08 * sin(Time.get_ticks_msec() / 60.0))
+		p.charge.visible = h.alive and h.is_charging()
+		if p.charge.visible:
+			var k := clampf((sim.time - h.charging_since) / h.data.abilities[1].charge_time, 0.0, 1.0)
+			p.charge.position = at + Vector3(0, 0.12, 0)
+			var r := lerpf(1.6, 0.6, k)
+			p.charge.scale = Vector3(r, 0.04, r)
+			(p.charge.material_override as StandardMaterial3D).albedo_color = Color(1.0, lerpf(0.9, 0.3, k), 0.2, 0.95) if k < 1.0 else Color(1, 1, 1, 0.95)
+		p.mark.visible = h.alive and sim.time < h.mark_until
+		p.mark.position = at + Vector3(0, 2.3, 0)
+		p.mark.rotation.y = Time.get_ticks_msec() / 300.0
+		p.blind.visible = h.alive and sim.time < h.blind_until
+		p.blind.position = at + Vector3(0, 2.0, 0)
+		p.shadow.visible = h.alive and h.is_vanished()
+		p.shadow.position = at + Vector3(0, 0.05, 0)
+		p.shadow.scale = Vector3.ONE * (1.0 + 0.1 * sin(Time.get_ticks_msec() / 80.0))
+		p.decoy.visible = h.alive and sim.time < h.decoy_until
+		p.decoy.position = MatchView.to_world(h.decoy_pos, 0.8)
+		var cloak_open: bool = h.alive and sim.time < h.recast_until[0] and h.data.abilities[0].effect == &"cloak_toss" and h.cloak_shot_id == 0
+		p.cloak.visible = cloak_open
+		p.cloak.position = MatchView.to_world(h.cloak_pos, 0.06)
+		p.cloak.rotation.y = Time.get_ticks_msec() / 500.0
 		p.wounds.visible = h.alive and sim.time < h.wounds_until
 		p.wounds.position = at + Vector3(0, 0.12, 0)
 		p.frenzy.visible = h.alive and h.frenzy_left > 0
@@ -69,8 +101,39 @@ func render() -> void:
 	for st in sim.structures:
 		if st.is_guardian():
 			_render_guardian(st)
+	_render_skillshots(sim)
 	_update_rings()
 	_update_streaks(sim)
+
+
+## Skillshots in flight: Judgment Blade a white crescent, Sweet Talk a bullet that grows
+## with its charge, Jack's cloak a spinning violet square.
+func _render_skillshots(sim: MatchSim) -> void:
+	var live := {}
+	for s in sim.skillshots:
+		live[s.id] = true
+		if not _shots.has(s.id):
+			var node: MeshInstance3D
+			match s.ability.effect:
+				&"judgment_blade":
+					node = UnitFactory.part(self, UnitFactory.box(Vector3(1.6, 0.12, 0.35)), Color(1.0, 0.97, 0.8, 0.95), Vector3.ZERO, Vector3.ZERO, true)
+				&"cloak_toss":
+					node = UnitFactory.part(self, UnitFactory.box(Vector3(0.9, 0.05, 0.9)), Color("7a4fd6"), Vector3.ZERO, Vector3.ZERO, true)
+				_:
+					var ball := SphereMesh.new()
+					ball.radius = 0.18 + 0.18 * s.charge
+					ball.height = ball.radius * 2.0
+					node = UnitFactory.part(self, ball, Color(1.0, 0.85, 0.3) if s.charge < 1.0 else Color(1, 1, 1), Vector3.ZERO, Vector3.ZERO, true)
+			_shots[s.id] = node
+		var n: MeshInstance3D = _shots[s.id]
+		n.position = MatchView.to_world(s.pos, 0.9)
+		n.rotation.y = atan2(-s.dir.x, s.dir.y)
+		if s.ability.effect == &"cloak_toss":
+			n.rotation.y += Time.get_ticks_msec() / 60.0
+	for id: int in _shots.keys():
+		if not live.has(id):
+			_shots[id].queue_free()
+			_shots.erase(id)
 
 
 ## Guardian beam (always visible while it has a target, hotter as it ramps, with a
@@ -141,7 +204,13 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"shield": UnitFactory.part(self, bubble, Color(0.75, 0.9, 1.0, 0.28), Vector3.ZERO, Vector3.ZERO, true),
 		"stun": UnitFactory.part(self, _ring_mesh, Color("ffe14d"), Vector3.ZERO, Vector3.ZERO, true),
 		"slow": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.8, 1.0, 0.8), Vector3.ZERO, Vector3.ZERO, true),
-		"flurry": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.6, 0.2, 0.8), Vector3.ZERO, Vector3.ZERO, true),
+		"haste": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.92, 0.55, 0.8), Vector3.ZERO, Vector3.ZERO, true),
+		"charge": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.8, 0.2, 0.95), Vector3.ZERO, Vector3.ZERO, true),
+		"mark": UnitFactory.part(self, UnitFactory.box(Vector3(0.32, 0.32, 0.06)), Color("ff5c8a"), Vector3.ZERO, Vector3(0, 0, 45), true),
+		"blind": UnitFactory.part(self, UnitFactory.box(Vector3(0.9, 0.16, 0.06)), Color(0.15, 0.12, 0.2, 0.9), Vector3.ZERO, Vector3.ZERO, true),
+		"shadow": UnitFactory.part(self, UnitFactory.cylinder(1.1, 1.1, 0.04, 32), Color(0.2, 0.08, 0.35, 0.75), Vector3.ZERO, Vector3.ZERO, true),
+		"decoy": UnitFactory.part(self, bubble, Color(0.6, 0.45, 1.0, 0.35), Vector3.ZERO, Vector3.ZERO, true),
+		"cloak": UnitFactory.part(self, UnitFactory.box(Vector3(0.9, 0.05, 0.9)), Color("7a4fd6"), Vector3.ZERO, Vector3.ZERO, true),
 		"zone": UnitFactory.part(self, _ring_mesh, Color(team_c.lightened(0.2), 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"wounds": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.05, 0.1, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"frenzy": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.2, 0.25, 0.9), Vector3.ZERO, Vector3.ZERO, true),
@@ -150,7 +219,7 @@ func _parts_for(h: HeroState) -> Dictionary:
 	parts.shield.scale = Vector3(0.95, 0.95, 0.95)
 	parts.stun.scale = Vector3(0.45, 0.05, 0.45)
 	parts.slow.scale = Vector3(0.9, 0.03, 0.9)
-	parts.flurry.scale = Vector3(0.75, 0.03, 0.75)
+	parts.decoy.scale = Vector3(0.6, 0.8, 0.6)
 	_parts[h.id] = parts
 	return parts
 

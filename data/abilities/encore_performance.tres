@@ -4,11 +4,8 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"earthshaker"
-display_name = "Earthshaker"
-summary = "Slam: 130 dmg around you, stuns heroes 1.25 s"
-effect = &"slam"
-cooldown = 55.0
-damage = 130.0
-radius = 4.5
-stun = 1.25
+id = &"encore_performance"
+display_name = "Encore Performance"
+summary = "Cast the enemy hero's ultimate as your own"
+effect = &"encore"
+cooldown = 50.0

@@ -4,7 +4,8 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"light_feet"
-display_name = "Light Feet"
-summary = "+6% move speed"
-move_speed_bonus = 0.06
+id = &"sleight_of_hand"
+display_name = "Sleight of Hand"
+summary = "Troopers killed by your cloak pay +50% gold"
+special = &"sleight_of_hand"
+special_value = 0.5

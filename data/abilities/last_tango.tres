@@ -4,13 +4,14 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"barrage"
-display_name = "Barrage"
-summary = "Stand still: 4 blasts of 55 in a 3.5 m zone up to 9 m away"
-effect = &"barrage"
+id = &"last_tango"
+display_name = "Last Tango"
+summary = "Dance for 3 s: 6 bursts of 45 around you, moving slowly"
+effect = &"last_tango"
 cooldown = 55.0
-reach = 9.0
-damage = 55.0
+duration = 3.0
+pulses = 6
 radius = 3.5
-duration = 1.6
-pulses = 4
+damage = 45.0
+minion_damage = 40.0
+move_mult = 0.45

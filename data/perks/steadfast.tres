@@ -4,7 +4,9 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"thick_hide"
-display_name = "Thick Hide"
-summary = "+10% max health"
-max_hp_bonus = 0.1
+id = &"steadfast"
+display_name = "Steadfast"
+summary = "Stand still 1 s: +20% basic attack damage"
+special = &"steadfast"
+special_value = 0.2
+special_duration = 1.0

@@ -13,16 +13,24 @@ var _sim: MatchSim
 ## Items the bot buys, in order, when they are in its deck. Early items get sold to
 ## make room for later ones.
 const WISHLISTS := {
-	&"vanguard": [&"mending_charm", &"trooper_cleaver", &"overcharge_gem", &"stormcrown", &"aegis_mirror"],
-	&"scout": [&"trooper_cleaver", &"whetstone", &"bloodthirst_blade", &"reapers_rhythm", &"duelists_crest"],
-	&"gunner": [&"mending_charm", &"whetstone", &"executioners_edge", &"duelists_crest", &"titan_core"],
+	&"avery": [&"mending_charm", &"trooper_cleaver", &"overcharge_gem", &"stormcrown", &"aegis_mirror"],
+	&"jose": [&"mending_charm", &"whetstone", &"bloodthirst_blade", &"reapers_rhythm", &"duelists_crest"],
+	&"jack": [&"spark_band", &"mending_charm", &"overcharge_gem", &"stormcrown", &"aegis_mirror"],
 }
 ## The counter item the bot slots in as its first mid item against each enemy hero.
 const COUNTERS := {
-	&"gunner": &"warding_cloak",
-	&"vanguard": &"overcharge_gem",
-	&"scout": &"thorncut",
+	&"avery": &"thorncut",
+	&"jose": &"overcharge_gem",
+	&"jack": &"warding_cloak",
 }
+## Which perk (0 or 1) the bot takes at levels 2, 4 and 6, per hero. Tests and the
+## bot-match script override it to try other builds.
+const PERK_PICKS := {
+	&"avery": [0, 0, 0],
+	&"jose": [0, 1, 0],
+	&"jack": [0, 1, 0],
+}
+var perk_choices: Array = []
 var _points: Array[Vector2] = []
 ## Items the bot sold this match (it never buys them back).
 var _sold := {}
@@ -39,6 +47,10 @@ func build_command(sim: MatchSim) -> PlayerCommand:
 	if me.alive and not sim.over:
 		cmd.cast_slot = _choose_ability(sim, me, cmd)
 		_dodge_slam(sim, me, cmd)
+	var tier := me.pending_perk_tier()
+	if tier >= 0:
+		var picks: Array = perk_choices if perk_choices.size() == 3 else PERK_PICKS.get(me.data.id, [0, 0, 0])
+		cmd.perk_pick = picks[tier]
 	return cmd
 
 
@@ -67,31 +79,76 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 	var fight := them.alive and (safe or their_hp < 0.35)
 	var ready := func(i: int) -> bool: return Abilities.cast_problem(sim, me, i) == ""
 	match me.data.id:
-		&"vanguard":
-			if ready.call(1) and my_hp < 0.6 and d < 6.0:
-				return 1
-			if ready.call(2) and fight and d < 4.0 and (their_hp < 0.6 or my_hp < 0.4):
+		&"avery":
+			if ready.call(2) and fight and d < 8.5 and (their_hp < 0.7 or my_hp < 0.5):
 				return 2
-			if ready.call(0) and fight and d < 4.5 and my_hp >= their_hp - 0.1:
+			if ready.call(1) and them.alive and d < 7.0 and (my_hp < 0.65 or (fight and d > me.attack_range + 1.0)):
+				return 1
+			if ready.call(0) and ((fight and d < 3.2) or (_enemy_minions_near(sim, me.pos, 3.0) >= 3 and my_hp < 0.85)):
 				return 0
-		&"scout":
-			if ready.call(0) and _healing and d < 6.0 and cmd.move != Vector2.ZERO:
+		&"jose":
+			if me.is_charging():
+				var held := sim.time - me.charging_since
+				if held >= me.data.abilities[1].charge_time or (them.alive and d > 10.5) or not them.alive:
+					return 1
+				return -1
+			var side := _strafe(me, them)
+			if Abilities.can_recast(sim, me, 0) and ready.call(0):
+				cmd.move = side if not _healing else cmd.move
+				return 0
+			if ready.call(2) and fight and d < 3.5 and their_hp < 0.75 and me.channel == null:
+				return 2
+			if me.channel != null and them.alive:
+				cmd.move = _toward(me, them.pos)  # Dance into them.
+				return -1
+			if ready.call(1) and fight and d < 10.0:
+				return 1
+			if ready.call(0) and _healing and d < 7.0 and cmd.move != Vector2.ZERO:
 				return 0  # Escape toward home.
-			if ready.call(2) and fight and d < 8.0 and (them.hp < 220.0 or (their_hp < 0.5 and my_hp > 0.5)):
-				return 2
-			if ready.call(1) and fight and me.attack_target == them.id:
-				return 1
-			if ready.call(0) and fight and their_hp < 0.35 and d > 3.0 and d < 7.0:
-				cmd.move = (them.pos - me.pos).normalized()
+			if ready.call(0) and fight and d < 6.5 and d > 2.0:
+				cmd.move = side
 				return 0
-		&"gunner":
-			if ready.call(1) and them.alive and d < 2.6 and them.attack_range < 3.0:
-				return 1
-			if ready.call(2) and fight and d < 9.0 and (their_hp < 0.7 or them.is_stunned(sim.time)):
+		&"jack":
+			if me.is_vanished():
+				if _enemy_minions_near(sim, me.pos, 3.0) >= 3 and (not them.alive or d > 6.0):
+					return 1  # Clearing the wave.
+				if Abilities.can_recast(sim, me, 0) and me.cloak_shot_id == 0 and them.alive and me.cloak_pos.distance_to(them.pos) < 2.8:
+					return 0  # Reappear at the cloak and burst right there.
+				if them.alive and d < 2.6:
+					return 1
+				if them.alive:
+					cmd.move = _toward(me, them.pos)
+				return -1
+			if Abilities.can_recast(sim, me, 0) and me.cloak_shot_id == 0:
+				if fight and them.alive and me.cloak_pos.distance_to(them.pos) < 2.8:
+					return 1 if ready.call(1) else 0
+				if _healing and them.alive and me.cloak_pos.distance_to(them.pos) > d + 3.0:
+					return 0  # Blink away.
+			var copied := Abilities.ability_for(sim, me, 2)
+			var ult_reach := 3.2 if copied != null and copied.effect == &"last_tango" else 8.5
+			if ready.call(2) and fight and their_hp < 0.7 and d < ult_reach:
 				return 2
-			if ready.call(0) and fight and d < 8.5:
+			if ready.call(0) and fight and d < 8.0:
 				return 0
+			if ready.call(0) and safe and _enemy_minions_near(sim, me.pos, 7.0) >= 3:
+				return 0  # The cloak cuts through a wave.
+			if ready.call(1) and them.alive and d < 5.5 and my_hp < 0.45:
+				return 1
+			if ready.call(1) and safe and _enemy_minions_near(sim, me.pos, 3.0) >= 3:
+				return 1  # Vanish into the wave; the burst follows next tick.
 	return -1
+
+
+## Sideways relative to the enemy hero (dashing across their aim), toward our side.
+func _strafe(me: HeroState, them: HeroState) -> Vector2:
+	if not them.alive or them.pos == me.pos:
+		return me.facing
+	var to_them := (them.pos - me.pos).normalized()
+	var side := Vector2(-to_them.y, to_them.x)
+	var back := -MatchSim.forward(team)
+	if side.dot(back) < 0.0:
+		side = -side
+	return (side * 0.8 + back * 0.2).normalized()
 
 
 func _decide(sim: MatchSim) -> PlayerCommand:

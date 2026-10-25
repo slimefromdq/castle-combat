@@ -12,6 +12,8 @@ static func outgoing(sim: MatchSim, src: HeroState, target: SimEntity, amount: f
 	var mult := 1.0
 	if kind == &"ability":
 		mult += src.item_total(&"ability_damage_bonus")
+		if sim.time < src.power_until:
+			mult += src.power_bonus
 	if target is MinionState:
 		mult += src.item_total(&"trooper_damage_bonus")
 	elif target is StructureState:

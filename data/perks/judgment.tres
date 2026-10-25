@@ -4,8 +4,9 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"second_wind"
-display_name = "Second Wind"
-summary = "Dash: -2 s cooldown"
-ability_index = 0
-cooldown_cut = 2.0
+id = &"judgment"
+display_name = "Judgment"
+summary = "Your next slash on a pulled hero deals +60%"
+special = &"judgment"
+special_value = 0.6
+special_duration = 3.0

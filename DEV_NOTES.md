@@ -29,8 +29,9 @@ input/ + bot/  --PlayerCommand per tick-->  sim/ (MatchSim, 30 Hz)  --state + ev
 - Input actions are registered in code by the `InputSetup` autoload (`src/input/input_setup.gd`).
 
 Visual language: you are always blue with a circle under your units; the opponent is
-orange with a diamond. Silhouettes: Vanguard = block + shield, Scout = flat cone,
-Gunner = drum + barrel, towers = hex pillars (inner taller), Core = gem. Locked
+orange with a diamond. Silhouettes: Avery = armored block + skirt + long sword, Jose = coat + wide red hat +
+two revolvers, Jack = flared coat + floating cards (older notes below still name the
+placeholder heroes Vanguard/Scout/Gunner they replaced), towers = hex pillars (inner taller), Core = gem. Locked
 structures wear a translucent dome.
 
 ## Status
@@ -246,7 +247,26 @@ Lucy tried an Underdog Relay comeback (PR #12) and dropped it: the Relay stays a
 - [x] Dev args `--tab=shop|heroes|battle|clan|tournaments`, `--hero=N` for menu screenshots
 - [x] 135 tests (3 menu tests)
 
-**Next: metrics runner; M5 iOS.**
+### M10: Avery, Jose and Jack (replace Vanguard, Scout, Gunner)
+
+- [x] Hero sheets: https://claude.ai/artifact/9CPvn4NAAjhpxD7kebD7o6 . Every hero moves at 4.6
+- [x] Perks: pick 1 of 2 at levels 2, 4, 6 (`HeroData.perks` holds pairs, `HeroState.perk_picks`,
+      `PlayerCommand.perk_pick`, HUD cards + Z/X). Unpicked after 12 s: first option
+- [x] Follow-up casts on the same button (`Abilities.can_recast`): Jose's second dash (only after
+      the first volley hits) and charged-shot release; Jack's cloak teleport and vanish burst
+- [x] Skillshots (`Skillshot`, `sim.skillshots`): fly, can be dodged, walls stop them.
+      Judgment Blade stops at the hero, Sweet Talk at the first unit, the cloak pierces
+- [x] Jack's ult casts the enemy hero's ult (`Abilities.ability_for`) on his own cooldown,
+      whether or not the enemy has unlocked it. No mirror matches (the bot takes the next hero)
+- [x] Vanish: immune and untargetable; Misdirection: troopers and towers lose Jack 1.5 s
+- [x] Sleight of Hand: killing blows already pay at any range, so it pays +50% for cloak kills
+- [x] Sprint fix: `Sprint.blocked` no longer calls `move_forced` (it moved dashing heroes twice a tick)
+- [x] Dev: `--stage=duel|perk`, `--hero=N` works with `--autoplay`; `tools/bot_matches.gd`
+      runs every pairing with rotated perk picks
+- [x] 154 tests. Bot matches (3 per pairing and seat): Avery 8/12, Jose 7/12, Jack 3/12;
+      length 6:40 to 13:03 (median 10:34); Lv3 1:41, Lv5 3:59, Lv6 5:24 (medians)
+
+**Next: power spikes, then waves and troopers; metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)
 

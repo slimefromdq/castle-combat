@@ -11,6 +11,9 @@ func _ready() -> void:
 	# Dev shortcut: `godot -- --autoplay` skips the menu (used by smoke tests and screenshots).
 	var args := OS.get_cmdline_user_args()
 	if "--autoplay" in args:
+		for a in args:
+			if a.begins_with("--hero="):
+				_menu.pick_hero(int(a.get_slice("=", 1)))  # Before the match starts.
 		_start_match()
 		_apply_dev_args(args)
 	elif args.size() > 0:

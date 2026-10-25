@@ -13,6 +13,7 @@ signal drop_pressed
 signal buy_pressed(slot: int)
 signal sell_pressed(slot: int)
 signal cast_pressed(slot: int)
+signal perk_pressed(choice: int)
 
 const BOTTOM_H := 292.0
 const MARGIN := 12.0
@@ -36,6 +37,10 @@ var _flash_until := 0
 var _drop: Button
 var _cards: Array[Button] = []
 var _ability_buttons: Array[Button] = []
+## Level-up perk choice: two cards, shown while a pick is waiting.
+var _perk_box: Control
+var _perk_title: Label
+var _perk_buttons: Array[Button] = []
 var _you_xp: ProgressBar
 var _them_xp: ProgressBar
 var _cards_row: Control
@@ -65,6 +70,7 @@ func _ready() -> void:
 	_build_tools(inset)
 	_build_bottom()
 	_build_thumbs()
+	_build_perk_picker()
 	_build_status()
 
 
@@ -89,6 +95,7 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_you_xp.value = Leveling.progress(sim, me)
 	_them_xp.value = Leveling.progress(sim, them)
 	_refresh_abilities(sim, me)
+	_refresh_perks(sim, me)
 	_you_hp.value = me.hp / me.max_hp
 	_them_hp.value = them.hp / them.max_hp
 	_fill_structs(sim, seat, _you_structs)
@@ -113,24 +120,52 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 			fps, sim.tick, sim.time, me.pos.x, me.pos.y, "moving" if me.moving else "stopped"]
 
 
-## Ability buttons: key, name, and either a cooldown, the unlock level, or nothing.
+## Ability buttons: key, name, and either a cooldown, the unlock level, a follow-up
+## ("Again!", "Fire!", "Blink!", "Burst!"), or nothing.
 func _refresh_abilities(sim: MatchSim, me: HeroState) -> void:
 	const KEYS := ["Q", "E", "R"]
+	const FOLLOW_UP := {&"spin_dash": "Again!", &"sweet_talk": "Fire!", &"cloak_toss": "Blink!", &"vanish": "Burst!"}
 	for i in _ability_buttons.size():
 		var b := _ability_buttons[i]
 		if i >= me.data.abilities.size():
 			b.visible = false
 			continue
 		var a := me.data.abilities[i]
+		var title := a.display_name
+		if a.effect == &"encore":
+			var copied := Abilities.ability_for(sim, me, i)
+			title = copied.display_name if copied != null else a.display_name
 		var problem := Abilities.cast_problem(sim, me, i)
 		var status := ""
 		if not me.ability_unlocked(i):
 			status = "Lv %d" % (1 + i * 2)
+		elif me.alive and Abilities.can_recast(sim, me, i):
+			status = FOLLOW_UP.get(a.effect, "Again!")
+			if a.effect == &"sweet_talk":
+				status = "Fire! %d%%" % roundi(100.0 * clampf((sim.time - me.charging_since) / a.charge_time, 0.0, 1.0))
 		elif me.cooldowns[i] > 0.0:
 			status = "%.0f" % ceilf(me.cooldowns[i]) if me.cooldowns[i] >= 1.0 else "%.1f" % me.cooldowns[i]
-		b.text = "%s\n%s\n%s" % [KEYS[i], a.display_name, status]
-		b.disabled = problem != "" and problem != "no enemy hero in reach" and problem != "nothing in reach"
-		b.tooltip_text = "%s (%s)\n%s\nCooldown %.0f s" % [a.display_name, KEYS[i], a.summary, me.ability_cooldown(i)]
+		elif a.effect == &"encore":
+			status = "(copied)"
+		b.text = "%s\n%s\n%s" % [KEYS[i], title, status]
+		b.disabled = problem != ""
+		b.tooltip_text = "%s (%s)\n%s\nCooldown %.0f s" % [title, KEYS[i], a.summary, me.ability_cooldown(i)]
+
+
+## The level-up perk choice: two cards while a pick is waiting (Z / X on a keyboard).
+func _refresh_perks(sim: MatchSim, me: HeroState) -> void:
+	var tier := me.pending_perk_tier()
+	_perk_box.visible = tier >= 0 and not sim.over
+	if not _perk_box.visible:
+		return
+	var left := maxf(0.0, sim.config.perk_auto_pick_time - (sim.time - me.perk_offered_at[tier]))
+	_perk_title.text = "Level %d perk: pick one (%ds)" % [2 + tier * 2, ceili(left)]
+	var options := me.perk_options(tier)
+	for k in _perk_buttons.size():
+		var b := _perk_buttons[k]
+		b.visible = k < options.size()
+		if b.visible:
+			b.text = "%s  %s\n%s" % [["Z", "X"][k], options[k].display_name, options[k].summary]
 
 
 ## Tab: collapse or open the item cards (gold and owned items stay visible).
@@ -245,8 +280,7 @@ func _level_text(lv: int, seat: int) -> String:
 	if lv % 2 == 1:
 		var a := h.data.abilities[(lv - 1) / 2]
 		return "Level %d: %s unlocked (%s)" % [lv, a.display_name, ["Q", "E", "R"][(lv - 1) / 2]]
-	var perk := h.data.perks[lv / 2 - 1]
-	return "Level %d: %s (%s)" % [lv, perk.display_name, perk.summary]
+	return "Level %d: pick a perk (Z / X)" % lv
 
 
 func _item_name(id: StringName) -> String:
@@ -472,6 +506,35 @@ func _build_thumbs() -> void:
 	_root.add_child(_drop)
 
 
+func _build_perk_picker() -> void:
+	_perk_box = VBoxContainer.new()
+	_perk_box.anchor_left = 0.04
+	_perk_box.anchor_right = 0.96
+	_perk_box.anchor_top = 1.0
+	_perk_box.anchor_bottom = 1.0
+	_perk_box.offset_bottom = -BOTTOM_H - 330
+	_perk_box.offset_top = _perk_box.offset_bottom - 150
+	_perk_box.add_theme_constant_override("separation", 6)
+	_perk_box.visible = false
+	_root.add_child(_perk_box)
+	_perk_title = UiKit.label("", 24, Palette.RELAY)
+	_perk_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_perk_title.add_theme_constant_override("outline_size", 8)
+	_perk_title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	_perk_box.add_child(_perk_title)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	_perk_box.add_child(row)
+	for k in 2:
+		var b := UiKit.button("", Vector2(0, 104))
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_theme_font_size_override("font_size", 17)
+		b.pressed.connect(func() -> void: perk_pressed.emit(k))
+		row.add_child(b)
+		_perk_buttons.append(b)
+
+
 ## A square button anchored to the bottom right, `right`/`bottom` px in from the corner
 ## (above the bottom band).
 func _corner_button(size: float, right: float, bottom: float, slot: int) -> Button:
@@ -482,7 +545,7 @@ func _corner_button(size: float, right: float, bottom: float, slot: int) -> Butt
 	b.offset_bottom = -BOTTOM_H - bottom
 	b.offset_top = -BOTTOM_H - bottom - size
 	b.add_theme_font_size_override("font_size", 14 if slot > 0 else 17)
-	b.autowrap_mode = TextServer.AUTOWRAP_OFF
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.clip_text = true
 	b.pressed.connect(func() -> void: cast_pressed.emit(slot))
 	_root.add_child(b)

@@ -4,10 +4,12 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"bulwark"
-display_name = "Bulwark"
-summary = "Shield worth 25% max HP for 4 s"
-effect = &"shield"
-cooldown = 16.0
-shield_fraction = 0.25
+id = &"oath"
+display_name = "Oath"
+summary = "Shield worth 20% max HP for 4 s and +25% move speed for 2.5 s"
+effect = &"oath"
+cooldown = 15.0
+shield_fraction = 0.2
 duration = 4.0
+move_speed_bonus = 0.25
+buff_duration = 2.5

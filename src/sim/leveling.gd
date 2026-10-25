@@ -8,6 +8,22 @@ class_name Leveling
 static func tick(sim: MatchSim) -> void:
 	for h in sim.heroes:
 		gain(sim, h, sim.config.passive_xp_per_second * sim.dt)
+		# A perk left unpicked too long takes the first option.
+		var tier := h.pending_perk_tier()
+		if tier >= 0 and sim.time - h.perk_offered_at[tier] >= sim.config.perk_auto_pick_time:
+			pick_perk(sim, h, 0)
+
+
+## Picks one of the two perks for the earliest level-up not yet decided.
+static func pick_perk(sim: MatchSim, h: HeroState, choice: int) -> bool:
+	var tier := h.pending_perk_tier()
+	if tier < 0 or choice < 0 or choice >= h.perk_options(tier).size():
+		return false
+	h.perk_picks[tier] = choice
+	h.recompute_stats()
+	var perk := h.perk_options(tier)[choice]
+	sim.emit_event(&"perk_picked", {"hero": h.id, "team": h.team, "tier": tier, "perk": perk.id})
+	return true
 
 
 static func on_knockout(sim: MatchSim, victim: HeroState) -> void:
@@ -28,6 +44,8 @@ static func gain(sim: MatchSim, h: HeroState, amount: float) -> void:
 	h.xp += amount * (1.0 + behind * sim.config.catch_up_per_level)
 	while h.level < max_level(sim) and h.xp + 0.0001 >= sim.config.level_xp[h.level]:
 		h.level += 1
+		if h.level % 2 == 0 and h.level / 2 - 1 < 3:
+			h.perk_offered_at[h.level / 2 - 1] = sim.time
 		h.recompute_stats()
 		sim.emit_event(&"level_up", {"hero": h.id, "team": h.team, "level": h.level})
 

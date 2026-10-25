@@ -129,12 +129,18 @@ func render(alpha: float, delta: float, snap := false) -> void:
 		if e is MinionState and e.is_power:
 			node.scale = Vector3.ONE * 1.3
 		var facing := _facing_of(e)
+		if e is HeroState and e.sprinting and e.data.sprint_moonwalk:
+			facing = -facing  # Moonwalk: glide forward while facing back.
 		if facing != Vector2.ZERO:
 			var body: Node3D = node.get_node("Body")
 			var target_yaw := atan2(-facing.x, facing.y)
 			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
 		if e is HeroState:
 			_sprint_pose(e, node.get_node("Body"), delta)
+			# In the shadows Jack shrinks into a dark pool.
+			var body3: Node3D = node.get_node("Body")
+			var want := 0.45 if e.is_vanished() else 1.0
+			body3.scale = Vector3.ONE * (want if snap else lerpf(body3.scale.x, want, 1.0 - exp(-14.0 * delta)))
 	_update_helpers()
 	_relay_view.render(alpha)
 	_status.render()

@@ -4,9 +4,8 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"battering_ram"
-display_name = "Battering Ram"
-summary = "Shield Bash: -3 s cooldown, +1.5 m knockback"
-ability_index = 0
-cooldown_cut = 3.0
-knockback_bonus = 1.5
+id = &"mercy"
+display_name = "Mercy"
+summary = "Cleave heals double from the enemy hero"
+special = &"mercy"
+special_value = 2.0

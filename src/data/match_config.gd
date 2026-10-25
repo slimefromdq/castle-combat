@@ -73,6 +73,9 @@ extends Resource
 @export var ko_xp_per_level_above := 25.0
 ## Catch-up: a hero behind the enemy hero in level gets this much extra XP per level behind.
 @export var catch_up_per_level := 0.25
+## At levels 2, 4 and 6 you pick one of two perks. Unpicked after this long, the first
+## option is taken for you.
+@export var perk_auto_pick_time := 12.0
 
 @export_group("Economy")
 @export var passive_gold_per_second := 2.0

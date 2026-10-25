@@ -4,7 +4,8 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"long_barrel"
-display_name = "Long Barrel"
-summary = "+6% attack range"
-range_bonus = 0.06
+id = &"sanctuary"
+display_name = "Sanctuary"
+summary = "Landing Judgment Blade gives you Oath's shield"
+special = &"sanctuary"
+special_value = 1.0

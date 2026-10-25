@@ -30,7 +30,7 @@ static func tick(sim: MatchSim, h: HeroState, cmd: PlayerCommand) -> void:
 
 static func blocked(sim: MatchSim, h: HeroState, cmd: PlayerCommand) -> bool:
 	return not h.alive or h.carrying_relay or cmd.cast_slot >= 0 or h.is_stunned(sim.time) \
-			or Abilities.move_forced(sim, h) or h.is_channeling() \
+			or h.is_forced() or h.is_busy_casting() \
 			or sim.time - h.last_hero_combat_time < sim.config.sprint_combat_delay \
 			or sim.time - h.last_damaged_time < sim.config.sprint_combat_delay
 

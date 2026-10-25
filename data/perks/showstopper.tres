@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"showstopper"
+display_name = "Showstopper"
+summary = "Spin Dash during Last Tango without ending the dance"
+special = &"showstopper"
+special_value = 1.0

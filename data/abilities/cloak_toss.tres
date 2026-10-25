@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cloak_toss"
+display_name = "Cloak Toss"
+summary = "Throw your cloak 8 m (110 dmg to all it passes); tap again to teleport to it"
+effect = &"cloak_toss"
+cooldown = 8.0
+reach = 8.0
+speed = 15.0
+width = 0.6
+damage = 110.0
+minion_damage = 100.0
+recast_window = 4.0

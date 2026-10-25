@@ -4,10 +4,9 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"siege_battery"
-display_name = "Siege Battery"
-summary = "Barrage reaches 11 m and hits structures"
-ability_index = 2
-reach_bonus = 2.0
-special = &"siege_battery"
+id = &"smoke_and_mirrors"
+display_name = "Smoke and Mirrors"
+summary = "Your burst blinds the hero: its basics miss for 1.2 s"
+special = &"smoke_and_mirrors"
 special_value = 1.0
+special_duration = 1.2

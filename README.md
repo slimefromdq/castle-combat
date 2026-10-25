@@ -27,7 +27,8 @@ six hero levels that unlock three abilities and three perks.
 | Move | WASD / arrow keys | Floating joystick: drag in the lower left |
 | Attack | Stand still: the nearest valid target is attacked automatically | Same |
 | Focus a target (for last hits) | Left-click an enemy unit; click the ground to clear | Tap an enemy unit |
-| Abilities (unlock at Lv 1 / 3 / 5) | Q / E / R | Right-thumb buttons |
+| Abilities (unlock at Lv 1 / 3 / 5), press again for a follow-up | Q / E / R | Right-thumb buttons |
+| Pick a level-up perk | Z / X | Tap a perk card |
 | Buy item card | 1–8 | Tap a card |
 | Sell an owned item (half price back) | Its number twice | Tap its card twice |
 | Hide / show the item cards | Tab | — |
@@ -56,8 +57,26 @@ your plan, and late items (2,000–2,400) change how fights go. Your deck holds 
 at most three at once, and selling an early item is how you make room for a late one.
 
 **Levels:** you earn XP over time, from enemy minions (same rule as gold) and from
-knockouts. Level 1, 3 and 5 unlock your abilities (5 is the ultimate); 2, 4 and 6 give
-perks. Falling behind in level earns you bonus XP.
+knockouts. Level 1, 3 and 5 unlock your abilities (5 is the ultimate); at 2, 4 and 6 you
+pick one of two perks (Z / X or tap a card; after 12 s the first one is taken for you).
+Falling behind in level earns you bonus XP.
+
+**Heroes** (all move at the same speed):
+
+- **Avery**, the beginner paladin: a slow, hard, long-reach slash. *Cleave* heals her for
+  every trooper and hero it hits, *Oath* shields and speeds her up, and the *Judgment Blade*
+  skillshot stuns the enemy hero and pulls it to her.
+- **Jose**, the gunslinger: fragile, and his basic attacks grow 8% per level. *Spin Dash*
+  dashes and fires a volley; if the volley hits, press again for a second dash. *Sweet
+  Talk* charges while you hold the shot (tap, then tap again to fire). *Last Tango*: he
+  dances slowly with gunfire all around him. He moonwalks when he sprints.
+- **Jack**, the skill hero: *Cloak Toss* cuts through everything in a line; press again to
+  teleport to the cloak. *Vanish* makes him immune and very slow; press again to burst
+  out (teleporting to the cloak while vanished bursts there). *Encore Performance* casts
+  the enemy hero's ultimate, on Jack's own cooldown.
+
+Skillshots (Judgment Blade, Sweet Talk, Cloak Toss) fly toward where the target was, so
+they can be dodged; walls stop them.
 
 **Matches speed up.** Gold and Relay rewards grow over time; towers start tough and get
 weaker; each base has a **Guardian** whose beam grows the longer it focuses one target, and

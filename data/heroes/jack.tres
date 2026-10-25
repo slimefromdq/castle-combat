@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/cloak_toss.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/vanish.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/encore_performance.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/sleight_of_hand.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/misdirection.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/smoke_and_mirrors.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/vanishing_act.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/quick_study.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/stage_presence.tres" id="p5"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"jack"
+display_name = "Jack"
+shape = "thief"
+blurb = "Gentleman thief. Cloak, vanish, reappear. Fragile and tricky, but he steals your ultimate."
+max_hp = 540.0
+move_speed = 4.6
+radius = 0.5
+attack_range = 5.0
+attack_damage = 40.0
+attack_windup = 0.25
+attack_interval = 0.9
+sprint_color = Color(0.72, 0.5, 1, 1)
+sprint_lean_deg = 26.0
+sprint_bob = 0.12
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])

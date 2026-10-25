@@ -12,6 +12,7 @@ static func move_hero(sim: MatchSim, hero: HeroState, input: Vector2, dt: float)
 		hero.moving = false
 		return
 	hero.moving = true
+	hero.still_since = sim.time
 	hero.facing = v.normalized()
 	hero.pos = slide(sim, hero, hero.pos, v * hero.move_speed() * dt)
 

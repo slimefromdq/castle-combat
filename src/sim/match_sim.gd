@@ -27,6 +27,10 @@ var minions: Array[MinionState] = []
 var next_wave_time := 0.0
 var waves_spawned := 0
 var relay := RelayController.new()
+## Skillshots in flight (Abilities).
+var skillshots: Array[Skillshot] = []
+## Multiplies last-hit gold while an ability hit resolves (Last Call, Sleight of Hand).
+var kill_gold_mult := 1.0
 ## Siege minions each team has earned (Relay deliveries) for its next wave.
 var pending_siege: Array[int] = [0, 0]
 var over := false
@@ -52,6 +56,8 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	heroes.clear()
 	structures.clear()
 	minions.clear()
+	skillshots.clear()
+	kill_gold_mult = 1.0
 	next_wave_time = cfg.first_wave_time
 	waves_spawned = 0
 	pending_siege = [0, 0]
@@ -83,6 +89,8 @@ func step(commands: Array) -> void:
 		return
 	for e: SimEntity in entities.values():
 		e.prev_pos = e.pos
+	for h in heroes:
+		h._now = time
 	_respawn_heroes()
 	_heal_at_base()
 	Economy.tick(self)
@@ -101,12 +109,14 @@ func step(commands: Array) -> void:
 			Economy.try_sell(self, hero, cmd.sell_slot)
 		if cmd.buy_slot >= 0:
 			Economy.try_buy(self, hero, cmd.buy_slot)
-		hero._now = time
+		if cmd.perk_pick >= 0:
+			Leveling.pick_perk(self, hero, cmd.perk_pick)
 		if cmd.cast_slot >= 0:
 			Abilities.try_cast(self, hero, cmd.cast_slot, cmd.move)
 		Sprint.tick(self, hero, cmd)
 		if Abilities.move_forced(self, hero):
 			hero.moving = true  # Dashing or knocked back: no attacking meanwhile.
+			hero.still_since = time
 		elif hero.is_stunned(time):
 			hero.moving = false
 		else:
@@ -119,7 +129,7 @@ func step(commands: Array) -> void:
 	MinionAI.separate(self)
 	for hero in heroes:
 		_update_preferred_target(hero)
-		var may_attack := hero.alive and not hero.moving and not hero.is_stunned(time) and not hero.is_channeling()
+		var may_attack := hero.alive and not hero.moving and not hero.is_stunned(time) and not hero.is_busy_casting()
 		CombatSystem.tick_attack(self, hero, may_attack, Targeting.for_hero.bind(self, hero))
 	for s in structures:
 		var previous := s.attack_target

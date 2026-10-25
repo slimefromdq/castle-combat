@@ -13,6 +13,8 @@ var pending_buy := -1
 var pending_sell := -1
 ## Ability to cast (Q/E/R or a button), -1 for none.
 var pending_cast := -1
+## Perk choice (Z/X or a tapped card), -1 for none.
+var pending_perk := -1
 
 
 func build_command(_sim: MatchSim) -> PlayerCommand:
@@ -25,6 +27,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_target = 0
 	cmd.cast_slot = pending_cast
 	pending_cast = -1
+	cmd.perk_pick = pending_perk
+	pending_perk = -1
 	cmd.drop_relay = pending_drop
 	pending_drop = false
 	cmd.buy_slot = pending_buy
