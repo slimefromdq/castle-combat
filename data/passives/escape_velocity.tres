@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"escape_velocity"
 display_name = "Escape Velocity"
-summary = "The satellite orbits 25% faster and wider (3.5 m)"
+summary = "The drone flies 40% faster and zaps from 3.5 m"
 special = &"escape_velocity"
-special_value = 0.25
+special_value = 0.4
 special_value_2 = 3.5

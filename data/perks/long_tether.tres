@@ -6,6 +6,6 @@
 script = ExtResource("1_s")
 id = &"long_tether"
 display_name = "Long Tether"
-summary = "Plant the anchor 3 m further"
+summary = "Launch Drone reaches 3 m further"
 special = &"long_tether"
 special_value = 3.0

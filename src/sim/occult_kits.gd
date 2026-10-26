@@ -11,10 +11,10 @@ class_name OccultKits
 ##   burst) when it fades. Brass Section blasts a cone and knocks back, Strings plays in a
 ##   circle that chips and slows, Grand Finale sends out waves that push enemies away.
 ##
-##   KOSMONAUT: Orbit, a satellite circles its anchor (him, or a planted point) and
-##   damages what it passes. Plant Anchor moves the anchor (tap again to recall), Burn
-##   boosts the satellite half an orbit ahead, Re-entry drops it on the spot below it
-##   after a telegraph.
+##   KOSMONAUT: Drone, it hovers at his shoulder or where he parked it, never wandering
+##   on its own, and zaps the nearest enemy within 3 m every second. Launch Drone throws
+##   it to a spot (hitting what it flies through; tap again to call it home), Pulse
+##   bursts around it, Re-entry drops it on the spot below it after a telegraph.
 
 # ---------------------------------------------------------------- Serpent
 
@@ -41,21 +41,24 @@ const BRASS_HALF_ANGLE := 35.0
 
 # ---------------------------------------------------------------- KOSMONAUT
 
-## Orbit: radius (metres), one lap (seconds), the satellite's own size, and its passes.
-const ORBIT_RADIUS := 3.0
-const ORBIT_PERIOD := 2.4
-const SAT_RADIUS := 0.6
-const PASS_DAMAGE := 16.0
-const PASS_MINION_DAMAGE := 12.0
-const PASS_AP := 0.12
-## The same enemy can be hit by a pass again after this long.
-const PASS_REHIT := 0.8
-## A planted anchor comes back by itself when KOSMONAUT walks this far from it.
+## Drone: flight speed (m/s), zap reach and rhythm, zap damage, and where it hovers when
+## home (beside him and a little behind, the same way round all match: it never spins).
+const DRONE_SPEED := 16.0
+const ZAP_RANGE := 3.0
+const ZAP_EVERY := 1.0
+const ZAP_DAMAGE := 22.0
+const ZAP_MINION_DAMAGE := 16.0
+const ZAP_AP := 0.15
+const HOME_SIDE := 0.9
+const HOME_BACK := 0.4
+## A parked drone flies home by itself when KOSMONAUT walks this far from it.
 const LEASH := 12.0
+## The drone's own size, for hitting what it flies through.
+const DRONE_RADIUS := 0.6
 
 ## Stand-ins for hits that come from a trait, not an ability (for events and numbers).
 static var _venom_ability: AbilityData
-static var _pass_ability: AbilityData
+static var _zap_ability: AbilityData
 static var _viper_body: SimEntity
 
 
@@ -68,7 +71,9 @@ static func _trait_ability(id: StringName) -> AbilityData:
 
 # ---------------------------------------------------------------- casting
 
-static func cast_problem(_sim: MatchSim, _h: HeroState, _a: AbilityData) -> String:
+static func cast_problem(_sim: MatchSim, h: HeroState, a: AbilityData) -> String:
+	if a.effect == &"pulse" and h.reentry != null:
+		return "drone falling"
 	return ""
 
 
@@ -91,17 +96,13 @@ static func cast(sim: MatchSim, h: HeroState, slot: int, a: AbilityData, move: V
 			h.finale_left = a.pulses + int(h.has_special(&"da_capo"))
 			h.finale_next = sim.time
 			h.finale_key = key
-		&"plant_anchor":
+		&"launch_drone":
 			if recast:
 				recall(sim, h)
 				return false
-			_plant(sim, h, a, move, slot, info)
-		&"burn":
-			h.burn_ability = a
-			h.burn_until = sim.time + a.duration
-			h.burn_key = key
-			h.burn_hits.clear()
-			sim.emit_event(&"burn_started", {"hero": h.id, "team": h.team, "until": h.burn_until})
+			_launch_drone(sim, h, a, move, slot, key, info)
+		&"pulse":
+			_pulse(sim, h, a, key)
 		&"re_entry":
 			_re_entry(sim, h, a, move, key, info)
 	return true
@@ -136,7 +137,7 @@ static func tick(sim: MatchSim) -> void:
 		if not h.alive:
 			continue
 		_tick_finale(sim, h)
-		_tick_orbit(sim, h)
+		_tick_drone(sim, h)
 		_tick_reentry(sim, h)
 	_tick_vipers(sim)
 	_tick_instruments(sim)
@@ -367,82 +368,136 @@ static func _tick_finale(sim: MatchSim, h: HeroState) -> void:
 
 # ---------------------------------------------------------------- KOSMONAUT
 
-static func orbit_radius(h: HeroState) -> float:
+static func zap_range(h: HeroState) -> float:
 	var wide := h.passive_with(&"escape_velocity")
-	return wide.special_value_2 if wide != null else ORBIT_RADIUS
+	return wide.special_value_2 if wide != null else ZAP_RANGE
 
 
-static func orbit_speed(h: HeroState) -> float:
-	return TAU / ORBIT_PERIOD * (1.0 + h.passive_special(&"escape_velocity"))
+static func drone_speed(h: HeroState) -> float:
+	return DRONE_SPEED * (1.0 + h.passive_special(&"escape_velocity"))
 
 
-static func has_satellite(h: HeroState) -> bool:
-	return h.data.hero_trait == &"orbit" and h.alive
+static func has_drone(h: HeroState) -> bool:
+	return h.data.hero_trait == &"drone" and h.alive
 
 
-static func _plant(sim: MatchSim, h: HeroState, a: AbilityData, move: Vector2, slot: int, info: Dictionary) -> void:
+## Where the drone hovers when it is home: at his side, a little behind, always the same
+## way round for his team.
+static func drone_home(h: HeroState) -> Vector2:
+	var fwd := MatchSim.forward(h.team)
+	return h.pos + Vector2(fwd.y, -fwd.x) * HOME_SIDE - fwd * HOME_BACK
+
+
+static func _launch_drone(sim: MatchSim, h: HeroState, a: AbilityData, move: Vector2, slot: int, key: int, info: Dictionary) -> void:
 	var reach := a.reach + h.has_special(&"long_tether")
 	var spot := _ground_spot(sim, h, reach, move, 1.0)
-	h.sat_planted = true
-	h.sat_anchor = spot
+	if not h.drone_back:
+		h.drone_pos = drone_home(h)  # It leaves from his side.
+	h.drone_out = true
+	h.drone_back = false
+	h.drone_spot = spot
+	h.drone_ability = a
+	h.drone_key = key
+	h.drone_hits.clear()
 	h.recast_until[slot] = sim.time + 100000.0
 	info.point = spot
-	sim.emit_event(&"anchor_planted", {"hero": h.id, "team": h.team, "from": h.pos, "pos": spot})
+	sim.emit_event(&"drone_launched", {"hero": h.id, "team": h.team, "from": h.drone_pos, "pos": spot})
 
 
+## Call the drone home: it flies back, hitting what it passes again.
 static func recall(sim: MatchSim, h: HeroState) -> void:
-	if not h.sat_planted:
+	if not h.drone_out:
 		return
-	h.sat_planted = false
+	h.drone_out = false
+	h.drone_back = true
+	h.drone_hits.clear()
+	h.drone_key = sim.next_cast_key()
 	for i in h.data.abilities.size():
-		if h.data.abilities[i].effect == &"plant_anchor":
+		if h.data.abilities[i].effect == &"launch_drone":
 			h.recast_until[i] = 0.0
-	sim.emit_event(&"anchor_recalled", {"hero": h.id, "team": h.team, "pos": h.sat_anchor})
+	sim.emit_event(&"drone_recalled", {"hero": h.id, "team": h.team, "pos": h.drone_pos})
 
 
-static func _tick_orbit(sim: MatchSim, h: HeroState) -> void:
-	if h.data.hero_trait != &"orbit":
+static func _tick_drone(sim: MatchSim, h: HeroState) -> void:
+	if h.data.hero_trait != &"drone":
 		return
+	h.drone_prev = h.drone_pos
 	if h.reentry != null:
-		return  # The satellite is falling: it stays over the drop spot.
-	if h.sat_planted and h.pos.distance_to(h.sat_anchor) > LEASH:
+		return  # Falling: it stays over the drop spot.
+	if h.drone_out and h.pos.distance_to(h.drone_spot) > LEASH:
 		recall(sim, h)
-	var burning := sim.time < h.burn_until and h.burn_ability != null
-	var speed := orbit_speed(h)
-	if burning:
-		speed += PI / maxf(0.05, h.burn_ability.duration)  # Half an orbit, fast.
-	h.sat_angle = fmod(h.sat_angle + speed * sim.dt, TAU)
-	var anchor := h.sat_anchor if h.sat_planted else h.pos
-	h.sat_prev = h.sat_pos
-	h.sat_pos = anchor + Vector2(cos(h.sat_angle), sin(h.sat_angle)) * orbit_radius(h)
-	if _pass_ability == null:
-		_pass_ability = _trait_ability(&"orbit")
-	for e in Abilities.enemies_near(sim, h, h.sat_pos, SAT_RADIUS):
-		if burning:
-			if h.burn_hits.has(e.id):
-				continue
-			h.burn_hits[e.id] = true
-			var b := h.burn_ability
-			Abilities.hit(sim, h, e, b, h.burn_key)
-			if e is HeroState and e.alive:
-				var cold := h.perk_with(&"cold_burn")
-				if cold != null:
-					Kits.slow(sim, e, cold.special_value, cold.special_value_2)
-				else:
-					Kits.slow(sim, e, b.slow, b.slow_time)
+	var goal := h.drone_spot if h.drone_out else drone_home(h)
+	var flying := h.drone_out or h.drone_back
+	if not flying:
+		h.drone_pos = goal  # Home: it simply keeps up with him.
+	else:
+		var to := goal - h.drone_pos
+		var step := drone_speed(h) * sim.dt
+		if to.length() <= step:
+			h.drone_pos = goal
+			if h.drone_back:
+				h.drone_back = false
+		else:
+			h.drone_pos += to.normalized() * step
+			_drone_flight_hits(sim, h)
+			return  # No zaps in flight.
+	_zap(sim, h)
+
+
+## The drone hits each enemy it flies through once per trip.
+static func _drone_flight_hits(sim: MatchSim, h: HeroState) -> void:
+	var a := h.drone_ability
+	if a == null:
+		return
+	for e in Abilities.enemies_near(sim, h, h.drone_pos, DRONE_RADIUS):
+		if h.drone_hits.has(e.id):
 			continue
-		if sim.time < float(h.sat_hits.get(e.id, -1.0)):
-			continue
-		h.sat_hits[e.id] = sim.time + PASS_REHIT
-		var base := PASS_DAMAGE if e is HeroState else PASS_MINION_DAMAGE
-		var dmg := (base + PASS_AP * h.ability_power) * (1.0 + h.has_special(&"heavy_payload"))
-		Abilities.hit(sim, h, e, _pass_ability, sim.next_cast_key(), dmg)
+		h.drone_hits[e.id] = true
+		Abilities.hit(sim, h, e, a, h.drone_key)
+
+
+## Every second the hovering drone zaps the nearest enemy in reach (the hero first).
+static func _zap(sim: MatchSim, h: HeroState) -> void:
+	if sim.time + 0.0001 < h.zap_next:
+		return
+	var reach := zap_range(h)
+	var target: SimEntity = null
+	var them := sim.heroes[1 - h.team]
+	if them.alive and not them.is_untargetable() and not sim.is_hidden(them) and them.pos.distance_to(h.drone_pos) <= reach + them.radius:
+		target = them
+	else:
+		for m in sim.minions:
+			if m.alive and m.team != h.team and m.pos.distance_to(h.drone_pos) <= reach + m.radius:
+				if target == null or m.pos.distance_squared_to(h.drone_pos) < target.pos.distance_squared_to(h.drone_pos):
+					target = m
+	if target == null:
+		return
+	h.zap_next = sim.time + ZAP_EVERY
+	if _zap_ability == null:
+		_zap_ability = _trait_ability(&"zap")
+	var base := ZAP_DAMAGE if target is HeroState else ZAP_MINION_DAMAGE
+	var dmg := (base + ZAP_AP * h.ability_power) * (1.0 + h.has_special(&"heavy_payload"))
+	sim.emit_event(&"drone_zap", {"hero": h.id, "team": h.team, "from": h.drone_pos, "target": target.id})
+	Abilities.hit(sim, h, target, _zap_ability, sim.next_cast_key(), dmg)
+
+
+static func _pulse(sim: MatchSim, h: HeroState, a: AbilityData, key: int) -> void:
+	var at := h.drone_pos if has_drone(h) else h.pos
+	sim.emit_event(&"drone_pulse", {"hero": h.id, "team": h.team, "pos": at, "radius": a.radius})
+	var cold := h.perk_with(&"cold_pulse")
+	for e in Abilities.enemies_near(sim, h, at, a.radius):
+		Abilities.hit(sim, h, e, a, key)
+		if e is HeroState and e.alive:
+			if cold != null:
+				Kits.slow(sim, e, cold.special_value, cold.special_value_2)
+			else:
+				Kits.slow(sim, e, a.slow, a.slow_time)
 
 
 static func _re_entry(sim: MatchSim, h: HeroState, a: AbilityData, move: Vector2, key: int, info: Dictionary) -> void:
-	# KOSMONAUT drops his satellite where it is; anyone else (Jack's Encore) calls one
-	# down on the enemy hero or ahead of them.
-	var spot := h.sat_pos if has_satellite(h) else _ground_spot(sim, h, 7.0, move)
+	# KOSMONAUT drops his drone where it is; anyone else (Jack's Encore) calls one down
+	# on the enemy hero or ahead of them.
+	var spot := h.drone_pos if has_drone(h) else _ground_spot(sim, h, 7.0, move)
 	var quick := h.has_special(&"quick_descent")
 	h.reentry = a
 	h.reentry_at = sim.time + (quick if quick > 0.0 else a.delay)
@@ -467,12 +522,8 @@ static func _tick_reentry(sim: MatchSim, h: HeroState) -> void:
 		Abilities.hit(sim, h, e, a, h.reentry_key)
 		if e is HeroState and e.alive:
 			Abilities.stun(sim, e, a.stun)
-	if has_satellite(h):
-		# The satellite climbs back into its orbit from the drop spot.
-		var anchor := h.sat_anchor if h.sat_planted else h.pos
-		var off := h.reentry_pos - anchor
-		if off.length() > 0.01:
-			h.sat_angle = atan2(off.y, off.x)
+	if has_drone(h) and not h.drone_out:
+		h.drone_back = true  # It was only borrowed: back to his side.
 
 
 # ---------------------------------------------------------------- upkeep
@@ -487,8 +538,9 @@ static func clear(h: HeroState) -> void:
 	h.venom_from = 0
 	h.finale = null
 	h.finale_left = 0
-	h.burn_until = 0.0
-	h.burn_hits.clear()
 	h.reentry = null
-	h.sat_planted = false
-	h.sat_hits.clear()
+	h.drone_out = false
+	h.drone_back = false
+	h.drone_hits.clear()
+	h.drone_pos = drone_home(h)
+	h.drone_prev = h.drone_pos

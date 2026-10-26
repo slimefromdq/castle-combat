@@ -232,17 +232,18 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 			if ready.call(1) and safe and _enemy_minions_near(sim, me.pos, 6.0) >= 3:
 				return 1
 		&"kosmonaut":
-			var sat_to_them := me.sat_pos.distance_to(them.pos) if seen else INF
-			if me.sat_planted and Abilities.can_recast(sim, me, 0):
-				var anchor_off := me.sat_anchor.distance_to(them.pos) if seen else INF
-				if anchor_off > OccultKits.orbit_radius(me) + 2.5 or my_hp < 0.35:
-					return 0  # Call the satellite back.
-			if ready.call(2) and fight and sat_to_them < 1.6 and their_hp < 0.75:
+			# Park the drone on them, pulse when they stand next to it, call it home when
+			# they walk away from it or he needs to leave.
+			var drone_to_them := me.drone_pos.distance_to(them.pos) if seen else INF
+			if me.drone_out and Abilities.can_recast(sim, me, 0) and not me.drone_back:
+				if drone_to_them > OccultKits.zap_range(me) + 2.5 or my_hp < 0.35:
+					return 0
+			if ready.call(2) and fight and drone_to_them < 1.6 and their_hp < 0.75:
 				return 2
-			if ready.call(0) and not me.sat_planted and fight and d < 8.0 and d > OccultKits.orbit_radius(me) + 0.5:
-				return 0
-			if ready.call(1) and fight and (me.sat_anchor if me.sat_planted else me.pos).distance_to(them.pos) < OccultKits.orbit_radius(me) + 1.0:
+			if ready.call(1) and seen and drone_to_them < 2.6:
 				return 1
+			if ready.call(0) and not me.drone_out and fight and d < 8.0:
+				return 0
 	return -1
 
 

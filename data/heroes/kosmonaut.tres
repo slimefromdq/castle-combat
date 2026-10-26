@@ -4,13 +4,13 @@
 [ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
 [ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
 [ext_resource type="Script" path="res://src/data/passive_data.gd" id="4_ps"]
-[ext_resource type="Resource" path="res://data/abilities/plant_anchor.tres" id="a0"]
-[ext_resource type="Resource" path="res://data/abilities/burn.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/launch_drone.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/pulse.tres" id="a1"]
 [ext_resource type="Resource" path="res://data/abilities/re_entry.tres" id="a2"]
 [ext_resource type="Resource" path="res://data/perks/heavy_payload.tres" id="p0"]
 [ext_resource type="Resource" path="res://data/perks/long_tether.tres" id="p1"]
-[ext_resource type="Resource" path="res://data/perks/afterburner.tres" id="p2"]
-[ext_resource type="Resource" path="res://data/perks/cold_burn.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/overclock.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/cold_pulse.tres" id="p3"]
 [ext_resource type="Resource" path="res://data/perks/shockwave.tres" id="p4"]
 [ext_resource type="Resource" path="res://data/perks/quick_descent.tres" id="p5"]
 [ext_resource type="Resource" path="res://data/passives/liftoff.tres" id="s0"]
@@ -21,7 +21,7 @@ script = ExtResource("1_hero")
 id = &"kosmonaut"
 display_name = "KOSMONAUT"
 shape = "kosmonaut"
-blurb = "Silent, visor down, never without his satellite. It circles him or a planted anchor and hurts whatever it passes."
+blurb = "Silent, visor down, never without his drone. Park it anywhere: it hovers there and zaps whatever comes close."
 max_hp = 560.0
 move_speed = 4.6
 radius = 0.5
@@ -32,7 +32,7 @@ attack_interval = 0.95
 hp_per_level = 38.0
 attack_power_per_level = 2.0
 ability_power_per_level = 12.0
-hero_trait = &"orbit"
+hero_trait = &"drone"
 lean = "Ability"
 ratings = Array[int]([2, 4, 2, 5, 5])
 sprint_color = Color(0.6, 0.85, 1.0, 1)
