@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"phoenix_feather"
 display_name = "Phoenix Feather"
-cost = 2000
+cost = 1400
 tier = 2
 summary = "Survive a killing blow (90 s recharge)"
 phoenix_shield = 0.15

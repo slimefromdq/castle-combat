@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"reapers_rhythm"
 display_name = "Reaper's Rhythm"
-cost = 2000
+cost = 1400
 tier = 2
 summary = "Every 5th hit: lifesteal frenzy"
 attack_speed_bonus = 0.15

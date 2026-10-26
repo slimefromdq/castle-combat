@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"hex_needle"
 display_name = "Hex Needle"
-cost = 950
+cost = 725
 tier = 1
 summary = "+20 AP; abilities ignore 35% Ward"
 ability_power = 20.0

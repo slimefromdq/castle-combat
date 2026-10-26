@@ -383,6 +383,12 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
       Huddle 3/14, Jack 2/14; length median about 8:30; first to Lv5 won 31 of 56 (was 21 of 24).
       The bots play the melee kits plainly; human playtests should decide the next tuning
 
+### M16: cheaper items (Lucy: items felt like they didn't matter)
+
+- [x] Early items 300–400 -> 150–200, mid 900–1100 -> 700–800, late 2000–2400 -> 1400–2000
+      (each tier keeps its internal order). Masterworks stay a share of the item price; siege
+      scrolls keep their own price. No bot run, at Lucy's request
+
 **Next: metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)

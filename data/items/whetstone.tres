@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"whetstone"
 display_name = "Whetstone"
-cost = 350
+cost = 175
 tier = 0
 summary = "+8 ATK, +8% attack speed"
 attack_power = 8.0

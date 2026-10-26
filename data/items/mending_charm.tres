@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"mending_charm"
 display_name = "Mending Charm"
-cost = 350
+cost = 175
 tier = 0
 summary = "+6% HP, regen out of fights"
 max_hp_bonus = 0.06

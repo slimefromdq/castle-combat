@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"thorncut"
 display_name = "Thorncut"
-cost = 900
+cost = 700
 tier = 1
 summary = "Hits halve enemy healing, +4 ATK"
 attack_power = 4.0

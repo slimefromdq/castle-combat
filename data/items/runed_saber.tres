@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"runed_saber"
 display_name = "Runed Saber"
-cost = 1050
+cost = 775
 tier = 1
 summary = "+14 ATK, +25 AP; ability hits ready your next attack"
 attack_power = 14.0

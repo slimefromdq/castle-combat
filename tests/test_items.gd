@@ -219,7 +219,7 @@ func test_selling_refunds_half_and_frees_the_slot() -> void:
 	cmd.sell_slot = 1
 	sim.step([cmd, null])
 	check(not blue.owns(charm), "sold")
-	check_near(blue.gold - gold, charm.cost * 0.5 + MatchController.CONFIG.passive_gold_per_second * sim.dt, 0.01, "half the price back")
+	check_near(blue.gold - gold, roundf(charm.cost * 0.5) + MatchController.CONFIG.passive_gold_per_second * sim.dt, 0.01, "half the price back")
 	check_near(blue.max_hp, blue.data.max_hp, 0.01, "its stats are gone")
 	check(blue.hp <= blue.max_hp, "health is capped to the new maximum")
 	check(Economy.sell_problem(sim, blue, 1) != "", "can't sell what you don't own")

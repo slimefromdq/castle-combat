@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"hourglass_charm"
 display_name = "Hourglass Charm"
-cost = 350
+cost = 175
 tier = 0
 summary = "+10% Haste (shorter cooldowns)"
 cooldown_haste = 0.1

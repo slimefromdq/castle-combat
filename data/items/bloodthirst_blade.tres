@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"bloodthirst_blade"
 display_name = "Bloodthirst Blade"
-cost = 1000
+cost = 750
 tier = 1
 summary = "Lifesteal; fast attacks when low"
 attack_power = 5.0
