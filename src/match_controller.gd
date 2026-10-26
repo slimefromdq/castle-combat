@@ -184,6 +184,30 @@ func fast_forward(seconds: float) -> void:
 ## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
+	if what == "candles" or what == "alley":
+		# "candles": just after the candles light, you walk into your right-hand back
+		# alley toward its candle; the pocket candles' edge arrows show. "alley": the
+		# same alley from further back, with its candle snuffed and relighting.
+		sim.tick = int(round(sim.config.candle_first_time / sim.dt)) + 3
+		sim.time = sim.tick * sim.dt
+		sim.next_wave_time = 1000.0
+		sim.pickups.tick(sim)
+		var mine: PickupController.Candle = null
+		for c in sim.pickups.candles:
+			var local := MatchSim.to_team_space(local_seat, c.pos)
+			if local.y < -20.0 and local.x > 0.0:
+				mine = c
+		var me_s := sim.heroes[local_seat]
+		me_s.pos = mine.pos + MatchSim.to_team_space(local_seat, Vector2(-1.6, -2.2) if what == "candles" else Vector2(-1.2, -3.5))
+		me_s.prev_pos = me_s.pos
+		if what == "alley":
+			mine.lit = false
+			mine.lit_at = sim.time + sim.config.candle_respawn_time * 0.35
+		var them_s := sim.heroes[enemy]
+		them_s.pos = MatchSim.to_team_space(enemy, Vector2(0, -30))
+		them_s.prev_pos = them_s.pos
+		view.render(1.0, 0.0, true)
+		return
 	if what == "duel" or what == "perk":
 		# "duel": both heroes at level 6 a few metres apart in mid-lane (pair with
 		# --autopilot and --skip=N to catch abilities); "perk": you just hit level 2.

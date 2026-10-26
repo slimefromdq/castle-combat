@@ -77,6 +77,18 @@ extends Resource
 ## Expiry timer after a dropped Relay returns home, so it never vanishes without warning.
 @export var relay_return_expire_time := 12.0
 
+@export_group("Votive candles")
+## Candles in the back alleys and Relay pockets (ArenaData.candles). Each is first lit at
+## candle_first_time and relit candle_respawn_time after it is taken. Standing on one for
+## candle_take_time (alone, without taking damage) takes it: XP (with the usual catch-up)
+## and gold.
+@export var candle_first_time := 90.0
+@export var candle_respawn_time := 60.0
+@export var candle_radius := 1.1
+@export var candle_take_time := 0.5
+@export var candle_xp := 45.0
+@export var candle_gold := 25.0
+
 @export_group("Levels")
 ## Total XP needed to reach each level (index 0 = level 1). Abilities unlock at 1, 3, 5;
 ## perks at 2, 4, 6 (the last is the capstone).
@@ -195,8 +207,8 @@ extends Resource
 ## Overtime starts at overtime_time if no Guardian has fallen, else at overtime_late_time.
 ## Structures then take more and deal less damage, new minions are tankier, and
 ## respawns are longer.
-@export var overtime_time := 600.0
-@export var overtime_late_time := 840.0
+@export var overtime_time := 660.0
+@export var overtime_late_time := 900.0
 @export var overtime_structure_damage_taken := 1.4
 @export var overtime_structure_damage_dealt := 0.5
 @export var overtime_minion_hp_mult := 1.4

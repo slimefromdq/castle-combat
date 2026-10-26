@@ -11,6 +11,7 @@ var _unit_root: Node3D
 var _arena_view: ArenaView
 var _fx: CombatFx
 var _bars: UnitBars
+var _candle_view: CandleView
 var _relay_view: RelayView
 var _status: StatusFx
 ## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
@@ -52,6 +53,10 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_relay_view.name = "Relay"
 	_relay_view.view = self
 	add_child(_relay_view)
+	_candle_view = CandleView.new()
+	_candle_view.name = "Candles"
+	_candle_view.view = self
+	add_child(_candle_view)
 	_fx = CombatFx.new()
 	_fx.view = self
 	add_child(_fx)
@@ -197,6 +202,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			body3.scale = Vector3.ONE * (want if snap else lerpf(body3.scale.x, want, 1.0 - exp(-14.0 * delta)))
 	_update_helpers()
 	_relay_view.render(alpha)
+	_candle_view.render()
 	_status.render()
 	var me := sim.heroes[local_seat]
 	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)

@@ -73,4 +73,4 @@ func test_bot_vs_bot_stays_healthy() -> void:
 		peak = maxi(peak, sim.minions.size())
 	check(peak < 60, "minions don't pile up forever (peak %d)" % peak)
 	for h in sim.heroes:
-		check(absf(h.pos.x) < 11.0 and absf(h.pos.y) < 43.0, "hero stayed on the map")
+		check(absf(h.pos.x) < ArenaGeometry.half_width(sim.arena) and absf(h.pos.y) < sim.arena.half_length, "hero stayed on the map")
