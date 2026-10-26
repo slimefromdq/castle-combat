@@ -22,6 +22,8 @@ var half_length := 30.0
 ## Widest point of the map (side pockets and their walls), metres from the centre line.
 var half_width := 12.0
 var _focus := Vector3.ZERO
+## 1 = normal; below 1 zooms in (the victory close-up).
+var zoom := 1.0
 
 
 func _init() -> void:
@@ -114,10 +116,10 @@ func _fit_to_screen() -> void:
 		return
 	if s.x / s.y > 9.0 / 16.0:
 		camera.keep_aspect = Camera3D.KEEP_HEIGHT
-		camera.size = VIEW_WIDTH * 16.0 / 9.0
+		camera.size = VIEW_WIDTH * 16.0 / 9.0 * zoom
 	else:
 		camera.keep_aspect = Camera3D.KEEP_WIDTH
-		camera.size = VIEW_WIDTH
+		camera.size = VIEW_WIDTH * zoom
 
 
 func _apply() -> void:

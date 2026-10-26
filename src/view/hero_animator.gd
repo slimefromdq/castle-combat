@@ -153,6 +153,23 @@ static func _cast_pose(kind: AnimStyle.Cast, c: float, size: float, pos: Vector3
 	return [pos, rot, scale]
 
 
+## After the match: the winner repeats their ult pose as a victory dance, the loser
+## hangs their head. t = seconds since the match ended.
+func celebrate(h: HeroState, pose: Node3D, t: float, won: bool) -> void:
+	var s := style(h)
+	if won:
+		var beat := 1.1
+		var posed := _cast_pose(s.ult, fmod(t, beat) / beat, 1.3, Vector3.ZERO, Vector3.ZERO, Vector3.ONE)
+		pose.position = posed[0] + Vector3(0, absf(sin(t * 6.0)) * 0.06, 0)
+		pose.rotation_degrees = posed[1]
+		pose.scale = posed[2]
+	else:
+		var k := clampf(t / 0.6, 0.0, 1.0)
+		pose.position = Vector3.ZERO
+		pose.rotation_degrees = Vector3(-28.0 * k, 0, 4.0 * sin(t * 1.5) * k)
+		pose.scale = Vector3(1.0, 1.0 - 0.08 * k, 1.0)
+
+
 ## A quick snap to 1, then a slower settle back to 0.
 static func _punch(t: float) -> float:
 	if t < 0.2:

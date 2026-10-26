@@ -13,7 +13,7 @@ func test_menu_starts_on_battle_with_default_deck() -> void:
 	check(menu.current_tab == MainMenu.Tab.BATTLE, "opens on the Battle tab")
 	check(menu.deck == Array(MatchController.DEFAULT_DECK, TYPE_INT, "", null), "default deck pre-picked")
 	check(menu.deck_full(), "default deck is full")
-	check(menu._hero_name.text == MatchController.HEROES[0].display_name.to_upper(), "showcase names the hero")
+	check(menu._hero_name.text == MatchController.HEROES[0].display_name, "showcase names the hero")
 	menu.free()
 
 
@@ -21,7 +21,7 @@ func test_pick_hero_updates_showcase() -> void:
 	var menu := _menu()
 	menu.pick_hero(2)
 	check(menu.hero_index == 2, "hero index stored")
-	check(menu._hero_name.text == MatchController.HEROES[2].display_name.to_upper(), "name plate follows the pick")
+	check(menu._hero_name.text == MatchController.HEROES[2].display_name, "name plate follows the pick")
 	check(menu._kit_label.text.contains(MatchController.HEROES[2].abilities[0].display_name), "kit lists the hero's abilities")
 	menu.free()
 

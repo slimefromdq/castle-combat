@@ -106,7 +106,8 @@ func pick_hero(i: int) -> void:
 	hero_index = i
 	var hero := MatchController.HEROES[i]
 	_stage.show_hero(hero)
-	_hero_name.text = hero.display_name.to_upper()
+	_hero_name.text = hero.display_name
+	HeroLettering.apply(_hero_name, hero.id, 50 if hero.display_name.length() <= 7 else 40)
 	_hero_blurb.text = hero.blurb
 	for j in _hero_cards.size():
 		Zine.style_button(_hero_cards[j], Zine.SUN if j == i else Zine.WHITE, 400 + j, 8.0)
@@ -461,6 +462,7 @@ func _build_heroes_page() -> Control:
 		stage.show_hero(hero)
 		cv.add_child(stage)
 		var n := Zine.label(hero.display_name, Zine.MARKER, 26)
+		HeroLettering.apply(n, hero.id, 30 if hero.display_name.length() <= 7 else 21)
 		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		cv.add_child(n)
 		card.add_child(cv)

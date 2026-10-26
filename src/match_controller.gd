@@ -91,6 +91,8 @@ var local_seat := MatchSim.BLUE
 var touch_mode := false
 ## Dev: the bot also drives the local hero (for screenshots and soak tests).
 var autopilot: BotSource
+## The VS intro before the clock starts (dev runs and bots skip it).
+var play_intro := true
 
 var sim: MatchSim
 var view: MatchView
@@ -100,6 +102,9 @@ var bot: BotSource
 var _accumulator := 0.0
 var _mouse_screen := Vector2.ZERO
 var _mouse_seen := false
+var _intro: MatchIntro
+var _victory: MatchVictory
+var _victory_started := false
 
 
 func _ready() -> void:
@@ -138,17 +143,40 @@ func _ready() -> void:
 	# Real touch screens get the joystick by default; desktop can opt in with F3.
 	touch_mode = DisplayServer.is_touchscreen_available()
 	hud.set_touch_mode(touch_mode, not DisplayServer.is_touchscreen_available())
+	if play_intro:
+		_intro = MatchIntro.new()
+		_intro.setup(sim.heroes[local_seat].data, sim.heroes[1 - local_seat].data)
+		_intro.finished.connect(func() -> void: _intro = null)
+		add_child(_intro)
 
 
 func _process(delta: float) -> void:
-	_accumulator += minf(delta, 0.25)
-	while _accumulator >= sim.dt:
-		_accumulator -= sim.dt
-		_tick()
+	# The clock waits while the intro plays.
+	if _intro == null:
+		_accumulator += minf(delta, 0.25)
+		while _accumulator >= sim.dt:
+			_accumulator -= sim.dt
+			_tick()
+	if sim.over and not _victory_started:
+		_start_victory()
 	view.render(_accumulator / sim.dt, delta)
+	hud.visible = _intro == null
+	hud.hold_result = _victory != null
 	hud.refresh(sim, local_seat, Engine.get_frames_per_second())
 	hud.set_fullscreen_label(UiKit.is_fullscreen())
 	_update_aim()
+
+
+## The last Core fell: the winner celebrates and a VICTORY/DEFEAT flyer plays before
+## the result panel.
+func _start_victory() -> void:
+	_victory_started = true
+	var w := sim.heroes[sim.winner]
+	view.celebrate(sim.winner)
+	_victory = MatchVictory.new()
+	_victory.setup(sim.winner == local_seat, w.data, Palette.team_color(sim.winner == local_seat))
+	_victory.finished.connect(func() -> void: _victory = null)
+	add_child(_victory)
 
 
 ## Desktop: abilities aim at the ground under the mouse. Touch: the way you move, or the
@@ -313,6 +341,18 @@ func stage(what: String) -> void:
 		for h in sim.heroes:
 			h.prev_pos = h.pos
 		view.render(1.0, 0.0, true)
+		return
+	if what == "win":
+		# The enemy Core falls in front of you: the victory celebration plays.
+		var me_w := sim.heroes[local_seat]
+		var theirs_w := sim.structures_of(enemy)
+		me_w.pos = theirs_w[2].pos - MatchSim.forward(local_seat) * 4.0
+		me_w.prev_pos = me_w.pos
+		for st in theirs_w:
+			st.immune_until = 0.0
+			sim.apply_damage(st, st.max_hp * 10.0, me_w)
+			st.immune_until = 0.0
+		fast_forward(0.1)
 		return
 	if what == "bush" or what == "core":
 		# "bush": you hide in the bush ahead of your tower while the enemy walks past (it
