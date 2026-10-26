@@ -5,7 +5,7 @@ extends RefCounted
 
 ## Fired for things views, HUD and metrics care about: windup_started, windup_cancelled,
 ## attack_fired, unit_killed, hero_respawned, wave_spawned, match_over, aggro_called,
-## and the relay_* events from RelayController.
+## the relay_* events from RelayController and candle_lit / candle_taken (PickupController).
 signal sim_event(type: StringName, data: Dictionary)
 
 const BLUE := 0
@@ -27,6 +27,8 @@ var minions: Array[MinionState] = []
 var next_wave_time := 0.0
 var waves_spawned := 0
 var relay := RelayController.new()
+## Votive candles (XP + gold pickups in the alleys and pockets).
+var pickups := PickupController.new()
 ## Skillshots in flight (Abilities).
 var skillshots: Array[Skillshot] = []
 ## Slayer's traps and every running damage-over-time effect (see Kits).
@@ -93,6 +95,7 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 		_register(h)
 		heroes.append(h)
 	relay.setup(self)
+	pickups.setup(self)
 
 
 ## Advances one fixed tick. commands[team] is that team's PlayerCommand (or null).
@@ -154,6 +157,7 @@ func step(commands: Array) -> void:
 		# Locked structures stay dormant: no attacks until the one in front falls.
 		CombatSystem.tick_attack(self, s, s.alive and is_exposed(s) and not s.is_busy(time), func() -> SimEntity: return Targeting.for_structure(self, s, previous))
 	relay.tick(self)
+	pickups.tick(self)
 	_remove_dead_minions()
 	tick += 1
 	time = tick * dt

@@ -300,6 +300,12 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		var banner: Dictionary = _banner_to_take(sim, me, their_front)
 		cmd.move = _toward(me, banner.pos)
 		return cmd
+	elif _candle_to_take(sim, me, them, seen) != null:
+		# R5. A lit candle close by, nobody fighting us for it: take it (XP + gold).
+		var candle: PickupController.Candle = _candle_to_take(sim, me, them, seen)
+		var off := me.pos.distance_to(candle.pos)
+		cmd.move = _toward(me, candle.pos) if off > 0.3 else Vector2.ZERO
+		return cmd
 	elif seen and them.hp < them.max_hp * 0.35 and me.hp > me.max_hp * 0.5 \
 			and (their_front == null or them.pos.distance_to(their_front.pos) > their_front.attack_range + 1.0):
 		# 4. Punish a weak hero who is away from their tower, whatever their minions do.
@@ -393,9 +399,39 @@ func _clear(sim: MatchSim, a: Vector2, b: Vector2, r: float) -> bool:
 	return true
 
 
-## Two points per pocket entrance: one just inside the pocket, one out in the lane.
+## A lit candle worth walking to: on our half or in a pocket, near enough, with the
+## enemy hero not standing over it and not in a fight with us.
+func _candle_to_take(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> PickupController.Candle:
+	if me.hp < me.max_hp * 0.5:
+		return null
+	if seen and me.pos.distance_to(them.pos) < 7.0:
+		return null
+	var best: PickupController.Candle = null
+	var best_d := 18.0
+	for c in sim.pickups.lit_candles():
+		var local := MatchSim.to_team_space(team, c.pos)
+		if local.y > 8.0:
+			continue  # Deep in their half: not worth the walk.
+		if seen and them.pos.distance_to(c.pos) < me.pos.distance_to(c.pos):
+			continue
+		var d := me.pos.distance_to(c.pos)
+		if d < best_d:
+			best_d = d
+			best = c
+	return best
+
+
+## Two points per pocket entrance and per alley gap: one just inside, one out in the lane.
 func _waypoints(sim: MatchSim) -> Array[Vector2]:
 	if _points.is_empty():
+		for alley in sim.arena.alleys:
+			var side := signf(alley.get_center().x)
+			var inner_x := side * (sim.arena.lane_half_width + 1.7)
+			var outer_x := side * (sim.arena.lane_half_width - 1.5)
+			var g := sim.arena.alley_gap / 2.0
+			for y: float in [alley.position.y + g, alley.end.y - g]:
+				_points.append(Vector2(inner_x, y))
+				_points.append(Vector2(outer_x, y))
 		for pocket in sim.arena.pockets:
 			var c := pocket.get_center()
 			var side := signf(c.x)

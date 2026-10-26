@@ -1,6 +1,7 @@
 class_name ArenaView
 extends Node3D
-## The static map: meadow, sandstone lane, violet Relay pockets, low walls and scenery.
+## The static map: meadow, sandstone lane, violet Relay pockets, brick back alleys, low
+## walls and scenery.
 ## Each half of the lane carries its owner's color on the lane edges and a soft wash
 ## near its base, so "whose side is this" reads at a glance. Rebuilt when seats swap,
 ## because ally/enemy is relative to the viewer.
@@ -25,11 +26,15 @@ func build(arena: ArenaData, local_seat: int) -> void:
 	# Lane and pockets.
 	for i in arena.floors.size():
 		var r := arena.floors[i]
-		var color := Palette.LANE if i == 0 else Palette.POCKET
+		var color := Palette.LANE if i == 0 else (Palette.ALLEY if r in arena.alleys else Palette.POCKET)
 		UnitFactory.part(self, UnitFactory.box(Vector3(r.size.x, 0.1, r.size.y)), color, MatchView.to_world(r.get_center(), -0.05))
 	_tiles(arena.floors[0], Palette.LANE_TILE, 2.5, 1.9)
 	for pocket in arena.pockets:
 		_tiles(pocket, Palette.POCKET_TILE, 1.5, 0.9)
+	for alley in arena.alleys:
+		# Cobbles start past the lane wall strip the alley floor runs under.
+		var inner := alley.grow_side(SIDE_LEFT if alley.position.x > 0.0 else SIDE_RIGHT, -0.66)
+		_tiles(inner, Palette.ALLEY_TILE, 1.1, 0.8)
 	# Team halves: colored lane edges plus a soft wash toward each base.
 	for team in [MatchSim.BLUE, MatchSim.RED]:
 		var c := Palette.team_color(team == local_seat)

@@ -22,7 +22,7 @@ func _init() -> void:
 	var rows: Array[String] = []
 	var lengths: Array[float] = []
 	var level_times := {3: [], 4: [], 5: [], 6: []}
-	var extra := {"ult_race": 0, "ult_race_won": 0, "masterworks": 0, "delivered": 0, "intercepted": 0, "spawned": 0, "scrolls": 0}
+	var extra := {"ult_race": 0, "ult_race_won": 0, "masterworks": 0, "delivered": 0, "intercepted": 0, "spawned": 0, "scrolls": 0, "candles": 0, "candles_winner": 0, "candle_split": []}
 	for h in heroes:
 		wins[h.id] = 0
 		games[h.id] = 0
@@ -78,6 +78,9 @@ func _init() -> void:
 		if not t5.is_empty():
 			print("%s reached Lv5: median %s" % [h.display_name, _clock(t5[t5.size() / 2])])
 	print("Relays: %d spawned, %d delivered, %d knocked loose; siege scrolls read: %d" % [extra.spawned, extra.delivered, extra.intercepted, extra.scrolls])
+	var split: Array = extra.candle_split
+	split.sort()
+	print("Candles: %d taken (%.1f a match), winners took %d; median gap between the two heroes %d" % [extra.candles, float(extra.candles) / maxf(1.0, lengths.size()), extra.candles_winner, split[split.size() / 2] if not split.is_empty() else 0])
 	print("First to Lv5 won %d of %d; Masterworks made: %d" % [extra.ult_race_won, extra.ult_race, extra.masterworks])
 	print("")
 	for id: StringName in perk_games:
@@ -97,6 +100,7 @@ func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_
 	b.team = 1
 	b.perk_choices = picks_b
 	var kos := [0, 0]
+	var candles := [0, 0]
 	var listen := func(type: StringName, data: Dictionary) -> void:
 		if type == &"unit_killed" and data.kind == SimEntity.Kind.HERO:
 			kos[data.team] += 1
@@ -117,6 +121,8 @@ func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_
 			extra.intercepted += 1
 		elif type == &"siege_scroll":
 			extra.scrolls += 1
+		elif type == &"candle_taken":
+			candles[data.team] += 1
 	sim.sim_event.connect(listen)
 	while not sim.over and sim.time < MAX_TIME:
 		sim.step([a.build_command(sim), b.build_command(sim)])
@@ -125,6 +131,10 @@ func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_
 		extra.ult_race += 1
 		if sim.ult_race_winner == sim.winner:
 			extra.ult_race_won += 1
+	extra.candles += candles[0] + candles[1]
+	extra.candle_split.append(absi(candles[0] - candles[1]))
+	if sim.winner >= 0:
+		extra.candles_winner += candles[sim.winner]
 	return {"winner": sim.winner, "time": sim.time, "kos": kos}
 
 

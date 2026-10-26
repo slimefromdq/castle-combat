@@ -194,6 +194,11 @@ static func minion_structure_mult(sim: MatchSim, m: MinionState) -> float:
 	return 1.0 + bonus
 
 
+## Pays a hero gold (with the match's gold ramp) and emits gold_awarded.
+static func award(sim: MatchSim, hero: HeroState, amount: float, reason: StringName) -> void:
+	_award(sim, hero, amount, reason)
+
+
 static func _award(sim: MatchSim, hero: HeroState, amount: float, reason: StringName) -> void:
 	amount *= Pacing.gold_mult(sim)
 	if amount <= 0.0:

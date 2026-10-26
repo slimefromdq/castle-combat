@@ -433,3 +433,18 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
 - Browser builds in a landscape window scale the portrait UI down; play in a narrow
   window or on a phone for the intended layout.
 - FPS in CI/sandbox screenshots is software rendering, not a real measurement.
+
+## Occult expansion, phase I: map and votive candles
+
+Plan: [Occult Expansion Plan](https://claude.ai/artifact/8cY8YgQfxRdwM9Koj3BefU).
+
+- Lane 15% longer (`half_length` 53.25); structures, spawns and pockets moved with it.
+- Four back alleys (`ArenaData.alleys`), one on each flank of each half between the Outer
+  Tower and the Guardian, joined to the lane by two 2.4 m gaps, with a bush each.
+- Votive candles (`PickupController`, `ArenaData.candles`): six, mirrored. Two in each
+  team's home alleys, one in each Relay pocket. All light at 1:30, relight 60 s after being
+  taken. Stand on one alone for 0.5 s without taking damage: 45 XP (with catch-up) and 25 gold.
+- `CandleView` draws them and puts screen-edge arrows on lit candles off screen.
+- Bots take a lit candle on their half or in a pocket when nobody contests it.
+- Overtime moved to 11:00 (15:00 if a Guardian has fallen).
+- Screenshots: `--stage=candles` and `--stage=alley`.
