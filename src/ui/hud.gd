@@ -38,15 +38,23 @@ const COLUMN_MAX := 1000.0
 
 var joystick: ThumbStick
 var debug_visible := false
+## True while the victory animation plays: the result panel waits for it.
+var hold_result := false
 
 var _root: Control
 var _top: PanelContainer
 var _bottom: PanelContainer
 var _them_name: Label
+var _them_level: Label
+var _them_portrait: HeroPortrait
+var _them_mood := PortraitMood.new()
 var _them_hp: ProgressBar
 var _them_xp: ProgressBar
 var _them_pips: StructPips
 var _you_name: Label
+var _you_level: Label
+var _you_portrait: HeroPortrait
+var _you_mood := PortraitMood.new()
 var _you_hp: ProgressBar
 var _you_xp: ProgressBar
 var _you_pips: StructPips
@@ -152,11 +160,10 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	var me := sim.heroes[seat]
 	var them := sim.heroes[1 - seat]
 	_me = me
-	_you_name.text = "%s · Lv %d" % [me.data.display_name, me.level]
-	_them_name.text = "%s · Lv %d" % [them.data.display_name, them.level]
-	# Long names (KOSMONAUT) step the font down so the level still fits.
-	for l: Label in [_you_name, _them_name]:
-		l.add_theme_font_size_override("font_size", 22 if l.text.length() <= 14 else 18)
+	_name_plate(_you_name, _you_level, _you_portrait, me)
+	_name_plate(_them_name, _them_level, _them_portrait, them)
+	_you_portrait.set_mood(_you_mood.update(me, them, sim.time))
+	_them_portrait.set_mood(_them_mood.update(them, me, sim.time))
 	_you_xp.value = Leveling.progress(sim, me)
 	_them_xp.value = Leveling.progress(sim, them)
 	_you_hp.value = me.hp / me.max_hp
@@ -173,7 +180,7 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_respawn.visible = not me.alive and not sim.over
 	if _respawn.visible:
 		_respawn.text = "Respawning in %d" % ceili(me.respawn_at - sim.time)
-	if sim.over and not _result.visible:
+	if sim.over and not _result.visible and not hold_result:
 		_result_title.text = "Victory!" if sim.winner == seat else "Defeat"
 		_result_title.add_theme_color_override("font_color", Palette.ALLY.lightened(0.3) if sim.winner == seat else Palette.ENEMY.lightened(0.2))
 		_result.visible = true
@@ -183,6 +190,16 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	if debug_visible:
 		_debug.text = "FPS %d   tick %d   t %.1fs\nyou (%.1f, %.1f) %s" % [
 			fps, sim.tick, sim.time, me.pos.x, me.pos.y, "moving" if me.moving else "stopped"]
+
+
+## Name in the hero's own lettering, level under it in the HUD type. Fonts are only
+## swapped when the hero changes (seat swap).
+func _name_plate(name: Label, level: Label, portrait: HeroPortrait, h: HeroState) -> void:
+	if portrait.hero_id != h.data.id:
+		name.text = h.data.display_name
+		HeroLettering.apply(name, h.data.id, 26 if h.data.display_name.length() <= 7 else 20)
+		portrait.setup(h.data.id, portrait.team_color)
+	level.text = "Lv %d" % h.level
 
 
 ## Wide screens: keep the HUD in a centred column so the thumbs and the lane stay close.
@@ -578,11 +595,24 @@ func _side(sim: MatchSim, pocket: int, seat: int) -> String:
 ## One band row: name, health and XP bars, structure pips, and optional extra buttons.
 func _band_row(color: Color, name_color: Color) -> Dictionary:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	var name := UiKit.label("", 22, name_color)
-	name.custom_minimum_size = Vector2(170, 0)
+	row.add_theme_constant_override("separation", 10)
+	var portrait := HeroPortrait.new()
+	portrait.team_color = color
+	portrait.custom_minimum_size = Vector2(60, 60)
+	portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(portrait)
+	var plate := VBoxContainer.new()
+	plate.add_theme_constant_override("separation", -4)
+	plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	plate.custom_minimum_size = Vector2(132, 0)
+	var name := UiKit.label("", 24, name_color)
 	name.clip_text = true
-	row.add_child(name)
+	_outlined(name)
+	plate.add_child(name)
+	var level := UiKit.label("", 17, Color(1, 1, 1, 0.85))
+	plate.add_child(level)
+	row.add_child(plate)
 	var bars := VBoxContainer.new()
 	bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -597,7 +627,7 @@ func _band_row(color: Color, name_color: Color) -> Dictionary:
 	pips.custom_minimum_size = Vector2(84, 28)
 	pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(pips)
-	return {"row": row, "name": name, "hp": hp, "xp": xp, "pips": pips}
+	return {"row": row, "name": name, "level": level, "portrait": portrait, "hp": hp, "xp": xp, "pips": pips}
 
 
 func _build_top(inset: float) -> void:
@@ -610,6 +640,8 @@ func _build_top(inset: float) -> void:
 	_root.add_child(_top)
 	var r := _band_row(Palette.ENEMY, Palette.ENEMY.lightened(0.2))
 	_them_name = r.name
+	_them_level = r.level
+	_them_portrait = r.portrait
 	_them_hp = r.hp
 	_them_xp = r.xp
 	_them_pips = r.pips
@@ -703,6 +735,8 @@ func _build_bottom() -> void:
 	_root.add_child(_bottom)
 	var r := _band_row(Palette.ALLY, Palette.ALLY.lightened(0.25))
 	_you_name = r.name
+	_you_level = r.level
+	_you_portrait = r.portrait
 	_you_hp = r.hp
 	_you_xp = r.xp
 	_you_pips = r.pips

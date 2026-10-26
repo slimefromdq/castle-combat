@@ -16,6 +16,9 @@ var _relay_view: RelayView
 var _status: StatusFx
 var _occult: OccultFx
 var _animator := HeroAnimator.new()
+## After the match: the winner's team, and when the celebration started (-1 = none).
+var _celebrate_team := -1
+var _celebrate_at := 0.0
 ## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
 var _range_ring: MeshInstance3D
 ## Faint gold circle: enemy minions dying inside it pay you their gold.
@@ -203,7 +206,10 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			var body: Node3D = node.get_node("Body")
 			var target_yaw := atan2(-facing.x, facing.y)
 			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
-		if e is HeroState:
+		if e is HeroState and _celebrate_team >= 0:
+			_animator.celebrate(e, node.get_node("Body/Pose"), _celebration_time(), e.team == _celebrate_team)
+			_show_gear(e, node.get_node("Body/Pose"))
+		elif e is HeroState:
 			_animator.animate(e, node.get_node("Body/Pose"), alpha, delta)
 			_show_gear(e, node.get_node("Body/Pose"))
 			# In the shadows Jack shrinks into a dark pool.
@@ -216,7 +222,13 @@ func render(alpha: float, delta: float, snap := false) -> void:
 	_status.render()
 	_occult.render(alpha)
 	var me := sim.heroes[local_seat]
-	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
+	if _celebrate_team >= 0:
+		# Zoom in on the winner (or their fallen-Core side if they're down).
+		var w := sim.heroes[_celebrate_team]
+		camera_rig.zoom = lerpf(camera_rig.zoom, 0.7, 1.0 - exp(-3.0 * delta))
+		camera_rig.follow(to_world(w.pos), delta, snap)
+	else:
+		camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
 	_place_aim_line(to_world(me.prev_pos.lerp(me.pos, alpha)))
 
 
@@ -233,6 +245,16 @@ func _show_gear(h: HeroState, body: Node3D) -> void:
 	master.visible = not h.masterworks.is_empty()
 	if master.visible:
 		master.rotation.y = Time.get_ticks_msec() / 400.0
+
+
+## The match is over: the winner celebrates, the loser slumps, the camera closes in.
+func celebrate(winner_team: int) -> void:
+	_celebrate_team = winner_team
+	_celebrate_at = Time.get_ticks_msec() / 1000.0
+
+
+func _celebration_time() -> float:
+	return Time.get_ticks_msec() / 1000.0 - _celebrate_at
 
 
 ## Troopers waddle while they march and rock back as they wind up a hit.

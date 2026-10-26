@@ -60,6 +60,8 @@ func _start_match() -> void:
 	_match = MatchController.new()
 	_match.hero_index = _menu.hero_index
 	_match.deck = MatchController.deck_from(_menu.deck)
+	var args := OS.get_cmdline_user_args()
+	_match.play_intro = "--autoplay" not in args or "--intro" in args
 	_match.exit_requested.connect(_end_match)
 	_match.restart_requested.connect(_restart_match)
 	add_child(_match)

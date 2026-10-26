@@ -5,6 +5,7 @@ class_name UiKit
 static func make_theme() -> Theme:
 	var t := Theme.new()
 	t.default_font_size = 24
+	t.default_font = HeroLettering.hud_font()
 	var panel := StyleBoxFlat.new()
 	panel.bg_color = Color(0.07, 0.08, 0.1, 0.72)
 	panel.set_corner_radius_all(14)
