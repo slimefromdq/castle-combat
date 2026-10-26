@@ -15,6 +15,7 @@ var _candle_view: CandleView
 var _relay_view: RelayView
 var _status: StatusFx
 var _occult: OccultFx
+var _animator := HeroAnimator.new()
 ## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
 var _range_ring: MeshInstance3D
 ## Faint gold circle: enemy minions dying inside it pay you their gold.
@@ -70,6 +71,8 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_occult.view = self
 	add_child(_occult)
 	sim.sim_event.connect(_occult.on_sim_event)
+	_animator.reset(sim)
+	sim.sim_event.connect(_animator.on_sim_event)
 	var bar_layer := CanvasLayer.new()
 	bar_layer.layer = 0
 	add_child(bar_layer)
@@ -188,6 +191,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 		if e is MinionState and e.is_power:
 			node.scale = Vector3.ONE * 1.3
 		if e is MinionState:
+			_minion_step(e, node.get_node("Body"))
 			node.get_node("Flag").visible = e.bannered
 			var shield: Node3D = node.get_node_or_null("Body/Shield")
 			if shield != null:
@@ -200,8 +204,8 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			var target_yaw := atan2(-facing.x, facing.y)
 			body.rotation.y = target_yaw if snap else lerp_angle(body.rotation.y, target_yaw, 1.0 - exp(-18.0 * delta))
 		if e is HeroState:
-			_sprint_pose(e, node.get_node("Body"), delta)
-			_show_gear(e, node.get_node("Body"))
+			_animator.animate(e, node.get_node("Body/Pose"), alpha, delta)
+			_show_gear(e, node.get_node("Body/Pose"))
 			# In the shadows Jack shrinks into a dark pool.
 			var body3: Node3D = node.get_node("Body")
 			var want := 0.45 if e.is_vanished() else 1.0
@@ -216,7 +220,6 @@ func render(alpha: float, delta: float, snap := false) -> void:
 	_place_aim_line(to_world(me.prev_pos.lerp(me.pos, alpha)))
 
 
-## Sprinting heroes lean into the run and bounce (each hero its own way, see HeroData).
 ## Item silhouettes: mid items light the weapon, late items add armor or clothing, and a
 ## Masterwork floats a gem over the head.
 func _show_gear(h: HeroState, body: Node3D) -> void:
@@ -232,13 +235,13 @@ func _show_gear(h: HeroState, body: Node3D) -> void:
 		master.rotation.y = Time.get_ticks_msec() / 400.0
 
 
-func _sprint_pose(h: HeroState, body: Node3D, delta: float) -> void:
-	var d := h.data
-	var k := 1.0 - exp(-10.0 * delta)
-	var lean := -deg_to_rad(d.sprint_lean_deg) if h.sprinting else 0.0
-	body.rotation.x = lerpf(body.rotation.x, lean, k)
-	var bob := absf(sin(Time.get_ticks_msec() / 70.0)) * d.sprint_bob if h.sprinting else 0.0
-	body.position.y = lerpf(body.position.y, bob, k * 2.0)
+## Troopers waddle while they march and rock back as they wind up a hit.
+func _minion_step(m: MinionState, body: Node3D) -> void:
+	var moving := m.pos.distance_squared_to(m.prev_pos) > 0.0001
+	var t := Time.get_ticks_msec() / 1000.0 * 9.0 + m.id
+	body.position.y = absf(sin(t)) * 0.07 if moving else 0.0
+	body.rotation.z = sin(t) * 0.08 if moving else 0.0
+	body.rotation.x = deg_to_rad(12.0 * m.windup_progress()) if m.is_winding_up() else 0.0
 
 
 ## A "!" over minions and towers that a hero's attack has called: red when they are
