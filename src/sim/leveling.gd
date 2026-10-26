@@ -1,14 +1,23 @@
 class_name Leveling
-## Hero XP and levels (Lucy's ladder, replacing the GDD's "no levels" rule):
-## level 1 ability, 2 perk, 3 second ability, 4 perk, 5 ultimate, 6 capstone perk.
+## Hero XP and levels (Lucy's ladder, replacing the GDD's "no levels" rule), nine levels:
+##   1 ability · 2 perk · 3 second ability + passive · 4 perk · 5 growth · 6 ultimate ·
+##   7 capstone perk + siege scrolls · 8 passive + Masterworks · 9 crown.
 ## XP comes mostly from minions dying near you (same rule as gold), then knockouts, with a
 ## trickle over time: leaving lane costs levels as well as gold.
 ## Each level-up heals and briefly speeds up attacks (the "surge").
 ## A hero behind the enemy hero in level earns more, so a lost fight is not a lost game.
 
 
+## Levels that unlock abilities 0, 1, 2 (the last is the ultimate).
+const ABILITY_LEVELS: Array[int] = [1, 3, 6]
+## Levels that offer perk tiers 0, 1, 2 (pick one of two).
+const PERK_LEVELS: Array[int] = [2, 4, 7]
+## Levels that grant the hero's automatic passives 0 and 1 (HeroData.passives).
+const PASSIVE_LEVELS: Array[int] = [3, 8]
 ## The level that unlocks the ultimate. Whoever gets there first wins the "ult race".
-const ULT_LEVEL := 5
+const ULT_LEVEL := 6
+## The last level: a bigger level-up surge and a crown ring.
+const CROWN_LEVEL := 9
 
 
 static func tick(sim: MatchSim) -> void:
@@ -50,11 +59,16 @@ static func gain(sim: MatchSim, h: HeroState, amount: float) -> void:
 	h.xp += amount * (1.0 + behind * sim.config.catch_up_per_level)
 	while h.level < max_level(sim) and h.xp + 0.0001 >= sim.config.level_xp[h.level]:
 		h.level += 1
-		if h.level % 2 == 0 and h.level / 2 - 1 < 3:
-			h.perk_offered_at[h.level / 2 - 1] = sim.time
+		var tier := PERK_LEVELS.find(h.level)
+		if tier >= 0:
+			h.perk_offered_at[tier] = sim.time
 		h.recompute_stats()
 		_surge(sim, h)
-		sim.emit_event(&"level_up", {"hero": h.id, "team": h.team, "level": h.level})
+		var info := {"hero": h.id, "team": h.team, "level": h.level}
+		var p := PASSIVE_LEVELS.find(h.level)
+		if p >= 0 and p < h.data.passives.size():
+			info.passive = h.data.passives[p].display_name
+		sim.emit_event(&"level_up", info)
 		if h.level == ULT_LEVEL and sim.ult_race_winner < 0:
 			sim.ult_race_winner = h.team
 			sim.emit_event(&"ult_race_won", {"hero": h.id, "team": h.team})
@@ -64,9 +78,10 @@ static func gain(sim: MatchSim, h: HeroState, amount: float) -> void:
 static func _surge(sim: MatchSim, h: HeroState) -> void:
 	if not h.alive:
 		return
-	sim.heal(h, h.max_hp * sim.config.level_up_heal_fraction)
+	var crown := h.level == CROWN_LEVEL
+	sim.heal(h, h.max_hp * sim.config.level_up_heal_fraction * (2.0 if crown else 1.0))
 	h.surge_bonus = sim.config.level_up_attack_speed
-	h.surge_until = sim.time + sim.config.level_up_surge_time
+	h.surge_until = sim.time + sim.config.level_up_surge_time * (2.0 if crown else 1.0)
 
 
 ## 0..1 progress from the current level to the next (1 at max level).

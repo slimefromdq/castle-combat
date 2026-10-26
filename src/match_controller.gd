@@ -209,10 +209,10 @@ func stage(what: String) -> void:
 		view.render(1.0, 0.0, true)
 		return
 	if what == "duel" or what == "perk":
-		# "duel": both heroes at level 6 a few metres apart in mid-lane (pair with
+		# "duel": both heroes at max level (9) a few metres apart in mid-lane (pair with
 		# --autopilot and --skip=N to catch abilities); "perk": you just hit level 2.
 		for h in sim.heroes:
-			Leveling.gain(sim, h, float(sim.config.level_xp[5 if what == "duel" else 1]) - h.xp + 0.01)
+			Leveling.gain(sim, h, float(sim.config.level_xp[sim.config.level_xp.size() - 1 if what == "duel" else 1]) - h.xp + 0.01)
 			if what == "duel":
 				for t in 3:
 					Leveling.pick_perk(sim, h, 0)
@@ -222,26 +222,26 @@ func stage(what: String) -> void:
 		view.render(1.0, 0.0, true)
 		return
 	if what == "spikes" or what == "ultrace":
-		# "spikes": both heroes at level 6 by your tower, carrying mid and late items (item
+		# "spikes": both heroes at level 8 by your tower, carrying mid and late items (item
 		# silhouettes, Masterwork offers, the enemy spike callout). "ultrace": you just
-		# reached level 5 first (level-up ring and the ult race pillar).
+		# reached level 6 first (level-up ring and the ult race pillar).
 		for h in sim.heroes:
 			h.pos = MatchSim.to_team_space(local_seat, Vector2(0.6 + (2.2 if h.team != local_seat else -1.2), -10.5 if h.team == local_seat else -6.0))
 			h.prev_pos = h.pos
 		sim.next_wave_time = 1000.0
 		var me_u := sim.heroes[local_seat]
 		if what == "ultrace":
-			Leveling.gain(sim, sim.heroes[enemy], float(sim.config.level_xp[3]) - sim.heroes[enemy].xp + 0.01)
-			Leveling.gain(sim, me_u, float(sim.config.level_xp[3]) - me_u.xp + 0.01)
+			Leveling.gain(sim, sim.heroes[enemy], float(sim.config.level_xp[Leveling.ULT_LEVEL - 2]) - sim.heroes[enemy].xp + 0.01)
+			Leveling.gain(sim, me_u, float(sim.config.level_xp[Leveling.ULT_LEVEL - 2]) - me_u.xp + 0.01)
 			for h in sim.heroes:
 				Leveling.pick_perk(sim, h, 0)
 				Leveling.pick_perk(sim, h, 0)
 			me_u.hp = me_u.max_hp * 0.6
 			view.render(1.0, 0.0, true)
-			Leveling.gain(sim, me_u, float(sim.config.level_xp[4]) - me_u.xp + 0.01)
+			Leveling.gain(sim, me_u, float(sim.config.level_xp[Leveling.ULT_LEVEL - 1]) - me_u.xp + 0.01)
 			return
 		for h in sim.heroes:
-			Leveling.gain(sim, h, float(sim.config.level_xp[5]) - h.xp + 0.01)
+			Leveling.gain(sim, h, float(sim.config.level_xp[sim.config.masterwork_level - 1]) - h.xp + 0.01)
 			for t in 3:
 				Leveling.pick_perk(sim, h, 0)
 			# A mid and a late item from the deck (the cheapest of each).
@@ -290,11 +290,11 @@ func stage(what: String) -> void:
 		fast_forward(0.4)
 		return
 	if what == "aim" or what == "shop":
-		# "aim": level 5 in mid-lane, dragging the R button to aim (touch). "shop": level 6
+		# "aim": level 6 in mid-lane, dragging the R button to aim (touch). "shop": level 8
 		# at your base, so the item tray opens with the Masterwork row.
 		var me_a := sim.heroes[local_seat]
 		sim.next_wave_time = 1000.0
-		Leveling.gain(sim, me_a, float(sim.config.level_xp[4 if what == "aim" else 5]) - me_a.xp + 0.01)
+		Leveling.gain(sim, me_a, float(sim.config.level_xp[Leveling.ULT_LEVEL - 1 if what == "aim" else sim.config.masterwork_level - 1]) - me_a.xp + 0.01)
 		for t in 3:
 			Leveling.pick_perk(sim, me_a, 0)
 		if what == "aim":

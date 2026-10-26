@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"grand_illusion"
+display_name = "Grand Illusion"
+summary = "+20 ability power and +1 m attack range"
+ability_power = 20.0
+attack_range = 1.0

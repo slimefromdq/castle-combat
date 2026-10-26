@@ -30,10 +30,10 @@ static func pips(n: int) -> String:
 	return "●".repeat(n) + "○".repeat(5 - n)
 
 
-## Menu card: lean, rating pips and base stats at Lv1 -> Lv6.
+## Menu card: lean, rating pips and base stats at Lv1 -> max level (before passives).
 static func for_hero(data: HeroData) -> String:
 	var lo := HeroStats.at_level(data, 1)
-	var hi := HeroStats.at_level(data, 6)
+	var hi := HeroStats.at_level(data, Leveling.CROWN_LEVEL)
 	var t := "[b]%s hero[/b]   " % data.lean
 	var parts: Array[String] = []
 	for i in RATING_NAMES.size():

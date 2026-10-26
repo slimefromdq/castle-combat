@@ -113,13 +113,17 @@ func pick_hero(i: int) -> void:
 		var tag: Control = _hero_cards[j].get_node("Picked")
 		tag.visible = j == i
 	var lines: Array[String] = []
-	var unlock := [1, 3, 5]
+	var unlock := Leveling.ABILITY_LEVELS
 	for k in hero.abilities.size():
 		var ab := hero.abilities[k]
 		var scale := StatCard.scaling(ab)
 		lines.append("Lv%d  [b]%s[/b]: %s%s" % [unlock[k], ab.display_name, ab.summary, ("  (" + scale + ")") if scale != "" else ""])
 	for tier in hero.perks.size() / 2:
-		lines.append("Lv%d  perk: %s or %s" % [2 + tier * 2, hero.perks[tier * 2].display_name, hero.perks[tier * 2 + 1].display_name])
+		lines.append("Lv%d  perk: %s or %s" % [Leveling.PERK_LEVELS[tier], hero.perks[tier * 2].display_name, hero.perks[tier * 2 + 1].display_name])
+	for k in mini(hero.passives.size(), Leveling.PASSIVE_LEVELS.size()):
+		var ps := hero.passives[k]
+		lines.append("Lv%d  [b]%s[/b] (automatic): %s" % [Leveling.PASSIVE_LEVELS[k], ps.display_name, ps.summary])
+	lines.sort_custom(func(a: String, b: String) -> bool: return int(a.substr(2, 1)) < int(b.substr(2, 1)))
 	_kit_label.text = StatCard.for_hero(hero) + "\n\n" + "\n".join(lines)
 
 

@@ -91,8 +91,8 @@ static func siege_scroll_cost(sim: MatchSim, hero: HeroState) -> float:
 
 ## Why buying a siege scroll would fail, or "" if it is allowed.
 static func siege_scroll_problem(sim: MatchSim, hero: HeroState) -> String:
-	if hero.level < sim.config.masterwork_level:
-		return "siege scrolls at level %d" % sim.config.masterwork_level
+	if hero.level < sim.config.siege_scroll_level:
+		return "siege scrolls at level %d" % sim.config.siege_scroll_level
 	if not in_shop_range(sim, hero):
 		return "shop at your tower or base"
 	if sim.pending_siege[hero.team] >= sim.config.siege_scroll_max:

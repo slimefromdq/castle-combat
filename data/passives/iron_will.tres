@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"iron_will"
+display_name = "Iron Will"
+summary = "+200 max HP"
+max_hp = 200.0

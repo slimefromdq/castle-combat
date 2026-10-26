@@ -11,7 +11,7 @@ class_name Kits
 ## Tot's trait: this share of every hit he takes is postponed into Debt.
 const DEBT_SHARE := 0.35
 ## Debt drains into real damage this fast (HP per second).
-const DEBT_DRAIN := 45.0
+const DEBT_DRAIN := 30.0
 ## Absolute Rule: a knockout this long after it ends still forgives the Debt.
 const RULE_GRACE := 1.0
 ## Buzz: stacks that set off an Overwhelm, its damage and slow.
@@ -85,8 +85,8 @@ static func cast(sim: MatchSim, h: HeroState, slot: int, a: AbilityData, move: V
 			Abilities.force(sim, h, -dir * a.distance, a.travel_time, false)
 			h.facing = dir
 		&"latch_cloud":
-			var t := Abilities.aim_unit(sim, h, a.reach * 1.1)
-			Abilities.launch(sim, h, a, Abilities.aim_dir(h, move, t), a.damage, a.damage, key)
+			var t := Abilities.aim_hero(sim, h, a.reach * 1.1)
+			Abilities.launch(sim, h, a, Abilities.aim_dir(h, move, t), a.damage, a.damage, key).heroes_only = true
 		&"scatter":
 			_scatter(sim, h, a, move, info)
 		&"swarm_storm":
@@ -143,6 +143,7 @@ static func tick(sim: MatchSim) -> void:
 		_tick_debt(sim, h)
 	_tick_traps(sim)
 	_tick_dots(sim)
+	_tick_clouds(sim)
 
 
 static func _tick_charges(_sim: MatchSim, h: HeroState) -> void:
@@ -377,6 +378,12 @@ static func _axe_hit(sim: MatchSim, s: Skillshot, e: SimEntity) -> void:
 
 ## A skillshot ran out or hit a wall: Boomerang sends the axe back once.
 static func skillshot_ended(sim: MatchSim, s: Skillshot) -> void:
+	if s.ability.effect == &"latch_cloud" and s.hits.is_empty() and s.owner.alive:
+		# A miss hangs in the air: the enemy hero walking into it gets latched.
+		var cloud := {"id": sim.new_id(), "shot": s, "pos": s.pos, "until": sim.time + LATCH_LINGER, "team": s.owner.team}
+		sim.clouds.append(cloud)
+		sim.emit_event(&"cloud_lingering", {"id": cloud.id, "pos": s.pos, "until": cloud.until, "team": cloud.team})
+		return
 	if s.ability.effect != &"headsmans_axe" or s.returning:
 		return
 	var h := s.owner
@@ -396,12 +403,34 @@ static func skillshot_ended(sim: MatchSim, s: Skillshot) -> void:
 
 # ---------------------------------------------------------------- Huddle
 
+## A missed Latch Cloud lingers this long, and latches onto a hero this close to it.
+const LATCH_LINGER := 2.0
+const LATCH_LINGER_RADIUS := 1.2
+
+
+static func _tick_clouds(sim: MatchSim) -> void:
+	for i in range(sim.clouds.size() - 1, -1, -1):
+		var c: Dictionary = sim.clouds[i]
+		var s: Skillshot = c.shot
+		var them := sim.heroes[1 - int(c.team)]
+		if sim.time >= c.until or not s.owner.alive:
+			sim.clouds.remove_at(i)
+			sim.emit_event(&"cloud_gone", {"id": c.id})
+			continue
+		if them.alive and not them.is_untargetable() and them.pos.distance_to(c.pos) <= LATCH_LINGER_RADIUS + them.radius:
+			sim.clouds.remove_at(i)
+			sim.emit_event(&"cloud_gone", {"id": c.id})
+			_latched(sim, s, them)
+
 static func _latched(sim: MatchSim, s: Skillshot, e: SimEntity) -> void:
 	var h := s.owner
 	var a := s.ability
 	var per := a.damage + HeroStats.ability_bonus(h, a)
 	add_dot(sim, h, e, per * a.pulses, a.duration, a.pulses, 2, a.id)
 	sim.emit_event(&"latched", {"hero": h.id, "target": e.id, "until": sim.time + a.duration})
+	if e is HeroState:
+		e.latched_until = sim.time + a.duration
+		e.latched_by = h.id
 	if e is HeroState:
 		var honey := h.has_special(&"honey")
 		if honey > 0.0:
@@ -709,7 +738,8 @@ static func _tick_debt(sim: MatchSim, h: HeroState) -> void:
 		return
 	if h.debt <= 0.0 or rule_active(sim, h):
 		return
-	_pay(sim, h, minf(h.debt, DEBT_DRAIN * (1.0 - h.has_special(&"iron_faith")) * sim.dt))
+	var drain := DEBT_DRAIN * (1.0 - h.has_special(&"iron_faith")) * (1.0 - h.passive_special(&"debt_slow"))
+	_pay(sim, h, minf(h.debt, drain * sim.dt))
 
 
 ## Debt turns into real damage. If it knocks him out, the enemy hero gets the credit.
@@ -844,8 +874,9 @@ static func _tick_dots(sim: MatchSim) -> void:
 		d.left -= 1
 		d.count += 1
 		_quiet = true
-		sim.apply_damage(t, d.per, src, &"ability")
+		var dealt := sim.apply_damage(t, d.per, src, &"ability")
 		_quiet = false
+		sim.emit_event(&"dot_tick", {"hero": src.id, "target": t.id, "amount": dealt, "ability": d.ability})
 		if d.buzz_every > 0 and d.count % d.buzz_every == 0 and t is HeroState and t.alive:
 			add_buzz(sim, src, t as HeroState)
 		if d.left <= 0:

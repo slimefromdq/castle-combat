@@ -80,7 +80,7 @@ func test_white_whale_carries_and_stuns() -> void:
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
 	blue.attack_damage = 0.0
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	var start := red.pos
 	_cast(sim, 2)
 	check(_count(&"ability_cast") == 1, "cast")
@@ -96,7 +96,7 @@ func test_jack_copies_the_whale() -> void:
 	var sim := _sim(JACK, AHAB, Vector2(0, 3))
 	var blue := sim.heroes[0]
 	blue.attack_damage = 0.0
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2)
 	run_ticks(sim, _secs(sim, 0.7))
 	check(_count(&"whale_breach") == 1, "Jack summons Ahab's whale")
@@ -148,7 +148,7 @@ func test_headsmans_axe_takes_a_chunk() -> void:
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
 	blue.attack_damage = 0.0
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2)
 	run_ticks(sim, _secs(sim, 1.2))
 	check(red.max_hp - red.hp > red.max_hp * 0.12 + 100.0, "big hit plus max HP (lost %d)" % int(red.max_hp - red.hp))
@@ -200,7 +200,7 @@ func test_swarm_storm_rides_the_hero() -> void:
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
 	red.attack_damage = 40.0
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2)
 	check(blue.engulf_target == red.id, "engulfed")
 	var hp := blue.hp
@@ -262,7 +262,7 @@ func test_cut_to_ribbons() -> void:
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
 	blue.attack_damage = 0.0
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2)
 	check(red.root_until > sim.time, "feet sewn down")
 	run_ticks(sim, _secs(sim, 1.6))
@@ -280,6 +280,8 @@ func test_blood_debt_postpones_damage() -> void:
 	sim.apply_damage(blue, 100.0, red, &"basic")
 	check_near(hp - blue.hp, 65.0, 0.01, "65% lands now")
 	check_near(blue.debt, 35.0, 0.01, "35% goes into Debt")
+	run_ticks(sim, _secs(sim, 0.5))
+	check_near(blue.debt, 35.0 - Kits.DEBT_DRAIN * 0.5, 1.0, "Debt drains at %d HP a second" % int(Kits.DEBT_DRAIN))
 	run_ticks(sim, _secs(sim, 1.0))
 	check(blue.debt < 0.01 and blue.hp < hp - 99.0, "Debt drains into real damage")
 
@@ -324,7 +326,7 @@ func test_absolute_rule_fails_and_lands_at_once() -> void:
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
 	blue.attack_damage = 0.0
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2)
 	run_ticks(sim, 12)
 	place(red, Vector2(8, 14))  # Out of reach, so Tot's swings can't cancel Debt.
@@ -343,7 +345,7 @@ func test_absolute_rule_kill_forgives() -> void:
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
 	blue.attack_damage = 0.0
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2)
 	run_ticks(sim, 12)
 	sim.apply_damage(blue, 300.0, red, &"basic")

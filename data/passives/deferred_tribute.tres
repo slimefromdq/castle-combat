@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"deferred_tribute"
+display_name = "Deferred Tribute"
+summary = "+8 attack power; Debt drains 25% slower"
+attack_power = 8.0
+special = &"debt_slow"
+special_value = 0.25

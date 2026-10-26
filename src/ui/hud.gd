@@ -230,7 +230,7 @@ func _refresh_abilities(sim: MatchSim, me: HeroState) -> void:
 		var problem := Abilities.cast_problem(sim, me, i)
 		var status := ""
 		if not me.ability_unlocked(i):
-			status = "Lv %d" % (1 + i * 2)
+			status = "Lv %d" % Leveling.ABILITY_LEVELS[mini(i, 2)]
 		elif me.alive and Abilities.can_recast(sim, me, i):
 			status = FOLLOW_UP.get(a.effect, "Again!")
 			if a.effect == &"sweet_talk":
@@ -251,7 +251,7 @@ func _refresh_perks(sim: MatchSim, me: HeroState) -> void:
 	if not _perk_box.visible:
 		return
 	var left := maxf(0.0, sim.config.perk_auto_pick_time - (sim.time - me.perk_offered_at[tier]))
-	_perk_title.text = "Level %d perk: pick one (%ds)" % [2 + tier * 2, ceili(left)]
+	_perk_title.text = "Level %d perk: pick one (%ds)" % [Leveling.PERK_LEVELS[tier], ceili(left)]
 	var options := me.perk_options(tier)
 	for k in _perk_buttons.size():
 		var b := _perk_buttons[k]
@@ -270,11 +270,12 @@ func toggle_details() -> void:
 
 
 ## The tray of item cards shows only in shop range (at your tower or base), with a
-## Masterwork / siege scroll row from level 6. The thumbs move up to make room.
+## siege scroll row from level 7 (Masterworks join it at level 8). The thumbs move up
+## to make room.
 func _refresh_tray(sim: MatchSim, me: HeroState) -> void:
 	var open := me.alive and Economy.in_shop_range(sim, me) and not sim.over
 	_tray.visible = open
-	var lv6 := open and me.level >= sim.config.masterwork_level
+	var lv6 := open and me.level >= mini(sim.config.siege_scroll_level, sim.config.masterwork_level)
 	_master_row.visible = lv6
 	if open:
 		_refresh_cards(sim, me)
@@ -322,9 +323,10 @@ func _refresh_masterwork(sim: MatchSim, me: HeroState) -> void:
 	for item in me.items:
 		if not me.is_masterwork(item):
 			_master_slots.append(me.deck.find(item))
+	var masterworks_open := me.level >= sim.config.masterwork_level
 	for k in _master_buttons.size():
 		var b := _master_buttons[k]
-		b.visible = k < _master_slots.size()
+		b.visible = masterworks_open and k < _master_slots.size()
 		if not b.visible:
 			continue
 		var slot := _master_slots[k]
@@ -393,6 +395,13 @@ func _refresh_details(sim: MatchSim, seat: int) -> void:
 		var color := Palette.ALLY.lightened(0.3) if side == seat else Palette.ENEMY.lightened(0.25)
 		t += "[color=#%s][b]%s %s · Lv %d[/b][/color]\n" % [color.to_html(false), "You:" if side == seat else "Them:", h.data.display_name, h.level]
 		t += "Items: %s\n" % _items_text(h, sim.config.max_items)
+		var growth: Array[String] = []
+		for p in h.owned_perks():
+			growth.append(p.display_name)
+		for p in h.owned_passives():
+			growth.append("%s (%s)" % [p.display_name, p.summary])
+		if not growth.is_empty():
+			t += "Perks & passives: %s\n" % "  ·  ".join(growth)
 		t += StatCard.live(h) + "\n"
 		var parts: Array[String] = []
 		for s in sim.structures_of(side):
@@ -463,9 +472,9 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 			text = "Banner taken: your next wave is stronger" if data.team == seat else "The enemy took the banner: their next wave is stronger"
 		&"ult_race_won":
 			if data.team == seat:
-				text = "You reached Lv5 first! Ultimate ready (R): go fight"
+				text = "You reached Lv%d first! Ultimate ready (R): go fight" % Leveling.ULT_LEVEL
 			else:
-				text = "Enemy hit Lv5 first: their ultimate is up, play safe"
+				text = "Enemy hit Lv%d first: their ultimate is up, play safe" % Leveling.ULT_LEVEL
 				_enemy_spike(&"")
 		&"overtime_started":
 			text = "Overtime! Structures are weakened, waves are tankier"
@@ -493,10 +502,24 @@ func _level_text(lv: int, seat: int) -> String:
 	if _sim_for_text == null:
 		return "Level %d" % lv
 	var h := _sim_for_text.heroes[seat]
-	if lv % 2 == 1:
-		var a := h.data.abilities[(lv - 1) / 2]
-		return "Level %d: %s unlocked (%s)" % [lv, a.display_name, ["Q", "E", "R"][(lv - 1) / 2]]
-	return "Level %d: pick a perk (Z / X)" % lv
+	var parts: Array[String] = []
+	var ability := Leveling.ABILITY_LEVELS.find(lv)
+	if ability >= 0 and ability < h.data.abilities.size():
+		parts.append("%s unlocked (%s)" % [h.data.abilities[ability].display_name, ["Q", "E", "R"][ability]])
+	var passive := Leveling.PASSIVE_LEVELS.find(lv)
+	if passive >= 0 and passive < h.data.passives.size():
+		parts.append("%s: %s" % [h.data.passives[passive].display_name, h.data.passives[passive].summary])
+	if Leveling.PERK_LEVELS.has(lv):
+		parts.append("pick a perk (Z / X)")
+	if lv == _sim_for_text.config.siege_scroll_level:
+		parts.append("siege scrolls at the shop (N)")
+	if lv == _sim_for_text.config.masterwork_level:
+		parts.append("Masterworks at the shop")
+	if lv == Leveling.CROWN_LEVEL:
+		parts.append("max level, crowned!")
+	if parts.is_empty():
+		return "Level %d: stronger" % lv
+	return "Level %d: %s" % [lv, " · ".join(parts)]
 
 
 func _enemy_spike(item_id: StringName) -> void:
@@ -688,8 +711,8 @@ func _build_bottom() -> void:
 	_bottom.add_child(r.row)
 
 
-## The shop tray just above the bottom band: eight cards, plus Masterworks and the siege
-## scroll from level 6. Visible only in shop range.
+## The shop tray just above the bottom band: eight cards, plus the siege scroll from
+## level 7 and Masterworks from level 8. Visible only in shop range.
 func _build_tray() -> void:
 	_tray = PanelContainer.new()
 	_tray.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"latch_cloud"
 display_name = "Latch Cloud"
-summary = "Send a cloud 7 m; it sticks to the first enemy for 3 s: 6 x 14 dmg and 1 Buzz a second"
+summary = "Send a cloud 7 m through troopers; it latches onto the enemy hero for 3 s: 6 x 14 dmg and 1 Buzz a second. A miss hangs in the air 2 s"
 effect = &"latch_cloud"
 cooldown = 8.0
 reach = 7.0

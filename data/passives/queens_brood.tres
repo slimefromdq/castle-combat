@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"queens_brood"
+display_name = "Queen's Brood"
+summary = "+15 ability power and +12% attack speed"
+ability_power = 15.0
+attack_speed_bonus = 0.12

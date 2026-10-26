@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="HeroData" load_steps=13 format=3]
+[gd_resource type="Resource" script_class="HeroData" load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
 [ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
@@ -12,6 +12,10 @@
 [ext_resource type="Resource" path="res://data/perks/vanishing_act.tres" id="p3"]
 [ext_resource type="Resource" path="res://data/perks/quick_study.tres" id="p4"]
 [ext_resource type="Resource" path="res://data/perks/stage_presence.tres" id="p5"]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="4_ps"]
+[ext_resource type="Resource" path="res://data/passives/card_sharp.tres" id="s0"]
+[ext_resource type="Resource" path="res://data/passives/grand_illusion.tres" id="s1"]
 
 [resource]
 script = ExtResource("1_hero")
@@ -35,3 +39,4 @@ sprint_lean_deg = 26.0
 sprint_bob = 0.12
 abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
 perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])
+passives = Array[ExtResource("4_ps")]([ExtResource("s0"), ExtResource("s1")])

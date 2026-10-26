@@ -65,16 +65,20 @@ func test_level_curve_and_unlocks() -> void:
 	check(blue.owned_perks().is_empty() and blue.pending_perk_tier() == 0, "the level 2 perk waits for a pick")
 	Leveling.pick_perk(sim, blue, 1)
 	check(blue.owned_perks().size() == 1 and blue.owned_perks()[0].id == &"steadfast", "picked the second option")
+	_level(sim, blue, 5)
+	check(blue.level == 5 and not blue.ability_unlocked(2), "level 5: no ultimate yet")
 	_level(sim, blue, 6)
 	check(blue.level == 6 and blue.ability_unlocked(2), "level 6: ultimate")
 	Leveling.pick_perk(sim, blue, 0)
+	check(blue.pending_perk_tier() == -1, "the capstone perk waits for level 7")
+	_level(sim, blue, 7)
 	Leveling.pick_perk(sim, blue, 1)
 	var ids := blue.owned_perks().map(func(p: PerkData) -> StringName: return p.id)
 	check(ids == [&"steadfast", &"shatter", &"sanctuary"], "one perk from each pair (got %s)" % [ids])
 	check(not Leveling.pick_perk(sim, blue, 0), "nothing left to pick")
-	Leveling.gain(sim, blue, 10000.0)
-	check(blue.level == 6, "level 6 is the cap")
-	check(_count(&"level_up") == 5, "five level-ups")
+	Leveling.gain(sim, blue, 100000.0)
+	check(blue.level == 9, "level 9 is the cap")
+	check(_count(&"level_up") == 8, "eight level-ups")
 
 
 func test_every_hero_has_three_perk_pairs() -> void:
@@ -258,7 +262,7 @@ func test_judgment_blade_stuns_and_pulls() -> void:
 	var sim := _sim(AVERY, JOSE)
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_still(red)
 	place(red, Vector2(0, 5))
 	_cast(sim, 2)
@@ -273,7 +277,7 @@ func test_judgment_blade_can_be_dodged() -> void:
 	var sim := _sim(AVERY, JOSE)
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_still(red)
 	place(red, Vector2(0, 7))
 	_cast(sim, 2)
@@ -285,7 +289,7 @@ func test_judgment_and_sanctuary() -> void:
 	var sim := _sim(AVERY, JOSE)
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	_level_pick(sim, blue, 6, [0, 0, 0])
+	_level_pick(sim, blue, 7, [0, 0, 0])
 	_still(red)
 	place(red, Vector2(0, 5))
 	_cast(sim, 2)
@@ -294,7 +298,7 @@ func test_judgment_and_sanctuary() -> void:
 	check_near(Abilities.basic_damage(sim, blue, red, 100.0), 100.0, 0.01, "only once")
 	var sim2 := _sim(AVERY, JOSE)
 	var b2 := sim2.heroes[0]
-	_level_pick(sim2, b2, 6, [0, 0, 1])
+	_level_pick(sim2, b2, 7, [0, 0, 1])
 	_still(sim2.heroes[1])
 	place(sim2.heroes[1], Vector2(0, 5))
 	_cast(sim2, 2)
@@ -307,8 +311,8 @@ func test_judgment_and_sanctuary() -> void:
 func test_jose_basic_attack_grows_with_level() -> void:
 	var sim := _sim(JOSE, AVERY)
 	var blue := sim.heroes[0]
-	_level(sim, blue, 5)
-	check_near(blue.attack_damage, blue.data.attack_damage + 4 * blue.data.attack_power_per_level, 0.01, "Attack Power grows each level")
+	_level(sim, blue, 6)
+	check_near(blue.attack_damage, blue.data.attack_damage + (blue.level - 1) * blue.data.attack_power_per_level, 0.01, "Attack Power grows each level")
 	check_near(blue.ability_power, 0.0, 0.01, "an Attack hero gets no Ability Power from levels")
 
 
@@ -429,7 +433,7 @@ func test_last_tango_dances_slowly_and_hits_around() -> void:
 	var sim := _sim(JOSE, AVERY)
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_still(red)
 	place(red, Vector2(0, 0))
 	var a := blue.data.abilities[2]
@@ -447,14 +451,14 @@ func test_dash_ends_the_dance_unless_showstopper() -> void:
 	var sim := _sim(JOSE, AVERY)
 	var blue := sim.heroes[0]
 	place(sim.heroes[1], Vector2(0, 30))
-	_level_pick(sim, blue, 6, [0, 0, 1])
+	_level_pick(sim, blue, 7, [0, 0, 1])
 	_cast(sim, 2)
 	_cast(sim, 0, Vector2.RIGHT)
 	check(not blue.is_channeling(), "a dash ends the dance")
 	var sim2 := _sim(JOSE, AVERY)
 	var b2 := sim2.heroes[0]
 	place(sim2.heroes[1], Vector2(0, 30))
-	_level_pick(sim2, b2, 6, [0, 0, 0])
+	_level_pick(sim2, b2, 7, [0, 0, 0])
 	_cast(sim2, 2)
 	_cast(sim2, 0, Vector2.RIGHT)
 	check(b2.is_channeling(), "Showstopper: still dancing after the dash")
@@ -464,7 +468,7 @@ func test_bloody_tango_heals() -> void:
 	var sim := _sim(JOSE, AVERY)
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	_level_pick(sim, blue, 6, [0, 0, 1])
+	_level_pick(sim, blue, 7, [0, 0, 1])
 	_still(red)
 	blue.attack_damage = 0.0
 	place(red, Vector2(0, 0))
@@ -600,7 +604,7 @@ func test_encore_copies_the_enemy_ult() -> void:
 	var sim := _sim(JACK, AVERY)
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	check(red.level == 1, "Avery hasn't even unlocked her ult")
 	_still(red)
 	place(red, Vector2(0, 5))
@@ -612,7 +616,7 @@ func test_encore_copies_the_enemy_ult() -> void:
 	check_near(blue.cooldowns[2], blue.ability_cooldown(2) - 33 * sim.dt, 0.5, "on Jack's own cooldown")
 	var sim2 := _sim(JACK, JOSE)
 	var b2 := sim2.heroes[0]
-	_level(sim2, b2, 5)
+	_level(sim2, b2, 6)
 	_cast(sim2, 2)
 	check(b2.is_channeling() and b2.channel.effect == &"last_tango", "against Jose, Jack dances")
 
@@ -620,12 +624,12 @@ func test_encore_copies_the_enemy_ult() -> void:
 func test_quick_study_and_stage_presence() -> void:
 	var sim := _sim(JACK, AVERY)
 	var blue := sim.heroes[0]
-	_level_pick(sim, blue, 6, [0, 0, 0])
+	_level_pick(sim, blue, 7, [0, 0, 0])
 	check_near(blue.ability_cooldown(2), blue.data.abilities[2].cooldown * 0.75, 0.01, "Quick Study: -25% cooldown")
 	var sim2 := _sim(JACK, AVERY)
 	var b2 := sim2.heroes[0]
 	place(sim2.heroes[1], Vector2(0, 30))
-	_level_pick(sim2, b2, 6, [0, 0, 1])
+	_level_pick(sim2, b2, 7, [0, 0, 1])
 	_cast(sim2, 2)
 	check_near(b2.shield_hp, b2.max_hp * 0.15, 0.01, "Stage Presence: a shield")
 	var m := sim2.spawn_minion(melee(), MatchSim.RED, Vector2(0, 10))

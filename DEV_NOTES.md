@@ -448,3 +448,14 @@ Plan: [Occult Expansion Plan](https://claude.ai/artifact/8cY8YgQfxRdwM9Koj3BefU)
 - Bots take a lit candle on their half or in a pocket when nobody contests it.
 - Overtime moved to 11:00 (15:00 if a Guardian has fallen).
 - Screenshots: `--stage=candles` and `--stage=alley`.
+
+## Occult expansion, phase II: nine levels, Lv6 ults, hero passives
+
+- Max level is 9 (`level_xp` in `data/match_config.tres`). Ladder: abilities at Lv1/3/6 (ult at 6), perk picks at Lv2/4/7, automatic hero passives at Lv3/8, siege scrolls at Lv7 (`siege_scroll_level`), Masterworks at Lv8 (`masterwork_level`), Lv9 is the crown (surge heal and time doubled, gold crown ring). Constants live in `Leveling`.
+- Passives are `PassiveData` resources in `data/passives/`, listed on each hero's `passives`. Flat stats feed `HeroState.recompute_stats`; `special` handles the odd ones (Poppet lifesteal / Restitched, Tot debt_slow).
+- Poppet has 10% baked-in lifesteal on basics (`HeroData.lifesteal`); Restitched doubles it below 40% HP.
+- Tot's Debt drains at 30 HP/s (was 45). Deferred Tribute slows it another 25%, stacking with Iron Faith.
+- Ahab's Lv8 is Old Leviathan (+150 HP, +8 ATK) rather than a longer harpoon, which would duplicate the Long Line perk.
+- Latch Cloud reworked: aims at heroes, passes through troopers, a big swarm and a BUZZ n/need counter show on the latched hero, damage ticks show yellow numbers, and a miss lingers 2 s as a small cloud.
+- Bear traps show to the enemy as a chalk outline; the spikes stay hidden unless you're the owner or within 2 m.
+- Tests: `tests/test_progression.gd`.

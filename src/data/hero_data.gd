@@ -34,6 +34,8 @@ extends Resource
 
 ## A rule the hero always has: &"blood_debt" (Tot), &"buzz" (Huddle), or none.
 @export var hero_trait: StringName = &""
+## Share of basic-attack damage healed back (Poppet's stitching).
+@export var lifesteal := 0.0
 
 @export_group("Stat card")
 ## "Attack", "Ability", "Hybrid" or "Tank": what the hero leans on.
@@ -50,7 +52,9 @@ extends Resource
 @export var sprint_moonwalk := false
 
 @export_group("Kit")
-## Unlocked at levels 1, 3 and 5 (the last is the ultimate).
+## Unlocked at levels 1, 3 and 6 (the last is the ultimate).
 @export var abilities: Array[AbilityData] = []
-## Pick one of two at levels 2, 4 and 6: [Lv2 A, Lv2 B, Lv4 A, Lv4 B, Lv6 A, Lv6 B].
+## Pick one of two at levels 2, 4 and 7: [Lv2 A, Lv2 B, Lv4 A, Lv4 B, Lv7 A, Lv7 B].
 @export var perks: Array[PerkData] = []
+## Automatic passives at levels 3 and 8, tailored to the hero.
+@export var passives: Array[PassiveData] = []

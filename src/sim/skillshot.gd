@@ -19,6 +19,8 @@ var minion_damage := 0.0
 var pierce := false
 ## Stops at the first enemy hero but passes through troopers (Judgment Blade).
 var stop_at_hero := false
+## Ignores troopers entirely: only the enemy hero can be hit (Latch Cloud).
+var heroes_only := false
 ## Charge fraction 0..1 (Sweet Talk), for visuals.
 var charge := 0.0
 var key := 0

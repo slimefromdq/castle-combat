@@ -501,6 +501,8 @@ static func _skillshot_targets(sim: MatchSim, s: Skillshot) -> Array[SimEntity]:
 	var them := sim.heroes[1 - s.owner.team]
 	if them.alive and not them.is_untargetable() and not s.hits.has(them.id):
 		out.append(them)
+	if s.heroes_only:
+		return out
 	for m in sim.minions:
 		if m.alive and m.team != s.owner.team and not s.hits.has(m.id):
 			out.append(m)

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"bastion"
+display_name = "Bastion"
+summary = "+250 max HP and +10 Armor"
+max_hp = 250.0
+armor = 10.0

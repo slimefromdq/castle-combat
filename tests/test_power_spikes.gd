@@ -42,17 +42,17 @@ func test_level_up_surge_heals_and_speeds_attacks() -> void:
 	check(not blue.alive and blue.hp <= 0.0, "no surge while knocked out")
 
 
-func test_ult_race_goes_to_the_first_hero_at_level_5() -> void:
+func test_ult_race_goes_to_the_first_hero_at_the_ult_level() -> void:
 	var sim := new_sim()
 	var won := []
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void:
 		if type == &"ult_race_won":
 			won.append(data.team))
-	_level_to(sim, sim.heroes[1], 4)
-	check(sim.ult_race_winner == -1, "nobody at level 5 yet")
-	_level_to(sim, sim.heroes[1], 5)
-	_level_to(sim, sim.heroes[0], 5)
-	_level_to(sim, sim.heroes[0], 6)
+	_level_to(sim, sim.heroes[1], Leveling.ULT_LEVEL - 1)
+	check(sim.ult_race_winner == -1, "nobody at the ult level yet")
+	_level_to(sim, sim.heroes[1], Leveling.ULT_LEVEL)
+	_level_to(sim, sim.heroes[0], Leveling.ULT_LEVEL)
+	_level_to(sim, sim.heroes[0], Leveling.ULT_LEVEL + 1)
 	check(sim.ult_race_winner == MatchSim.RED and won == [MatchSim.RED], "red won the race, announced once (got %s)" % [won])
 
 
@@ -72,8 +72,9 @@ func test_masterwork_rules_and_boost() -> void:
 		blue.deck.append(_item(&"titan_core"))
 		slot = blue.deck.size() - 1
 	blue.gold = 5000.0
-	check(Economy.masterwork_problem(sim, blue, slot).begins_with("Masterworks at level"), "locked before level 6")
-	_level_to(sim, blue, 6)
+	_level_to(sim, blue, sim.config.masterwork_level - 1)
+	check(Economy.masterwork_problem(sim, blue, slot).begins_with("Masterworks at level"), "locked before level 8")
+	_level_to(sim, blue, sim.config.masterwork_level)
 	var base := blue.item_total(&"ability_power")
 	var cost := Economy.masterwork_cost(sim, _item(&"titan_core"))
 	check(Economy.try_masterwork(sim, blue, slot), "Masterwork made")
@@ -97,7 +98,7 @@ func test_masterwork_boosts_triggered_effects() -> void:
 		blue.deck.append(crown)
 		slot = blue.deck.size() - 1
 	blue.gold = 5000.0
-	_level_to(sim, blue, 6)
+	_level_to(sim, blue, sim.config.masterwork_level)
 	place(blue, Vector2(0, 2))
 	check(Economy.masterwork_problem(sim, blue, slot) == "shop at your tower or base", "only at the shop")
 	place(blue, MatchSim.to_team_space(blue.team, sim.arena.heal_pad))
