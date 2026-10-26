@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"recoil_bolt"
+display_name = "Recoil Bolt"
+summary = "Crossbow bolt 9 m: 70 dmg, slows 30% for 1.5 s; the kick shoves you 3 m back"
+effect = &"recoil_bolt"
+cooldown = 9.0
+reach = 9.0
+speed = 24.0
+width = 0.4
+damage = 70.0
+slow = 0.3
+slow_time = 1.5
+distance = 3.0
+travel_time = 0.2
+atk_ratio = 0.8

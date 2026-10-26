@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/harpoon_hook.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/keelhaul.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/white_whale.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/barbed_hook.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/long_line.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/man_overboard.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/heave_ho.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/thar_she_blows.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/press_gang.tres" id="p5"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"ahab"
+display_name = "Ahab"
+shape = "sailor"
+blurb = "Tanky old sailor. Hook them in, fling them behind you, and drag the fight to your tower."
+max_hp = 840.0
+move_speed = 4.6
+radius = 0.55
+attack_range = 2.2
+attack_damage = 50.0
+attack_windup = 0.35
+attack_interval = 1.15
+hp_per_level = 70.0
+attack_power_per_level = 3.0
+ability_power_per_level = 6.0
+lean = "Tank"
+ratings = Array[int]([5, 2, 2, 5, 3])
+sprint_color = Color(0.55, 0.8, 1.0, 1)
+sprint_lean_deg = 10.0
+sprint_bob = 0.14
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])

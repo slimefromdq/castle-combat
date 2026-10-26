@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"grimoire"
+display_name = "Grimoire"
+cost = 1000
+tier = 1
+summary = "+45 AP, +10% Haste"
+ability_power = 45.0
+cooldown_haste = 0.1

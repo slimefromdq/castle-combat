@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"borrowed_time"
+display_name = "Borrowed Time"
+summary = "For 3 s every hit goes into Debt, and you move 25% faster"
+effect = &"borrowed_time"
+cooldown = 14.0
+duration = 3.0
+move_speed_bonus = 0.25
+buff_duration = 3.0

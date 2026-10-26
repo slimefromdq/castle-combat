@@ -115,7 +115,7 @@ func test_whetstone_and_executioners_edge() -> void:
 	var red := sim.heroes[1]
 	blue.items.append(_item(&"whetstone"))
 	blue.recompute_stats()
-	check_near(blue.attack_damage, blue.data.attack_damage * 1.15, 0.01, "Whetstone +15% damage")
+	check_near(blue.attack_damage, blue.data.attack_damage + 8.0, 0.01, "Whetstone +8 ATK")
 	blue.items.append(_item(&"executioners_edge"))
 	blue.recompute_stats()
 	var hp := red.hp

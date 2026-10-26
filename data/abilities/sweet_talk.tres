@@ -9,6 +9,7 @@ display_name = "Sweet Talk"
 summary = "Tap to charge, tap to fire: 70-200 dmg shot, 11 m"
 effect = &"sweet_talk"
 cooldown = 9.0
+ap_ratio = 0.7
 reach = 11.0
 speed = 26.0
 width = 0.45

@@ -52,6 +52,76 @@ var scrolls_bought := 0
 var surge_until := 0.0
 var surge_bonus := 0.0
 var _move_speed_mult := 1.0
+## Ability Power (added to abilities through their ratios), Armor and Ward (points that
+## cut basic and ability damage taken), Haste (shorter cooldowns) and pierce (share of
+## the target's Armor or Ward ignored). See recompute_stats.
+var ability_power := 0.0
+var armor := 0.0
+var ward := 0.0
+var cooldown_haste := 0.0
+var armor_pierce := 0.0
+var ward_pierce := 0.0
+## Phoenix Feather: ready again at this sim time.
+var phoenix_ready_at := 0.0
+
+## Round-2 kit state (see Kits). Roots stop walking; silence stops casting; a phase is a
+## short untouchable moment (Scatter). bonus_charges: extra casts held (Pincushion).
+var root_until := 0.0
+var silence_until := 0.0
+var phase_until := 0.0
+var bonus_charges: Array[int] = [0, 0, 0]
+## A telegraphed cast waiting to go off (White Whale, Headsman's Axe).
+var delayed: AbilityData
+var delayed_at := 0.0
+var delayed_dir := Vector2.ZERO
+var delayed_key := 0
+var delayed_reach := 0.0
+## Who forced the current move (hook, fling, whale, pin, Tot's leap), how, and where it
+## was meant to end (a short stop means a wall).
+var forced_by := 0
+var forced_how: StringName = &""
+var forced_goal := Vector2.ZERO
+## Huddle: the hero it is engulfing; on the victim, who engulfs it, Buzz stacks, and a
+## flip that makes every other basic attack miss inside the swarm.
+var engulf_target := 0
+var engulf_ability: AbilityData
+var engulf_until := 0.0
+var engulf_next := 0.0
+var engulf_left := 0
+var engulf_key := 0
+var engulfed_by := 0
+var miss_flip := false
+var buzz := 0
+var buzz_from := 0
+## Poppet: thread, Wind-Up frenzy, and the ult's snips.
+var thread_target := 0
+var thread_until := 0.0
+var thread_ability: AbilityData
+var frenzy_until := 0.0
+var frenzy_bonus := 0.0
+var frenzy_hits := 0
+var frenzy_ability: AbilityData
+var ribbons_target := 0
+var ribbons_ability: AbilityData
+var ribbons_left := 0
+var ribbons_next := 0.0
+var ribbons_key := 0
+var ribbons_threaded := false
+## Seam Ripper: Armor stripped off this hero (fraction) until a time.
+var armor_cut := 0.0
+var armor_cut_until := 0.0
+## Slayer's Hunter's Mark on this hero: who, knives left, until when.
+var hunt_mark_by := 0
+var hunt_mark_left := 0
+var hunt_mark_until := 0.0
+## Tot: Blood Debt, Borrowed Time, Absolute Rule (until = deferral ends, end = the
+## forgiveness window closes, bonus = share of Debt added to each basic).
+var debt := 0.0
+var borrowed_until := 0.0
+var rule_ability: AbilityData
+var rule_until := 0.0
+var rule_end := 0.0
+var rule_bonus := 0.0
 
 ## Levels and abilities. cooldowns[i] is seconds until ability i is ready.
 var level := 1
@@ -137,6 +207,7 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 	attack_damage = hero_data.attack_damage
 	attack_windup = hero_data.attack_windup
 	attack_interval = hero_data.attack_interval
+	recompute_stats()
 
 
 func move_speed() -> float:
@@ -170,11 +241,27 @@ func current_interval(_time: float) -> float:
 		bonus += item_total(&"low_hp_attack_speed_bonus")
 	if _now < surge_until:
 		bonus += surge_bonus
+	if _now < frenzy_until:
+		bonus += frenzy_bonus
 	return attack_interval / (1.0 + bonus)
 
 
 func is_stunned(time: float) -> bool:
 	return time < stun_until
+
+
+func is_rooted() -> bool:
+	return _now < root_until
+
+
+## Can't be targeted or hit right now (Jack's shadows, Huddle's Scatter).
+func is_untargetable() -> bool:
+	return is_vanished() or _now < phase_until
+
+
+## Armor after Seam Ripper.
+func effective_armor() -> float:
+	return armor * (1.0 - (armor_cut if _now < armor_cut_until else 0.0))
 
 
 func is_forced() -> bool:
@@ -195,7 +282,7 @@ func is_charging() -> bool:
 
 ## Busy with an ability that stops basic attacks (channel, charge or vanish).
 func is_busy_casting() -> bool:
-	return is_channeling() or is_charging() or is_vanished()
+	return is_channeling() or is_charging() or is_vanished() or Kits.is_busy(self)
 
 
 ## Perks picked so far: one of each pair for levels 2, 4 and 6.
@@ -250,6 +337,7 @@ func ability_cooldown(i: int) -> float:
 			cd -= p.cooldown_cut
 	if i == 2:
 		cd *= 1.0 - item_total(&"ult_cooldown_cut") - has_special(&"quick_study")
+	cd /= 1.0 + cooldown_haste
 	return maxf(1.0, cd)
 
 
@@ -289,6 +377,7 @@ func clear_effects() -> void:
 	storm_left = 0
 	frenzy_left = 0
 	surge_until = 0.0
+	Kits.clear(self)
 
 
 func owns(item: ItemData) -> bool:
@@ -329,14 +418,21 @@ func top_item_tier() -> int:
 	return top
 
 
-## Base stats from HeroData plus every owned item. Extra max HP is added to current HP;
-## losing max HP (selling) only caps current HP.
+## Base stats from HeroData (grown by level) plus every owned item. Extra max HP is
+## added to current HP; losing max HP (selling) only caps current HP.
 func recompute_stats() -> void:
 	var old_max := max_hp
-	max_hp = data.max_hp * (1.0 + item_total(&"max_hp_bonus") + perk_total(&"max_hp_bonus"))
+	var base := HeroStats.at_level(data, level)
+	max_hp = (base.hp + item_total(&"max_hp_flat")) * (1.0 + item_total(&"max_hp_bonus") + perk_total(&"max_hp_bonus"))
 	if alive:
 		hp = minf(max_hp, hp + maxf(0.0, max_hp - old_max))
-	attack_damage = data.attack_damage * (1.0 + data.attack_damage_per_level * (level - 1) + item_total(&"damage_bonus") + perk_total(&"damage_bonus"))
+	attack_damage = (base.atk + item_total(&"attack_power")) * (1.0 + perk_total(&"damage_bonus"))
+	ability_power = (base.ap + item_total(&"ability_power")) * (1.0 + item_total(&"ability_power_amp"))
+	armor = data.armor + item_total(&"armor")
+	ward = data.ward + item_total(&"ward")
+	cooldown_haste = item_total(&"cooldown_haste")
+	armor_pierce = minf(1.0, item_total(&"armor_pierce"))
+	ward_pierce = minf(1.0, item_total(&"ward_pierce"))
 	attack_interval = data.attack_interval / (1.0 + item_total(&"attack_speed_bonus") + perk_total(&"attack_speed_bonus"))
 	attack_range = data.attack_range * (1.0 + item_total(&"range_bonus") + perk_total(&"range_bonus"))
 	_move_speed_mult = 1.0 + item_total(&"move_speed_bonus") + perk_total(&"move_speed_bonus")

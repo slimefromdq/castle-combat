@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"padded_vest"
+display_name = "Padded Vest"
+cost = 300
+tier = 0
+summary = "+80 HP, +8 Armor"
+max_hp_flat = 80.0
+armor = 8.0

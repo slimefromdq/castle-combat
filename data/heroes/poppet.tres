@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/threaded_needle.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/wind_up_key.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/cut_to_ribbons.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/pincushion.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/tight_stitch.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/overwound.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/stare_down.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/seam_ripper.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/stitched_up.tres" id="p5"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"poppet"
+display_name = "Poppet"
+shape = "doll"
+blurb = "Cute, quiet, wrong. Stitches a needle into you, reels herself in, and snips."
+max_hp = 560.0
+move_speed = 4.6
+radius = 0.42
+attack_range = 1.8
+attack_damage = 30.0
+attack_windup = 0.12
+attack_interval = 0.6
+hp_per_level = 40.0
+attack_power_per_level = 3.0
+ability_power_per_level = 8.0
+lean = "Hybrid"
+ratings = Array[int]([2, 5, 5, 3, 4])
+sprint_color = Color(0.85, 0.1, 0.2, 1)
+sprint_lean_deg = 30.0
+sprint_bob = 0.02
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])

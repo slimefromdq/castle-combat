@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"war_gauntlet"
+display_name = "War Gauntlet"
+cost = 1000
+tier = 1
+summary = "+22 ATK, +12% attack speed"
+attack_power = 22.0
+attack_speed_bonus = 0.12

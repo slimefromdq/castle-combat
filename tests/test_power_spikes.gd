@@ -27,9 +27,12 @@ func test_level_up_surge_heals_and_speeds_attacks() -> void:
 	var cfg := sim.config
 	var blue := sim.heroes[0]
 	blue.hp = blue.max_hp * 0.5
+	var before := blue.hp
+	var old_max := blue.max_hp
 	var interval := blue.current_interval(sim.time)
 	_level_to(sim, blue, 2)
-	check_near(blue.hp, blue.max_hp * (0.5 + cfg.level_up_heal_fraction), 0.5, "level-up heals 15%")
+	check(blue.max_hp > old_max, "max HP grows with the level")
+	check_near(blue.hp, before + (blue.max_hp - old_max) + blue.max_hp * cfg.level_up_heal_fraction, 0.5, "level-up heals 15% (plus the new max HP)")
 	blue._now = sim.time
 	check_near(blue.current_interval(sim.time), interval / (1.0 + cfg.level_up_attack_speed), 0.001, "surge speeds up attacks")
 	run_ticks(sim, int((cfg.level_up_surge_time + 0.2) / sim.dt))
@@ -71,11 +74,11 @@ func test_masterwork_rules_and_boost() -> void:
 	blue.gold = 5000.0
 	check(Economy.masterwork_problem(sim, blue, slot).begins_with("Masterworks at level"), "locked before level 6")
 	_level_to(sim, blue, 6)
-	var base := blue.item_total(&"ability_damage_bonus")
+	var base := blue.item_total(&"ability_power")
 	var cost := Economy.masterwork_cost(sim, _item(&"titan_core"))
 	check(Economy.try_masterwork(sim, blue, slot), "Masterwork made")
 	check_near(blue.gold, 5000.0 - cost, 0.01, "paid half the item's price")
-	check_near(blue.item_total(&"ability_damage_bonus"), base * (1.0 + sim.config.masterwork_bonus), 0.0001, "+25% ability damage bonus")
+	check_near(blue.item_total(&"ability_power"), base * (1.0 + sim.config.masterwork_bonus), 0.0001, "+25% Ability Power")
 	check(not Economy.try_masterwork(sim, blue, slot), "only once per item")
 	check(blue.owns(_item(&"titan_core")), "still owns the card")
 	var gold := blue.gold

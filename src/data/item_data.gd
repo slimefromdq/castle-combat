@@ -12,17 +12,27 @@ enum Tier { EARLY, MID, LATE }
 @export var cost := 300
 @export var tier: Tier = Tier.EARLY
 
+@export_group("Flat stats")
+## Attack Power (basic-attack damage) and Ability Power (ability ratios).
+@export var attack_power := 0.0
+@export var ability_power := 0.0
+@export var max_hp_flat := 0.0
+## Armor cuts basic-attack damage taken, Ward cuts ability and item damage (points).
+@export var armor := 0.0
+@export var ward := 0.0
+## Haste: shorter ability cooldowns (0.1 = cooldowns / 1.1).
+@export var cooldown_haste := 0.0
+## Ignore this share of the target's Armor (basics) or Ward (abilities).
+@export var armor_pierce := 0.0
+@export var ward_pierce := 0.0
+## Archmage's Crown: all your Ability Power counts this much more (0.25 = +25%).
+@export var ability_power_amp := 0.0
+
 @export_group("Hero stats (multipliers add up: +8% and +8% = +16%)")
 @export var move_speed_bonus := 0.0
 @export var max_hp_bonus := 0.0
-## Basic-attack damage.
-@export var damage_bonus := 0.0
 @export var attack_speed_bonus := 0.0
 @export var range_bonus := 0.0
-## Ability damage (abilities and nothing else).
-@export var ability_damage_bonus := 0.0
-## Less damage taken from enemy abilities and item effects.
-@export var ability_resist := 0.0
 
 @export_group("Damage against")
 ## Extra damage of every kind against minions.
@@ -84,3 +94,14 @@ enum Tier { EARLY, MID, LATE }
 ## crest_fraction of its max HP.
 @export var crest_every := 0
 @export var crest_fraction := 0.0
+## Warlord's Greatsword: basic attacks also hit enemies within splash_radius of the
+## target for splash_fraction of the damage.
+@export var splash_fraction := 0.0
+@export var splash_radius := 0.0
+## Runed Saber: an ability hit readies your next basic attack at once.
+@export var ability_resets_attack := false
+## Phoenix Feather: a killing blow leaves you at 1 HP with a shield worth
+## phoenix_shield of max HP for phoenix_shield_time; recharges in phoenix_cooldown.
+@export var phoenix_shield := 0.0
+@export var phoenix_shield_time := 0.0
+@export var phoenix_cooldown := 0.0

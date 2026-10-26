@@ -29,6 +29,9 @@ var waves_spawned := 0
 var relay := RelayController.new()
 ## Skillshots in flight (Abilities).
 var skillshots: Array[Skillshot] = []
+## Slayer's traps and every running damage-over-time effect (see Kits).
+var traps: Array = []
+var dots: Array = []
 ## Multiplies last-hit gold while an ability hit resolves (Last Call, Sleight of Hand).
 var kill_gold_mult := 1.0
 ## Team of the first hero to reach the ultimate level (Lv5), or -1 while nobody has.
@@ -132,7 +135,7 @@ func step(commands: Array) -> void:
 		if Abilities.move_forced(self, hero):
 			hero.moving = true  # Dashing or knocked back: no attacking meanwhile.
 			hero.still_since = time
-		elif hero.is_stunned(time):
+		elif hero.is_stunned(time) or hero.is_rooted() or hero.engulf_target != 0:
 			hero.moving = false
 		else:
 			Movement.move_hero(self, hero, cmd.move, dt)
@@ -215,6 +218,7 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 	if target is HeroState:
 		amount = Items.incoming(self, source, target, amount, kind)
 		amount = Abilities.modify_hero_damage(self, source, target, amount)
+		amount = Items.cheat_death(self, target, amount)
 		if hero_src != null and hero_src.team != target.team:
 			target.last_hero_damage_time = time
 			target.last_hero_combat_time = time
@@ -229,6 +233,7 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 			_kill(target, source)
 	if hero_src != null:
 		Items.after_hit(self, hero_src, target, dealt, raw, kind)
+		Kits.after_damage(self, hero_src, target, dealt, kind)
 	return dealt
 
 
@@ -260,6 +265,16 @@ func on_hero_hit(attacker: HeroState, victim: HeroState, key := -1) -> void:
 			called.append(s.id)
 	if not called.is_empty():
 		emit_event(&"aggro_called", {"attacker": attacker.id, "units": called})
+
+
+## Public forms for kit rules (Kits): turn a unit on a hero, knock a unit out.
+func call_unit(u: SimEntity, attacker: HeroState, duration: float) -> void:
+	_call_unit(u, attacker, duration)
+
+
+func kill(target: SimEntity, source: SimEntity) -> void:
+	if target.alive:
+		_kill(target, source)
 
 
 func _call_unit(u: SimEntity, attacker: HeroState, duration: float) -> void:
@@ -300,6 +315,7 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	var killer_team := source.team if source != null else -1
 	emit_event(&"unit_killed", {"id": target.id, "kind": target.kind, "team": target.team, "killer": source.id if source != null else 0, "killer_team": killer_team})
 	Economy.on_kill(self, target, source)
+	Kits.on_kill(self, target, source)
 	if target is MinionState:
 		Waves.on_minion_killed(self, target)
 	if target is HeroState:

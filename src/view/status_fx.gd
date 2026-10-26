@@ -15,6 +15,8 @@ var _pillars: Array = []
 const MARKER_HEIGHT := 2.6
 ## Banner id -> node.
 var _banners: Dictionary = {}
+## Trap id -> node.
+var _traps: Dictionary = {}
 ## Wave meeting marker: an arrow on each lane edge, and the smoothed drift (m/s, sim y).
 var _marker: Array[MeshInstance3D] = []
 var _meet_y := NAN
@@ -77,6 +79,33 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			var mh: SimEntity = view.sim.get_entity(data.hero)
 			if mh != null:
 				_spawn_ring(mh.pos, 1.8, Color("f5d76e"), 0.5)
+		&"hooked", &"flung":
+			_spawn_ring(data.to, 1.4, Color("c9d1d9"), 0.4)
+		&"whale_breach":
+			_spawn_ring(data.to, data.width + 2.0, Color(0.85, 0.95, 1.0), 0.6)
+			_spawn_ring(data.from.lerp(data.to, 0.5), data.width + 1.5, Color(0.5, 0.75, 1.0), 0.5)
+		&"trap_sprung":
+			_spawn_ring(data.pos, 1.4, Color("c9d1d9"), 0.4)
+		&"overwhelm":
+			_spawn_ring(data.pos, 2.0, Color("ffd23a"), 0.45)
+		&"scattered":
+			_spawn_ring(data.from, 1.4, Color("ffd23a"), 0.35)
+			_spawn_ring(data.to, 1.6, Color("ffe680"), 0.35)
+		&"head_spin":
+			_spawn_ring(data.pos, data.radius, Color("e88fb0"), 0.6)
+		&"thread_snapped":
+			_spawn_ring(data.pos, 1.2, Color("f6eee8"), 0.35)
+		&"rule_landed":
+			_spawn_ring(data.pos, data.radius, Color("e8c35a"), 0.6)
+			_spawn_ring(data.pos, data.radius * 0.6, Color(1, 1, 1), 0.45)
+		&"rule_failed":
+			var fh: SimEntity = view.sim.get_entity(data.hero)
+			if fh != null:
+				_spawn_ring(fh.pos, 2.0, Color(0.6, 0.05, 0.1), 0.6)
+		&"rule_forgiven":
+			var gh: SimEntity = view.sim.get_entity(data.hero)
+			if gh != null:
+				_spawn_ring(gh.pos, 2.0, Color("e8c35a"), 0.5)
 		&"teleported":
 			_spawn_ring(data.from, 1.2, Color("9b6bff"))
 			_spawn_ring(data.to, 1.6, Color("c9a7ff"))
@@ -113,7 +142,7 @@ func render() -> void:
 			var r := lerpf(1.6, 0.6, k)
 			p.charge.scale = Vector3(r, 0.04, r)
 			(p.charge.material_override as StandardMaterial3D).albedo_color = Color(1.0, lerpf(0.9, 0.3, k), 0.2, 0.95) if k < 1.0 else Color(1, 1, 1, 0.95)
-		p.mark.visible = h.alive and sim.time < h.mark_until
+		p.mark.visible = h.alive and (sim.time < h.mark_until or (h.hunt_mark_left > 0 and sim.time < h.hunt_mark_until))
 		p.mark.position = at + Vector3(0, 2.3, 0)
 		p.mark.rotation.y = Time.get_ticks_msec() / 300.0
 		p.blind.visible = h.alive and sim.time < h.blind_until
@@ -129,9 +158,10 @@ func render() -> void:
 		p.cloak.rotation.y = Time.get_ticks_msec() / 500.0
 		p.wounds.visible = h.alive and sim.time < h.wounds_until
 		p.wounds.position = at + Vector3(0, 0.12, 0)
-		p.frenzy.visible = h.alive and h.frenzy_left > 0
+		p.frenzy.visible = h.alive and (h.frenzy_left > 0 or sim.time < h.frenzy_until)
 		p.frenzy.position = at + Vector3(0, 0.14, 0)
 		p.frenzy.scale = Vector3.ONE * (0.6 + 0.06 * sin(Time.get_ticks_msec() / 45.0))
+		_render_kit(h, p, at)
 		p.zone.visible = h.alive and h.is_channeling()
 		if p.zone.visible:
 			var r := h.channel.radius
@@ -141,6 +171,7 @@ func render() -> void:
 		if st.is_guardian():
 			_render_guardian(st)
 	_render_skillshots(sim)
+	_render_traps(sim)
 	_update_rings()
 	_update_pillars()
 	_render_banners(sim)
@@ -161,6 +192,19 @@ func _render_skillshots(sim: MatchSim) -> void:
 					node = UnitFactory.part(self, UnitFactory.box(Vector3(1.6, 0.12, 0.35)), Color(1.0, 0.97, 0.8, 0.95), Vector3.ZERO, Vector3.ZERO, true)
 				&"cloak_toss":
 					node = UnitFactory.part(self, UnitFactory.box(Vector3(0.9, 0.05, 0.9)), Color("7a4fd6"), Vector3.ZERO, Vector3.ZERO, true)
+				&"harpoon":
+					node = UnitFactory.part(self, UnitFactory.box(Vector3(0.12, 0.12, 0.9)), Color("c9d1d9"), Vector3.ZERO, Vector3.ZERO, true)
+					UnitFactory.part(node, UnitFactory.box(Vector3(0.5, 0.1, 0.1)), Color("9aa3ad"), Vector3(0, 0, -0.45), Vector3.ZERO, true)
+				&"recoil_bolt", &"threaded_needle":
+					node = UnitFactory.part(self, UnitFactory.box(Vector3(0.07, 0.07, 0.8)), Color("f6eee8") if s.ability.effect == &"threaded_needle" else Color("c9d1d9"), Vector3.ZERO, Vector3.ZERO, true)
+				&"headsmans_axe":
+					node = UnitFactory.part(self, UnitFactory.box(Vector3(1.6, 0.12, 0.9)), Color("c9d1d9"), Vector3.ZERO, Vector3.ZERO, true)
+					UnitFactory.part(node, UnitFactory.box(Vector3(0.16, 0.14, 2.0)), Color("6b4a2b"), Vector3(0, 0, 0.6), Vector3.ZERO, true)
+				&"latch_cloud":
+					var puff := SphereMesh.new()
+					puff.radius = 0.5
+					puff.height = 0.7
+					node = UnitFactory.part(self, puff, Color(1.0, 0.82, 0.2, 0.75), Vector3.ZERO, Vector3.ZERO, true)
 				_:
 					var ball := SphereMesh.new()
 					ball.radius = 0.18 + 0.18 * s.charge
@@ -170,7 +214,7 @@ func _render_skillshots(sim: MatchSim) -> void:
 		var n: MeshInstance3D = _shots[s.id]
 		n.position = MatchView.to_world(s.pos, 0.9)
 		n.rotation.y = atan2(-s.dir.x, s.dir.y)
-		if s.ability.effect == &"cloak_toss":
+		if s.ability.effect == &"cloak_toss" or s.ability.effect == &"headsmans_axe":
 			n.rotation.y += Time.get_ticks_msec() / 60.0
 	for id: int in _shots.keys():
 		if not live.has(id):
@@ -257,7 +301,17 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"wounds": UnitFactory.part(self, _ring_mesh, Color(0.55, 0.05, 0.1, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"frenzy": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.2, 0.25, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 		"hidden": UnitFactory.part(self, _ring_mesh, Color(0.55, 1.0, 0.55, 0.9), Vector3.ZERO, Vector3.ZERO, true),
+		"root": UnitFactory.part(self, _ring_mesh, Color(0.75, 0.78, 0.82, 0.95), Vector3.ZERO, Vector3.ZERO, true),
+		"silence": UnitFactory.part(self, UnitFactory.box(Vector3(0.7, 0.12, 0.06)), Color(0.9, 0.2, 0.3, 0.95), Vector3.ZERO, Vector3(0, 0, 45), true),
+		"phase": UnitFactory.part(self, bubble, Color(1.0, 0.85, 0.25, 0.25), Vector3.ZERO, Vector3.ZERO, true),
+		"tele": UnitFactory.part(self, UnitFactory.box(Vector3(1, 0.02, 1)), Color(1.0, 0.3, 0.2, 0.3), Vector3.ZERO, Vector3.ZERO, true),
+		"tether": _line_part(Color(0.8, 0.82, 0.86, 0.9)),
+		"swarm": UnitFactory.part(self, bubble, Color(1.0, 0.82, 0.2, 0.35), Vector3.ZERO, Vector3.ZERO, true),
+		"rule": UnitFactory.part(self, _ring_mesh, Color("e8c35a"), Vector3.ZERO, Vector3.ZERO, true),
+		"borrowed": UnitFactory.part(self, _ring_mesh, Color(0.6, 0.05, 0.12, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 	}
+	parts.root.scale = Vector3(0.7, 0.12, 0.7)
+	parts.borrowed.scale = Vector3(1.15, 0.03, 1.15)
 	parts.hidden.scale = Vector3(0.85, 0.03, 0.85)
 	parts.wounds.scale = Vector3(1.05, 0.03, 1.05)
 	parts.shield.scale = Vector3(0.95, 0.95, 0.95)
@@ -266,6 +320,100 @@ func _parts_for(h: HeroState) -> Dictionary:
 	parts.decoy.scale = Vector3(0.6, 0.8, 0.6)
 	_parts[h.id] = parts
 	return parts
+
+
+## Kit status on one hero: root shackle, silence slash, Scatter's phase glow, the
+## telegraph of a delayed cast (White Whale's lane, the Headsman's Axe line), a tether
+## line (Poppet's thread, Ahab's hook pull), Huddle's swarm around its victim, and Tot's
+## Absolute Rule and Borrowed Time rings.
+func _render_kit(h: HeroState, p: Dictionary, at: Vector3) -> void:
+	var sim := view.sim
+	var now := Time.get_ticks_msec()
+	p.root.visible = h.alive and h.is_rooted()
+	p.root.position = at + Vector3(0, 0.15, 0)
+	p.silence.visible = h.alive and sim.time < h.silence_until
+	p.silence.position = at + Vector3(0, 2.15, 0)
+	p.phase.visible = h.alive and sim.time < h.phase_until
+	p.phase.position = at + Vector3(0, 0.7, 0)
+	p.phase.scale = Vector3.ONE * (0.9 + 0.05 * sin(now / 50.0))
+	# Telegraph: a long strip on the ground that fills in as the cast nears.
+	p.tele.visible = h.alive and h.delayed != null
+	if p.tele.visible:
+		var length := h.delayed_reach
+		var width := h.delayed.width * 2.0 if h.delayed.effect == &"white_whale" else maxf(0.5, h.delayed.width * 2.0)
+		var mid := h.pos + h.delayed_dir * length * 0.5
+		p.tele.position = MatchView.to_world(mid, 0.05)
+		p.tele.rotation.y = atan2(-h.delayed_dir.x, h.delayed_dir.y)
+		p.tele.scale = Vector3(width, 1.0, length)
+		var left := clampf((h.delayed_at - sim.time) / maxf(0.05, h.delayed.delay), 0.0, 1.0)
+		var tc := Color(0.45, 0.75, 1.0) if h.delayed.effect == &"white_whale" else Color(1.0, 0.3, 0.2)
+		(p.tele.material_override as StandardMaterial3D).albedo_color = Color(tc, lerpf(0.55, 0.18, left))
+	# Tether: thread from Poppet to her target, or the hook line while Ahab reels someone in.
+	var other: SimEntity = null
+	if h.thread_target != 0 and sim.time < h.thread_until:
+		other = sim.get_entity(h.thread_target)
+	elif h.forced_how == &"hook":
+		other = sim.get_entity(h.forced_by)
+	p.tether.visible = h.alive and other != null and other.alive
+	if p.tether.visible:
+		_place_line(p.tether, at + Vector3(0, 0.9, 0), view.unit_position(other.id) + Vector3(0, 0.9, 0), 0.05)
+		(p.tether.material_override as StandardMaterial3D).albedo_color = Color("f6eee8") if h.thread_target != 0 else Color("c9d1d9")
+	# Huddle's swarm sits on its victim.
+	var victim: SimEntity = sim.get_entity(h.engulf_target) if h.engulf_target != 0 else null
+	p.swarm.visible = h.alive and victim != null and victim.alive
+	if p.swarm.visible:
+		p.swarm.position = view.unit_position(victim.id) + Vector3(0, 0.8, 0)
+		p.swarm.scale = Vector3.ONE * (1.0 + 0.08 * sin(now / 35.0))
+	p.rule.visible = h.alive and h.rule_ability != null and sim.time < h.rule_end
+	if p.rule.visible:
+		p.rule.position = at + Vector3(0, 0.12, 0)
+		var rr := h.rule_ability.radius * (0.9 + 0.1 * sin(now / 80.0))
+		p.rule.scale = Vector3(rr, 0.04, rr)
+	p.borrowed.visible = h.alive and sim.time < h.borrowed_until
+	p.borrowed.position = at + Vector3(0, 0.16, 0)
+
+
+## Traps: the owner's side always sees them (ghostly while arming); the other side
+## only sees a glint when its hero is within 2 m.
+func _render_traps(sim: MatchSim) -> void:
+	var me := sim.heroes[view.local_seat]
+	var live := {}
+	for t: Dictionary in sim.traps:
+		live[t.id] = true
+		if not _traps.has(t.id):
+			var trap := Node3D.new()
+			add_child(trap)
+			UnitFactory.part(trap, UnitFactory.cylinder(0.45, 0.5, 0.08, 16), Color("6b6f78"), Vector3(0, 0.04, 0), Vector3.ZERO, true)
+			for k in 6:
+				var a := TAU * k / 6.0
+				UnitFactory.part(trap, UnitFactory.box(Vector3(0.06, 0.22, 0.06)), Color("c9d1d9"), Vector3(cos(a) * 0.4, 0.15, sin(a) * 0.4), Vector3.ZERO, true)
+			_traps[t.id] = trap
+		var node: Node3D = _traps[t.id]
+		node.position = MatchView.to_world(t.pos, 0.0)
+		var mine: bool = int(t.team) == view.local_seat
+		node.visible = mine or (me.alive and me.pos.distance_to(t.pos) < 2.0 and int(Time.get_ticks_msec() / 200) % 3 != 0)
+		node.scale = Vector3.ONE * (0.7 if sim.time < t.armed_at else 1.0)
+	for id: int in _traps.keys():
+		if not live.has(id):
+			_traps[id].queue_free()
+			_traps.erase(id)
+
+
+func _line_part(color: Color) -> MeshInstance3D:
+	var line := MeshInstance3D.new()
+	line.mesh = UnitFactory.cylinder(1.0, 1.0, 1.0, 6)
+	line.material_override = UnitFactory.material(color, true)
+	add_child(line)
+	return line
+
+
+func _place_line(line: MeshInstance3D, from: Vector3, to: Vector3, width: float) -> void:
+	var length := maxf(0.01, from.distance_to(to))
+	line.position = (from + to) / 2.0
+	var up := (to - from) / length
+	if up.length() < 0.5:
+		up = Vector3.UP
+	line.basis = Basis(Quaternion(Vector3.UP, up)).scaled(Vector3(width, length, width))
 
 
 ## A ring that grows to `radius` and fades: shows the area an ability just hit.

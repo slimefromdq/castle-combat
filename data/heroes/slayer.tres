@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Resource" path="res://data/abilities/bear_trap.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/recoil_bolt.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/headsmans_axe.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/serrated_jaws.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/set_and_forget.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/pinned.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/hunters_mark.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/trophy.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/boomerang.tres" id="p5"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"slayer"
+display_name = "Slayer"
+shape = "hunter"
+blurb = "Monster hunter. Traps the ground, kites with knives, and ends fights with one huge axe."
+max_hp = 540.0
+move_speed = 4.6
+radius = 0.5
+attack_range = 5.0
+attack_damage = 39.0
+attack_windup = 0.22
+attack_interval = 0.95
+hp_per_level = 40.0
+attack_power_per_level = 5.0
+lean = "Attack"
+ratings = Array[int]([3, 4, 3, 4, 3])
+sprint_color = Color(0.75, 0.75, 0.8, 1)
+sprint_lean_deg = 22.0
+sprint_bob = 0.06
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])

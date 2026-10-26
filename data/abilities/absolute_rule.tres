@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"absolute_rule"
+display_name = "Absolute Rule"
+summary = "Leap 5 m. For 5 s all damage goes into Debt and each basic adds 6% of it. A knockout forgives it all; otherwise it lands at once"
+effect = &"absolute_rule"
+cooldown = 60.0
+distance = 5.0
+travel_time = 0.3
+radius = 2.0
+damage = 100.0
+atk_ratio = 0.5
+duration = 5.0
+extra = 0.06

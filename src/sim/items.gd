@@ -11,7 +11,6 @@ class_name Items
 static func outgoing(sim: MatchSim, src: HeroState, target: SimEntity, amount: float, kind: StringName) -> float:
 	var mult := 1.0
 	if kind == &"ability":
-		mult += src.item_total(&"ability_damage_bonus")
 		if sim.time < src.power_until:
 			mult += src.power_bonus
 	if target is MinionState:
@@ -43,16 +42,20 @@ static func outgoing(sim: MatchSim, src: HeroState, target: SimEntity, amount: f
 	return amount
 
 
-## What the target hero's items take off (Aegis Mirror, ability resist).
+## What the target hero's defences take off: Armor against every basic attack (troopers
+## and towers too), Aegis Mirror and Ward against the enemy hero's abilities and items.
 static func incoming(sim: MatchSim, src: SimEntity, target: HeroState, amount: float, kind: StringName) -> float:
-	if kind == &"basic" or not (src is HeroState) or src.team == target.team:
+	if kind == &"basic":
+		var pierce := (src as HeroState).armor_pierce if src is HeroState else 0.0
+		return HeroStats.mitigate(amount, target.effective_armor(), pierce)
+	if not (src is HeroState) or src.team == target.team:
 		return amount
 	var aegis := target.item_with(&"aegis_threshold")
 	if kind == &"ability" and aegis != null and amount >= aegis.aegis_threshold and sim.time >= target.aegis_ready_at:
 		target.aegis_ready_at = sim.time + aegis.aegis_recharge
 		sim.emit_event(&"item_proc", {"hero": target.id, "item": aegis.id, "target": target.id, "blocked": amount})
 		return 0.0
-	return amount * maxf(0.0, 1.0 - target.item_total(&"ability_resist"))
+	return HeroStats.mitigate(amount, target.ward, (src as HeroState).ward_pierce)
 
 
 ## After a hero's hit lands. dealt = HP actually removed, raw = damage before the
@@ -68,6 +71,9 @@ static func after_hit(sim: MatchSim, src: HeroState, target: SimEntity, dealt: f
 	if kind == &"basic":
 		_after_basic(sim, src, target, dealt)
 	elif kind == &"ability":
+		var saber := src.item_with(&"ability_resets_attack")
+		if saber != null and target.team != src.team and not src.is_winding_up():
+			src.cooldown_left = 0.0
 		var gem := src.item_with(&"overcharge_threshold")
 		if gem != null and raw >= gem.overcharge_threshold and target.alive and not (target is StructureState):
 			sim.emit_event(&"item_proc", {"hero": src.id, "item": gem.id, "target": target.id})
@@ -75,6 +81,11 @@ static func after_hit(sim: MatchSim, src: HeroState, target: SimEntity, dealt: f
 
 
 static func _after_basic(sim: MatchSim, src: HeroState, target: SimEntity, dealt: float) -> void:
+	var sword := src.item_with(&"splash_fraction")
+	if sword != null and dealt > 0.0 and not (target is StructureState):
+		for e in Abilities.enemies_near(sim, src, target.pos, sword.splash_radius):
+			if e != target:
+				sim.apply_damage(e, dealt * sword.splash_fraction, src, &"item")
 	var steal := src.item_total(&"lifesteal")
 	var rhythm := src.item_with(&"rhythm_every")
 	if rhythm != null:
@@ -92,6 +103,21 @@ static func _after_basic(sim: MatchSim, src: HeroState, target: SimEntity, dealt
 				sim.emit_event(&"item_proc", {"hero": src.id, "item": rhythm.id, "target": src.id})
 	if steal > 0.0 and dealt > 0.0:
 		sim.heal(src, dealt * steal)
+
+
+## Phoenix Feather: a blow that would knock the hero out leaves 1 HP and a shield
+## instead, then the feather recharges. Returns the damage that still lands.
+static func cheat_death(sim: MatchSim, h: HeroState, amount: float) -> float:
+	if amount < h.hp or sim.time < h.phoenix_ready_at:
+		return amount
+	var feather := h.item_with(&"phoenix_shield")
+	if feather == null:
+		return amount
+	h.phoenix_ready_at = sim.time + feather.phoenix_cooldown
+	h.shield_hp = maxf(h.shield_hp if sim.time < h.shield_until else 0.0, h.max_hp * feather.phoenix_shield)
+	h.shield_until = sim.time + feather.phoenix_shield_time
+	sim.emit_event(&"item_proc", {"hero": h.id, "item": feather.id, "target": h.id})
+	return maxf(0.0, h.hp - 1.0)
 
 
 ## A hero cast an ability: arm Spark Band; an ultimate starts Stormcrown's storm.
@@ -127,8 +153,9 @@ static func tick(sim: MatchSim) -> void:
 ## What a Masterwork boosts: every stat bonus and effect strength. Thresholds, timings,
 ## ranges and counts stay as they are.
 const MASTERWORK_FIELDS: Array[StringName] = [
-	&"move_speed_bonus", &"max_hp_bonus", &"damage_bonus", &"attack_speed_bonus", &"range_bonus",
-	&"ability_damage_bonus", &"ability_resist", &"trooper_damage_bonus", &"structure_damage_bonus",
+	&"attack_power", &"ability_power", &"max_hp_flat", &"armor", &"ward", &"cooldown_haste",
+	&"move_speed_bonus", &"max_hp_bonus", &"attack_speed_bonus", &"range_bonus",
+	&"trooper_damage_bonus", &"structure_damage_bonus", &"splash_fraction", &"phoenix_shield",
 	&"out_of_combat_speed_bonus", &"low_hp_attack_speed_bonus", &"lifesteal", &"regen_per_second",
 	&"siege_aura_bonus", &"spark_damage", &"wounds_amount", &"overcharge_fraction",
 	&"ult_cooldown_cut", &"storm_fraction", &"rhythm_lifesteal", &"rhythm_shred",

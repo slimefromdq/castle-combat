@@ -46,11 +46,17 @@ static func cast_problem(sim: MatchSim, h: HeroState, slot: int) -> String:
 	var a := ability_for(sim, h, slot)
 	if a == null:
 		return "nothing to copy"
-	if can_recast(sim, h, slot):
-		if a.effect == &"cloak_toss" and h.carrying_relay:
+	var recast := can_recast(sim, h, slot)
+	var kit := Kits.cast_problem(sim, h, slot, a, recast)
+	if kit != "":
+		return kit
+	if Kits.is_busy(h):
+		return "busy"
+	if recast:
+		if (a.effect == &"cloak_toss" or a.effect == &"threaded_needle") and h.carrying_relay:
 			return "carrying the Relay"
 		return ""
-	if h.cooldowns[slot] > 0.0:
+	if h.cooldowns[slot] > 0.0 and not Kits.has_spare_charge(h, slot):
 		return "cooling down"
 	if h.is_vanished():
 		return "in the shadows"
@@ -126,6 +132,8 @@ static func try_cast(sim: MatchSim, h: HeroState, slot: int, move: Vector2) -> b
 			else:
 				h.vanish_until = sim.time + a.duration
 				_shake_aggro(sim, h)
+		_:
+			start_cooldown = Kits.cast(sim, h, slot, a, move, recast, key, info)
 	if start_cooldown:
 		h.cooldowns[slot] = h.ability_cooldown(slot)
 	if h.data.abilities[slot].effect == &"encore":
@@ -159,6 +167,7 @@ static func tick(sim: MatchSim) -> void:
 			elif sim.time - h.charging_since >= st.charge_time + AUTO_RELEASE_GRACE:
 				_release_shot(sim, h, st, Vector2.ZERO, sim.next_cast_key())
 		_tick_channel(sim, h)
+	Kits.tick(sim)
 	_tick_skillshots(sim)
 
 
@@ -174,7 +183,7 @@ static func _tick_channel(sim: MatchSim, h: HeroState) -> void:
 		return
 	var heal := 0.0
 	var tango := h.has_special(&"bloody_tango")
-	for e in _enemies_near(sim, h, h.channel_point, a.radius):
+	for e in enemies_near(sim, h, h.channel_point, a.radius):
 		var dealt := _hit(sim, h, e, a, h.channel_key)
 		heal += dealt * tango
 	if heal > 0.0:
@@ -204,13 +213,14 @@ static func move_forced(sim: MatchSim, h: HeroState) -> bool:
 		h.forced_volley = null
 		if volley != null:
 			_volley(sim, h, volley, h.forced_key, h.forced_recast)
+		Kits.forced_ended(sim, h)
 	return true
 
 
 ## Damage changes on a hero target: the shadows make Jack immune, shields soak damage,
 ## and Shatter's shield bursts if it breaks early. Returns the damage that reaches HP.
-static func modify_hero_damage(sim: MatchSim, _source: SimEntity, target: HeroState, amount: float) -> float:
-	if target.is_vanished():
+static func modify_hero_damage(sim: MatchSim, source: SimEntity, target: HeroState, amount: float) -> float:
+	if target.is_untargetable():
 		return 0.0
 	if target.shield_hp > 0.0 and sim.time < target.shield_until:
 		var absorbed := minf(target.shield_hp, amount)
@@ -219,7 +229,7 @@ static func modify_hero_damage(sim: MatchSim, _source: SimEntity, target: HeroSt
 		if target.shield_hp <= 0.0001 and target.shatter_armed:
 			target.shatter_armed = false
 			_shatter(sim, target)
-	return amount
+	return Kits.incoming(sim, source, target, amount)
 
 
 ## Basic-attack damage from a hero, after perks. Returns -1 for a miss (blinded).
@@ -240,7 +250,7 @@ static func basic_damage(sim: MatchSim, h: HeroState, t: SimEntity, damage: floa
 		t.judged_until = 0.0
 		mult += h.has_special(&"judgment")
 		sim.emit_event(&"judgment_struck", {"hero": h.id, "target": t.id})
-	return damage * mult
+	return Kits.basic_damage(sim, h, t, damage * mult)
 
 
 ## After a hero's basic attack lands: Charge's knockback, Encore's dash refund.
@@ -255,11 +265,12 @@ static func after_basic(sim: MatchSim, h: HeroState, t: SimEntity) -> void:
 	var encore := h.has_special(&"encore")
 	if encore > 0.0:
 		h.cooldowns[0] = maxf(0.0, h.cooldowns[0] - encore)
+	Kits.after_basic(sim, h, t)
 
 
 ## A shield from Oath (and Sanctuary), arming Shatter and Charge if picked.
 static func give_shield(sim: MatchSim, h: HeroState, a: AbilityData) -> void:
-	h.shield_hp = maxf(h.shield_hp if sim.time < h.shield_until else 0.0, h.max_hp * a.shield_fraction)
+	h.shield_hp = maxf(h.shield_hp if sim.time < h.shield_until else 0.0, h.max_hp * a.shield_fraction + HeroStats.support_bonus(h, a))
 	h.shield_until = sim.time + a.duration
 	h.shatter_armed = h.has_special(&"shatter") > 0.0
 	h.charge_ready = h.has_special(&"charge") > 0.0
@@ -270,9 +281,9 @@ static func give_shield(sim: MatchSim, h: HeroState, a: AbilityData) -> void:
 static func _cleave(sim: MatchSim, h: HeroState, a: AbilityData, key: int) -> void:
 	var heal := 0.0
 	var mercy := h.has_special(&"mercy")
-	for e in _enemies_near(sim, h, h.pos, a.radius):
+	for e in enemies_near(sim, h, h.pos, a.radius):
 		_hit(sim, h, e, a, key)
-		heal += a.heal_per_hero * (mercy if mercy > 0.0 else 1.0) if e is HeroState else a.heal_per_minion
+		heal += (a.heal_per_hero + HeroStats.support_bonus(h, a)) * (mercy if mercy > 0.0 else 1.0) if e is HeroState else a.heal_per_minion
 	var healed := sim.heal(h, heal)
 	if healed > 0.0:
 		sim.emit_event(&"hero_healed", {"hero": h.id, "team": h.team, "amount": healed})
@@ -282,7 +293,7 @@ static func _shatter(sim: MatchSim, h: HeroState) -> void:
 	var perk := h.perk_with(&"shatter")
 	var key := sim.next_cast_key()
 	sim.emit_event(&"shield_shattered", {"hero": h.id, "team": h.team, "pos": h.pos, "radius": perk.special_value_2})
-	for e in _enemies_near(sim, h, h.pos, perk.special_value_2):
+	for e in enemies_near(sim, h, h.pos, perk.special_value_2):
 		sim.emit_event(&"ability_hit", {"hero": h.id, "target": e.id, "damage": perk.special_value, "ability": &"shatter"})
 		sim.apply_damage(e, perk.special_value, h, &"ability")
 		if e is HeroState:
@@ -362,7 +373,7 @@ static func _burst(sim: MatchSim, h: HeroState, a: AbilityData, key: int) -> voi
 	sim.emit_event(&"vanish_burst", {"hero": h.id, "team": h.team, "pos": h.pos, "radius": a.radius})
 	var hit_hero := false
 	var blind := h.perk_with(&"smoke_and_mirrors")
-	for e in _enemies_near(sim, h, h.pos, a.radius):
+	for e in enemies_near(sim, h, h.pos, a.radius):
 		_hit(sim, h, e, a, key)
 		if e is HeroState:
 			hit_hero = true
@@ -396,7 +407,7 @@ static func _shake_aggro(sim: MatchSim, h: HeroState) -> void:
 
 
 ## The nearest spot to `p` (walking back toward `back`) where the hero fits.
-static func _free_spot(sim: MatchSim, h: HeroState, p: Vector2, back: Vector2) -> Vector2:
+static func _free_spot(sim: MatchSim, h: SimEntity, p: Vector2, back: Vector2) -> Vector2:
 	var step := (back - p).normalized() * 0.25 if back.distance_to(p) > 0.01 else Vector2.ZERO
 	for i in 40:
 		if not Movement.is_blocked(sim, h, p):
@@ -427,8 +438,9 @@ static func _launch(sim: MatchSim, h: HeroState, a: AbilityData, dir: Vector2, d
 	s.speed = a.speed
 	s.width = a.width
 	s.left = a.reach
-	s.damage = dmg
-	s.minion_damage = minion_dmg if minion_dmg > 0.0 else dmg
+	var bonus := HeroStats.ability_bonus(h, a)
+	s.damage = dmg + bonus
+	s.minion_damage = (minion_dmg if minion_dmg > 0.0 else dmg) + bonus
 	s.key = key
 	h.facing = dir
 	sim.skillshots.append(s)
@@ -442,6 +454,7 @@ static func _tick_skillshots(sim: MatchSim) -> void:
 		if not s.done:
 			_advance(sim, s)
 		if s.done:
+			Kits.skillshot_ended(sim, s)
 			if s.ability.effect == &"cloak_toss" and s.owner.cloak_shot_id == s.id:
 				s.owner.cloak_pos = s.pos
 				s.owner.cloak_shot_id = 0
@@ -486,7 +499,7 @@ static func _advance(sim: MatchSim, s: Skillshot) -> void:
 static func _skillshot_targets(sim: MatchSim, s: Skillshot) -> Array[SimEntity]:
 	var out: Array[SimEntity] = []
 	var them := sim.heroes[1 - s.owner.team]
-	if them.alive and not them.is_vanished() and not s.hits.has(them.id):
+	if them.alive and not them.is_untargetable() and not s.hits.has(them.id):
 		out.append(them)
 	for m in sim.minions:
 		if m.alive and m.team != s.owner.team and not s.hits.has(m.id):
@@ -521,7 +534,8 @@ static func _skillshot_hit(sim: MatchSim, s: Skillshot, e: SimEntity) -> void:
 			if e is HeroState and e.alive:
 				_judgment_hit(sim, s, e)
 		_:
-			_hit(sim, h, e, s.ability, s.key, dmg)
+			if not Kits.skillshot_hit(sim, s, e):
+				_hit(sim, h, e, s.ability, s.key, dmg)
 
 
 # ------------------------------------------------------------------ helpers
@@ -530,6 +544,7 @@ static func _skillshot_hit(sim: MatchSim, s: Skillshot, e: SimEntity) -> void:
 static func _hit(sim: MatchSim, h: HeroState, e: SimEntity, a: AbilityData, key: int, dmg := -1.0) -> float:
 	if dmg < 0.0:
 		dmg = a.damage if e is HeroState or a.minion_damage <= 0.0 else a.minion_damage
+		dmg += HeroStats.ability_bonus(h, a)
 	sim.emit_event(&"ability_hit", {"hero": h.id, "target": e.id, "damage": dmg, "ability": a.id})
 	var dealt := sim.apply_damage(e, dmg, h, &"ability")
 	if e is HeroState:
@@ -578,7 +593,7 @@ static func _dir(h: HeroState, move: Vector2, toward: SimEntity) -> Vector2:
 
 static func _aim_hero(sim: MatchSim, h: HeroState, reach: float) -> HeroState:
 	var them := sim.heroes[1 - h.team]
-	if them.alive and not them.is_vanished() and not sim.is_hidden(them) and h.pos.distance_to(them.pos) <= reach + them.radius \
+	if them.alive and not them.is_untargetable() and not sim.is_hidden(them) and h.pos.distance_to(them.pos) <= reach + them.radius \
 			and ArenaGeometry.has_line_of_sight(sim.arena, h.pos, them.pos):
 		return them
 	return null
@@ -617,12 +632,46 @@ static func aim_unit(sim: MatchSim, h: HeroState, reach: float) -> SimEntity:
 
 
 ## Enemy heroes and minions within radius of p (a hero in the shadows can't be hit).
-static func _enemies_near(sim: MatchSim, h: HeroState, p: Vector2, radius: float) -> Array[SimEntity]:
+static func enemies_near(sim: MatchSim, h: HeroState, p: Vector2, radius: float) -> Array[SimEntity]:
 	var out: Array[SimEntity] = []
 	var them := sim.heroes[1 - h.team]
-	if them.alive and not them.is_vanished() and them.pos.distance_to(p) <= radius + them.radius:
+	if them.alive and not them.is_untargetable() and them.pos.distance_to(p) <= radius + them.radius:
 		out.append(them)
 	for m in sim.minions:
 		if m.alive and m.team != h.team and m.pos.distance_to(p) <= radius + m.radius:
 			out.append(m)
 	return out
+
+
+# ------------------------------------------------------------------ for Kits
+
+static func hit(sim: MatchSim, h: HeroState, e: SimEntity, a: AbilityData, key: int, dmg := -1.0) -> float:
+	return _hit(sim, h, e, a, key, dmg)
+
+
+static func launch(sim: MatchSim, h: HeroState, a: AbilityData, dir: Vector2, dmg: float, minion_dmg: float, key: int) -> Skillshot:
+	return _launch(sim, h, a, dir, dmg, minion_dmg, key)
+
+
+static func aim_dir(h: HeroState, move: Vector2, toward: SimEntity) -> Vector2:
+	return _dir(h, move, toward)
+
+
+static func aim_hero(sim: MatchSim, h: HeroState, reach: float) -> HeroState:
+	return _aim_hero(sim, h, reach)
+
+
+static func force(sim: MatchSim, h: HeroState, offset: Vector2, seconds: float, turn := true) -> void:
+	_force(sim, h, offset, seconds, turn)
+
+
+static func interrupt(sim: MatchSim, e: HeroState) -> void:
+	_interrupt(sim, e)
+
+
+static func stun(sim: MatchSim, e: HeroState, seconds: float) -> void:
+	_stun(sim, e, seconds)
+
+
+static func free_spot(sim: MatchSim, mover: SimEntity, p: Vector2, back: Vector2) -> Vector2:
+	return _free_spot(sim, mover, p, back)

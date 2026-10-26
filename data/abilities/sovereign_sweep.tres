@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"sovereign_sweep"
+display_name = "Sovereign Sweep"
+summary = "Blood Price: pay 8% max HP into Debt, then sweep 3 m in front: 105 dmg. Hitting the hero cancels that much Debt"
+effect = &"sovereign_sweep"
+cooldown = 7.0
+radius = 3.0
+damage = 105.0
+minion_damage = 80.0
+hp_cost = 0.08
+atk_ratio = 0.6
+ap_ratio = 0.3

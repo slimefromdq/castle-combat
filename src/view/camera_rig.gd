@@ -5,16 +5,16 @@ extends Node3D
 
 const PITCH_DEG := 52.0
 ## World metres visible across the screen width.
-const VIEW_WIDTH := 14.0
+const VIEW_WIDTH := 11.5
 ## Look this far ahead of the hero so it sits about 40% up the screen, clear of thumbs.
-const LEAD := 3.3
+const LEAD := 2.7
 const DISTANCE := 40.0
 const FOLLOW_SHARPNESS := 8.0
 ## The view stops this far (metres) past the end walls, so it never shows the void
 ## beyond the map. Screen bands covered by the HUD don't count as visible.
 const EDGE_MARGIN := 0.8
 ## Your hero always stays at least this far (metres) inside the left and right screen edges.
-const HERO_SIDE_MARGIN := 1.4
+const HERO_SIDE_MARGIN := 1.2
 
 var camera: Camera3D
 var seat := MatchSim.BLUE

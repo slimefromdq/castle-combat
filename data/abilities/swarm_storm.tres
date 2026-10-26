@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"swarm_storm"
+display_name = "Swarm Storm"
+summary = "Engulf the enemy hero for 3 s: slowed 30%, half its attacks miss, 140 dmg over time"
+effect = &"swarm_storm"
+cooldown = 55.0
+reach = 4.5
+duration = 3.0
+pulses = 6
+damage = 23.0
+slow = 0.3
+ap_ratio = 0.15

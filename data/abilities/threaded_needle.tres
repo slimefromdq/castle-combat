@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"threaded_needle"
+display_name = "Threaded Needle"
+summary = "Needle 8 m: 70 dmg and threads the hero for 4 s. Tap again to reel yourself in. Past 7 m the thread snaps: 50 dmg"
+effect = &"threaded_needle"
+cooldown = 8.0
+reach = 8.0
+speed = 22.0
+width = 0.4
+damage = 70.0
+ap_ratio = 0.6
+duration = 4.0
+recast_window = 4.0
+radius = 7.0
+extra = 50.0
+is_movement = true

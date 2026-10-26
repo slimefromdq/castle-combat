@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"harpoon_hook"
+display_name = "Harpoon Hook"
+summary = "Hook 9 m: 80 dmg, pulls the first enemy to you"
+effect = &"harpoon"
+cooldown = 11.0
+reach = 9.0
+speed = 17.0
+width = 0.55
+damage = 80.0
+ap_ratio = 0.5

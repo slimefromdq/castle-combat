@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"keelhaul"
+display_name = "Keelhaul"
+summary = "Grab an enemy next to you and fling it 2.5 m behind you: 60 dmg"
+effect = &"keelhaul"
+cooldown = 10.0
+reach = 2.8
+distance = 2.5
+travel_time = 0.35
+damage = 60.0
+ap_ratio = 0.4
+hp_ratio = 0.04
