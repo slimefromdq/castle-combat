@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"first_chair"
+display_name = "First Chair"
+summary = "+12 ability power"
+ability_power = 12.0

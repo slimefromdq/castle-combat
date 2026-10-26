@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"re_entry"
+display_name = "Re-entry"
+summary = "After 1 s the satellite drops on the spot below it: 160 dmg in 2.2 m and a 0.6 s knock-up"
+effect = &"re_entry"
+cooldown = 50.0
+delay = 1.0
+radius = 2.2
+damage = 160.0
+minion_damage = 120.0
+stun = 0.6
+ap_ratio = 0.75

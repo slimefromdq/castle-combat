@@ -178,6 +178,60 @@ static func hero_body(body: Node3D, shape: String, c: Color) -> void:
 			part(body, box(Vector3(0.04, 0.04, 0.3)), Color("c9a43a"), Vector3(0, 0.85, 0.3))
 			part(body, box(Vector3(0.3, 0.14, 0.04)), Color("c9a43a"), Vector3(0, 0.85, 0.46))
 			part(body, box(Vector3(0.05, 0.05, 0.45)), Color("c9d1d9"), Vector3(0.36, 0.72, -0.3))
+		"serpent":
+			# Serpent: a slim spy in a long green coat, a bowler hat with a snakeskin band,
+			# and his hollow cane.
+			var green := Color("2f8f4e")
+			var dark := Color("1f3b2a")
+			part(body, cylinder(0.2, 0.42, 1.12, 16), c, Vector3(0, 0.56, 0))
+			part(body, cylinder(0.24, 0.3, 0.3, 16), green, Vector3(0, 0.98, 0))
+			var head := SphereMesh.new()
+			head.radius = 0.2
+			head.height = 0.4
+			part(body, head, skin, Vector3(0, 1.3, 0))
+			part(body, cylinder(0.36, 0.36, 0.04, 20), dark, Vector3(0, 1.44, 0))
+			part(body, cylinder(0.19, 0.21, 0.2, 16), dark, Vector3(0, 1.55, 0))
+			part(body, cylinder(0.215, 0.215, 0.05, 16), Color("9be36b"), Vector3(0, 1.48, 0))
+			part(body, box(Vector3(0.05, 1.05, 0.05)), Color("2b2b31"), Vector3(0.38, 0.55, -0.18))
+			var knob := SphereMesh.new()
+			knob.radius = 0.07
+			knob.height = 0.14
+			part(body, knob, Color("c9d1d9"), Vector3(0.38, 1.1, -0.18))
+		"conductor":
+			# Fermata: a tailcoat with long tails, a white shirt front, a red bow tie, swept
+			# hair and a raised baton.
+			var black := Color("24212b")
+			part(body, cylinder(0.3, 0.44, 1.0, 18), c, Vector3(0, 0.5, 0))
+			part(body, box(Vector3(0.3, 0.42, 0.06)), Color("f4f1ea"), Vector3(0, 0.95, -0.3))
+			part(body, box(Vector3(0.2, 0.08, 0.06)), Color("d0313d"), Vector3(0, 1.13, -0.32))
+			for side: float in [-1.0, 1.0]:
+				part(body, box(Vector3(0.16, 0.6, 0.06)), black, Vector3(side * 0.13, 0.3, 0.36), Vector3(-12, 0, 0))
+			var head := SphereMesh.new()
+			head.radius = 0.21
+			head.height = 0.42
+			part(body, head, skin, Vector3(0, 1.32, 0))
+			var hair := SphereMesh.new()
+			hair.radius = 0.23
+			hair.height = 0.3
+			part(body, hair, Color("e8e2d6"), Vector3(0, 1.44, 0.06))
+			part(body, box(Vector3(0.04, 0.04, 0.7)), Color("f4f1ea"), Vector3(0.5, 1.0, -0.38), Vector3(55, 0, 0))
+		"kosmonaut":
+			# KOSMONAUT: a bulky white suit with team-colour stripes, a round helmet with a
+			# gold visor down, and a backpack with an antenna.
+			var white := Color("eef1f5")
+			part(body, cylinder(0.42, 0.5, 0.95, 20), white, Vector3(0, 0.48, 0))
+			part(body, cylinder(0.43, 0.43, 0.12, 20), c, Vector3(0, 0.7, 0))
+			part(body, cylinder(0.49, 0.5, 0.1, 20), c, Vector3(0, 0.12, 0))
+			var helmet := SphereMesh.new()
+			helmet.radius = 0.32
+			helmet.height = 0.64
+			part(body, helmet, white, Vector3(0, 1.22, 0))
+			var visor := SphereMesh.new()
+			visor.radius = 0.24
+			visor.height = 0.36
+			part(body, visor, Color("e8b84a"), Vector3(0, 1.22, -0.14))
+			part(body, box(Vector3(0.6, 0.6, 0.28)), Color("c9d1d9"), Vector3(0, 0.8, 0.42))
+			part(body, box(Vector3(0.03, 0.5, 0.03)), Color("6b6f78"), Vector3(0.2, 1.32, 0.48))
 		"emperor":
 			# Tot: a tall black-and-gold emperor in a high-collared mantle with a broadsword.
 			var gold := Color("e8c35a")
@@ -267,6 +321,25 @@ static func hero_gear(body: Node3D, shape: String, c: Color) -> void:
 			part(mid, box(Vector3(0.1, 0.1, 0.5)), glow, Vector3(0.36, 0.72, -0.3), Vector3.ZERO, true)
 			part(late, cylinder(0.05, 0.62, 0.22, 20), Color("e88fb0").lightened(0.3), Vector3(-0.2, 1.85, 0.1))
 			part(late, box(Vector3(0.03, 0.8, 0.03)), Color("6b4a2b"), Vector3(-0.2, 1.4, 0.1))
+		"serpent":
+			# Serpent: the cane glows venom green; late, a long snakeskin scarf and a taller hat.
+			part(mid, box(Vector3(0.1, 1.1, 0.1)), Color(0.55, 1.0, 0.45, 0.7), Vector3(0.38, 0.55, -0.18), Vector3.ZERO, true)
+			part(late, box(Vector3(0.14, 0.05, 0.9)), Color("9be36b"), Vector3(-0.15, 1.08, 0.3), Vector3(-25, 0, 10))
+			part(late, cylinder(0.19, 0.2, 0.22, 16), Color("1f3b2a"), Vector3(0, 1.72, 0))
+		"conductor":
+			# Fermata: the baton glows; late, a gold sash and a high stand-up collar.
+			part(mid, box(Vector3(0.08, 0.08, 0.76)), glow, Vector3(0.5, 1.0, -0.38), Vector3(55, 0, 0), true)
+			part(late, box(Vector3(0.12, 0.06, 0.95)), gold, Vector3(0, 0.85, 0), Vector3(0, 40, 30))
+			part(late, cylinder(0.3, 0.22, 0.2, 16), c.darkened(0.3), Vector3(0, 1.2, 0.04))
+		"kosmonaut":
+			# KOSMONAUT: the visor lights up; late, jetpack fins and padded shoulders.
+			var glass := SphereMesh.new()
+			glass.radius = 0.26
+			glass.height = 0.4
+			part(mid, glass, Color(1.0, 0.85, 0.35, 0.6), Vector3(0, 1.22, -0.16), Vector3.ZERO, true)
+			for side: float in [-1.0, 1.0]:
+				part(late, box(Vector3(0.06, 0.4, 0.3)), Color("d0313d"), Vector3(side * 0.34, 0.62, 0.56))
+				part(late, cylinder(0.18, 0.2, 0.16, 12), Color("c9d1d9"), Vector3(side * 0.48, 0.98, 0))
 		"emperor":
 			# Tot: the broadsword glows; late, a gold mantle and a tall red cape.
 			part(mid, box(Vector3(0.24, 0.14, 1.7)), glow, Vector3(0.55, 0.85, -0.55), Vector3.ZERO, true)

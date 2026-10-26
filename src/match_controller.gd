@@ -17,6 +17,9 @@ const HEROES: Array[HeroData] = [
 	preload("res://data/heroes/huddle.tres"),
 	preload("res://data/heroes/poppet.tres"),
 	preload("res://data/heroes/tot.tres"),
+	preload("res://data/heroes/serpent.tres"),
+	preload("res://data/heroes/fermata.tres"),
+	preload("res://data/heroes/kosmonaut.tres"),
 ]
 const MINIONS := {
 	&"melee": preload("res://data/minions/melee.tres"),
@@ -70,6 +73,9 @@ const BOT_DECKS := {
 	&"huddle": [17, 1, 19, 21, 25, 28, 6, 9],
 	&"poppet": [16, 17, 22, 5, 14, 27, 29, 13],
 	&"tot": [16, 18, 22, 5, 20, 27, 29, 1],
+	&"serpent": [17, 1, 19, 21, 25, 28, 6, 9],
+	&"fermata": [18, 1, 17, 21, 23, 26, 28, 6],
+	&"kosmonaut": [17, 1, 19, 21, 25, 28, 7, 9],
 }
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),

@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="4_ps"]
+[ext_resource type="Resource" path="res://data/abilities/fang_dart.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/shed_skin.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/snake_pit.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/coiled_strike.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/thick_venom.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/slither.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/cold_blood.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/brood.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/long_fangs.tres" id="p5"]
+[ext_resource type="Resource" path="res://data/passives/cane_master.tres" id="s0"]
+[ext_resource type="Resource" path="res://data/passives/neurotoxin.tres" id="s1"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"serpent"
+display_name = "Serpent"
+shape = "serpent"
+blurb = "A spy with a hollow cane that spits poison darts. Every hit adds Venom, which pops 2.5 s later if he is still close. Never stands still."
+max_hp = 540.0
+move_speed = 4.6
+radius = 0.5
+attack_range = 5.5
+attack_damage = 34.0
+attack_windup = 0.2
+attack_interval = 0.85
+hp_per_level = 38.0
+attack_power_per_level = 2.0
+ability_power_per_level = 11.0
+hero_trait = &"venom"
+lean = "Ability"
+ratings = Array[int]([2, 4, 5, 2, 4])
+sprint_color = Color(0.45, 0.9, 0.35, 1)
+sprint_lean_deg = 24.0
+sprint_bob = 0.03
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])
+passives = Array[ExtResource("4_ps")]([ExtResource("s0"), ExtResource("s1")])

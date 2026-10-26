@@ -70,6 +70,14 @@ func _draw_kit_marks(h: HeroState, r: Rect2) -> void:
 			draw_circle(c, 3.2, Color(0, 0, 0, 0.7))
 			if k < h.buzz:
 				draw_circle(c, 2.5, Color("ffd23a"))
+	if h.venom > 0:
+		# Venom: green pips under the bar, and a strip that runs out as the pop nears.
+		for k in h.venom:
+			var c := Vector2(r.position.x + 5.0 + 8.0 * k, r.end.y + 12.0)
+			draw_circle(c, 3.2, Color(0, 0, 0, 0.7))
+			draw_circle(c, 2.5, Color("7be35a"))
+		var left := clampf((h.venom_pops_at - view.sim.time) / OccultKits.VENOM_TIME, 0.0, 1.0)
+		draw_rect(Rect2(r.position + Vector2(0, r.size.y + 17.0), Vector2(r.size.x * left, 2.5)), Color("7be35a"))
 
 
 ## The Relay is globally visible: when it is off screen, a gold arrow on the edge of

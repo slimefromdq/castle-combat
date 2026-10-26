@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"standing_ovation"
+display_name = "Standing Ovation"
+summary = "+15 ability power; instruments last 1 s longer"
+ability_power = 15.0
+special = &"ovation"
+special_value = 1.0

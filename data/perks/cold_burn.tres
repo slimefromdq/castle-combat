@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cold_burn"
+display_name = "Cold Burn"
+summary = "Burn slows 50% for 1.5 s"
+special = &"cold_burn"
+special_value = 0.5
+special_value_2 = 1.5

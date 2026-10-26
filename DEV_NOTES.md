@@ -459,3 +459,13 @@ Plan: [Occult Expansion Plan](https://claude.ai/artifact/8cY8YgQfxRdwM9Koj3BefU)
 - Latch Cloud reworked: aims at heroes, passes through troopers, a big swarm and a BUZZ n/need counter show on the latched hero, damage ticks show yellow numbers, and a miss lingers 2 s as a small cloud.
 - Bear traps show to the enemy as a chalk outline; the spikes stay hidden unless you're the owner or within 2 m.
 - Tests: `tests/test_progression.gd`.
+
+## Occult expansion, phase III: Serpent, Fermata and KOSMONAUT
+
+- Eleven heroes. The new kits live in `src/sim/occult_kits.gd` (OccultKits), reached from `Kits` (cast, tick, skillshot hits, basic hits, clear). Their visuals are in `src/view/occult_fx.gd`; bodies are placeholders in `UnitFactory` (shapes `serpent`, `conductor`, `kosmonaut`) until Lucy's art arrives.
+- **Serpent** (trait `venom`): basics add 1 Venom, Fang Dart 2, each viper bite 1 (max 8). Venom pops 2.5 s after the last stack for 14 + 0.12 AP per stack, raised by the target's missing HP share, capped at 30% of max HP, and only if Serpent is within 9 m (else it fizzles). A pop halves Shed Skin's cooldown left. Shed Skin can be cast while rooted and sheds roots and slows. Snake Pit: 3 vipers for 4 s, 6 m/s, bite every 1 s. Lv8 Neurotoxin: pops slow 40% for 1 s.
+- **Fermata** (trait `ensemble`): up to 2 instruments; a third replaces the oldest, which plays its final note (30 + 0.2 AP in 2 m). Brass Section: 5 m cone (35° each side), 90 dmg, 2.5 m knockback, the tuba floats 2.5 s. Strings: 2.5 m circle up to 6 m away for 4 s, 8 pulses of 12, slows 25%. Grand Finale: 4 waves over 1.6 s in 4.5 m, 55 each, 1.5 m push. Lv8: instruments last 1 s longer.
+- **KOSMONAUT** (trait `orbit`): the satellite circles its anchor at 3 m, one lap per 2.4 s; a pass deals 16 + 0.12 AP (12 to troopers), each enemy at most once per 0.8 s. Plant Anchor (8 m, tap again to recall; it comes back by itself past 12 m). Burn: half a lap in 0.35 s, 60 dmg and a 30% slow. Re-entry: lands after 1 s where the satellite was, 160 dmg in 2.2 m, 0.6 s knock-up. Jack's Encore drops it on the enemy hero instead. Lv8 Escape Velocity: 25% faster, 3.5 m orbit.
+- Bot: decks, wishlists, perk picks and ability rules for all three; Jack knows their ult reaches. No bot balance runs (Lucy playtests).
+- HUD: long names step the font down; Venom shows as green pips and a countdown strip under the HP bar, plus "VENOM n" and a closing ring on the hero.
+- Tests: `tests/test_occult.gd`.

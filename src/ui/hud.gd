@@ -154,6 +154,9 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_me = me
 	_you_name.text = "%s · Lv %d" % [me.data.display_name, me.level]
 	_them_name.text = "%s · Lv %d" % [them.data.display_name, them.level]
+	# Long names (KOSMONAUT) step the font down so the level still fits.
+	for l: Label in [_you_name, _them_name]:
+		l.add_theme_font_size_override("font_size", 22 if l.text.length() <= 14 else 18)
 	_you_xp.value = Leveling.progress(sim, me)
 	_them_xp.value = Leveling.progress(sim, them)
 	_you_hp.value = me.hp / me.max_hp

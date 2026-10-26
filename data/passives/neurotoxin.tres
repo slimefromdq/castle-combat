@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PassiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"neurotoxin"
+display_name = "Neurotoxin"
+summary = "When Venom pops, the enemy is slowed 40% for 1 s"
+special = &"neurotoxin"
+special_value = 0.4
+special_value_2 = 1.0

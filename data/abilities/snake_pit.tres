@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"snake_pit"
+display_name = "Snake Pit"
+summary = "Throw a nest 7 m that hatches 3 vipers for 4 s. They chase the enemy hero: each bite 30 dmg and 1 Venom stack"
+effect = &"snake_pit"
+cooldown = 50.0
+reach = 7.0
+delay = 0.4
+duration = 4.0
+pulses = 3
+damage = 30.0
+radius = 9.0
+speed = 6.0
+extra = 1.0
+ap_ratio = 0.25

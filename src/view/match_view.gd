@@ -14,6 +14,7 @@ var _bars: UnitBars
 var _candle_view: CandleView
 var _relay_view: RelayView
 var _status: StatusFx
+var _occult: OccultFx
 ## Local-hero helpers: attack range ring, windup ring, target bracket, windup lines.
 var _range_ring: MeshInstance3D
 ## Faint gold circle: enemy minions dying inside it pay you their gold.
@@ -65,6 +66,10 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_status.view = self
 	add_child(_status)
 	sim.sim_event.connect(_status.on_sim_event)
+	_occult = OccultFx.new()
+	_occult.view = self
+	add_child(_occult)
+	sim.sim_event.connect(_occult.on_sim_event)
 	var bar_layer := CanvasLayer.new()
 	bar_layer.layer = 0
 	add_child(bar_layer)
@@ -158,6 +163,7 @@ func set_local_seat(seat: int) -> void:
 	camera_rig.set_seat(seat)
 	_arena_view.build(sim.arena, seat)
 	_status.reset()
+	_occult.reset()
 	_rebuild_units()
 	render(1.0, 0.0, true)
 
@@ -204,6 +210,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 	_relay_view.render(alpha)
 	_candle_view.render()
 	_status.render()
+	_occult.render(alpha)
 	var me := sim.heroes[local_seat]
 	camera_rig.follow(to_world(me.prev_pos.lerp(me.pos, alpha)), delta, snap)
 	_place_aim_line(to_world(me.prev_pos.lerp(me.pos, alpha)))

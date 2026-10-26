@@ -206,6 +206,9 @@ func _render_skillshots(sim: MatchSim) -> void:
 				&"headsmans_axe":
 					node = UnitFactory.part(self, UnitFactory.box(Vector3(1.6, 0.12, 0.9)), Color("c9d1d9"), Vector3.ZERO, Vector3.ZERO, true)
 					UnitFactory.part(node, UnitFactory.box(Vector3(0.16, 0.14, 2.0)), Color("6b4a2b"), Vector3(0, 0, 0.6), Vector3.ZERO, true)
+				&"fang_dart":
+					node = UnitFactory.part(self, UnitFactory.box(Vector3(0.08, 0.08, 0.6)), Color("7be35a"), Vector3.ZERO, Vector3.ZERO, true)
+					UnitFactory.part(node, UnitFactory.box(Vector3(0.18, 0.04, 0.12)), Color("2f8f4e"), Vector3(0, 0, 0.3), Vector3.ZERO, true)
 				&"latch_cloud":
 					var puff := SphereMesh.new()
 					puff.radius = 0.5

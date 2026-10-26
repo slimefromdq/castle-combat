@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"grand_finale"
+display_name = "Grand Finale"
+summary = "Drums and horns around her send out 4 waves over 1.6 s: 55 dmg each and a push away"
+effect = &"grand_finale"
+cooldown = 55.0
+radius = 4.5
+pulses = 4
+duration = 1.6
+damage = 55.0
+distance = 1.5
+ap_ratio = 0.35
