@@ -1,7 +1,9 @@
 class_name Palette
 ## Colors for the 3D view and HUD. You are always blue, the opponent always orange
 ## (blue/orange stays distinct for common color blindness). Shape carries team too.
-## The world avoids both team hues: green meadow, sandstone lane, violet pockets, gold Relay.
+## The world avoids both team hues: a warm cobbled street, violet pockets, brick-red back
+## alleys, painted walls and a gold Relay. Street-occult, but bright: everything stays
+## mid-tone so team colours and telegraphs pop.
 
 const ALLY := Color("3e8ef7")
 const ENEMY := Color("f26b2a")
@@ -11,25 +13,23 @@ const STONE := Color("b9b2a6")
 const LOCK_DOME := Color(0.75, 0.85, 1.0, 0.22)
 
 const BACKGROUND := Color("16324a")
-const MEADOW := Color("3f7d4e")
-const MEADOW_DARK := Color("356b43")
 const BUSH := Color("2f7d3c")
-const LANE := Color("8c8174")
-const LANE_TILE := Color("9b9083")
+const LANE := Color("9c8d7d")
+const LANE_MORTAR := Color("807264")
+## Outside the walls: a mossy plaza of big flagstones (replaces the old meadow).
+const PLAZA := Color("6f9a82")
+const PLAZA_MORTAR := Color("4f7563")
+const CHALK := Color(1.0, 0.98, 0.92, 0.32)
 const CENTER_LINE := Color("ffd84a")
 const POCKET := Color("6a4f9c")
-const POCKET_TILE := Color("8466bd")
+const POCKET_MORTAR := Color("4f3a78")
 ## Back alleys: warm brick-red cobbles, clearly not lane and not a Relay pocket.
 const ALLEY := Color("9a5a4a")
-const ALLEY_TILE := Color("b06c5a")
+const ALLEY_MORTAR := Color("6e3d33")
 const WALL := Color("cdbd9b")
 const WALL_CAP := Color("efe3c6")
 const TREE := Color("2f8f5b")
 const TREE_LIGHT := Color("5cbf6e")
-const TRUNK := Color("7a5236")
-const ROCK := Color("9aa3ad")
-const FLOWER_A := Color("ff7ab8")
-const FLOWER_B := Color("fff27a")
 
 
 static func team_color(is_ally: bool) -> Color:

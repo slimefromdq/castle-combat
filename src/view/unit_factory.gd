@@ -75,8 +75,12 @@ static func make_hero(hero: HeroState, is_ally: bool) -> Node3D:
 	var body := Node3D.new()
 	body.name = "Body"
 	root.add_child(body)
-	hero_body(body, hero.data.shape, Palette.team_color(is_ally))
-	hero_gear(body, hero.data.shape, Palette.team_color(is_ally))
+	# Body turns to face; Pose inside it is what HeroAnimator moves.
+	var pose := Node3D.new()
+	pose.name = "Pose"
+	body.add_child(pose)
+	hero_body(pose, hero.data.shape, Palette.team_color(is_ally))
+	hero_gear(pose, hero.data.shape, Palette.team_color(is_ally))
 	root.set_meta("bar_height", 2.0)
 	return root
 
@@ -364,6 +368,8 @@ static func hero_gear(body: Node3D, shape: String, c: Color) -> void:
 static func make_structure(s: StructureState, is_ally: bool) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Structure%d" % s.id
+	# Every structure stands in a chalk ritual circle.
+	StreetArt.floor_sigil(root, StreetArt.Sigil.RITUAL, Palette.CHALK, Vector3(0, 0.008, 0), (s.radius + 1.6) * 2.0)
 	base_decal(root, s.radius, is_ally)
 	var body := Node3D.new()
 	body.name = "Body"
