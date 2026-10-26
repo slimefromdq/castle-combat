@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"colossus_heart"
 display_name = "Colossus Heart"
-cost = 2200
+cost = 1700
 tier = 2
 summary = "+450 HP, +20 Armor, +20 Ward"
 max_hp_flat = 450.0

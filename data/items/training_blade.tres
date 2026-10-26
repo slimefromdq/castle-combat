@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"training_blade"
 display_name = "Training Blade"
-cost = 300
+cost = 150
 tier = 0
 summary = "+10 ATK"
 attack_power = 10.0

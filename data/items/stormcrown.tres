@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"stormcrown"
 display_name = "Stormcrown"
-cost = 2200
+cost = 1700
 tier = 2
 summary = "Faster ult; ult calls a storm"
 ult_cooldown_cut = 0.25

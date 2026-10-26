@@ -77,7 +77,7 @@ func test_buying_spends_gold_and_applies_stats() -> void:
 	blue.hp = blue.max_hp - 100.0
 	_buy(sim, _slot(blue, &"mending_charm"))
 	check(blue.owns(_item(&"mending_charm")), "bought Mending Charm")
-	check_near(blue.gold, 1200.0 - 350.0 + MatchController.CONFIG.passive_gold_per_second * sim.dt, 0.01, "paid 350")
+	check_near(blue.gold, 1200.0 - 175.0 + MatchController.CONFIG.passive_gold_per_second * sim.dt, 0.01, "paid 175")
 	check_near(blue.max_hp, blue.data.max_hp * 1.06, 0.01, "+6% max HP")
 	check_near(blue.hp, blue.max_hp - 100.0, 0.01, "extra max HP is added to current HP too")
 	_buy(sim, _slot(blue, &"trooper_cleaver"))

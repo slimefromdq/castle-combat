@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"duelists_crest"
 display_name = "Duelist's Crest"
-cost = 2200
+cost = 1700
 tier = 2
 summary = "+10 ATK, +20% atk speed; burst hits"
 attack_power = 10.0

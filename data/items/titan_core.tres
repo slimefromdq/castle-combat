@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"titan_core"
 display_name = "Titan Core"
-cost = 2400
+cost = 2000
 tier = 2
 summary = "+60 AP, +15% HP"
 ability_power = 60.0

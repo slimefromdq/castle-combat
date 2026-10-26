@@ -6,7 +6,7 @@
 script = ExtResource("1_item")
 id = &"sunder_pick"
 display_name = "Sunder Pick"
-cost = 950
+cost = 725
 tier = 1
 summary = "+10 ATK; basics ignore 35% Armor"
 attack_power = 10.0
