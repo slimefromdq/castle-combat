@@ -61,10 +61,12 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			# Bright gold ring on every level-up; a wider double ring at the ultimate level.
 			var lh: SimEntity = view.sim.get_entity(data.hero)
 			if lh != null:
-				var big: bool = data.level == Leveling.ULT_LEVEL
+				var big: bool = data.level == Leveling.ULT_LEVEL or data.level == Leveling.CROWN_LEVEL
 				_spawn_ring(lh.pos, 3.6 if big else 2.2, Color(1.0, 0.86, 0.35), 0.7 if big else 0.55)
 				if big:
 					_spawn_ring(lh.pos, 2.4, Color(1, 1, 1), 0.5)
+				if data.level == Leveling.CROWN_LEVEL:
+					_spawn_ring(lh.pos, 5.0, Color("e8c35a"), 0.9)
 		&"ult_race_won":
 			var uh: SimEntity = view.sim.get_entity(data.hero)
 			if uh != null:
@@ -161,6 +163,9 @@ func render() -> void:
 		p.frenzy.visible = h.alive and (h.frenzy_left > 0 or sim.time < h.frenzy_until)
 		p.frenzy.position = at + Vector3(0, 0.14, 0)
 		p.frenzy.scale = Vector3.ONE * (0.6 + 0.06 * sin(Time.get_ticks_msec() / 45.0))
+		p.crown.visible = h.alive and h.level >= Leveling.CROWN_LEVEL
+		p.crown.position = at + Vector3(0, 0.05, 0)
+		_render_latch(h, p, at)
 		_render_kit(h, p, at)
 		p.zone.visible = h.alive and h.is_channeling()
 		if p.zone.visible:
@@ -172,6 +177,7 @@ func render() -> void:
 			_render_guardian(st)
 	_render_skillshots(sim)
 	_render_traps(sim)
+	_render_clouds(sim)
 	_update_rings()
 	_update_pillars()
 	_render_banners(sim)
@@ -310,6 +316,13 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"rule": UnitFactory.part(self, _ring_mesh, Color("e8c35a"), Vector3.ZERO, Vector3.ZERO, true),
 		"borrowed": UnitFactory.part(self, _ring_mesh, Color(0.6, 0.05, 0.12, 0.9), Vector3.ZERO, Vector3.ZERO, true),
 	}
+	parts.latch = _latch_swarm()
+	# Max level: a gold crown ring at the hero's feet for the rest of the match.
+	parts.crown = UnitFactory.part(self, _ring_mesh, Color("e8c35a"), Vector3.ZERO, Vector3.ZERO, true)
+	parts.crown.scale = Vector3(1.25, 0.04, 1.25)
+	parts.buzz = UnitFactory.label(self, "", 0.0, 44)
+	parts.buzz.modulate = Color("ffd23a")
+	parts.buzz.outline_modulate = Color(0.15, 0.1, 0.0)
 	parts.root.scale = Vector3(0.7, 0.12, 0.7)
 	parts.borrowed.scale = Vector3(1.15, 0.03, 1.15)
 	parts.hidden.scale = Vector3(0.85, 0.03, 0.85)
@@ -373,8 +386,71 @@ func _render_kit(h: HeroState, p: Dictionary, at: Vector3) -> void:
 	p.borrowed.position = at + Vector3(0, 0.16, 0)
 
 
-## Traps: the owner's side always sees them (ghostly while arming); the other side
-## only sees a glint when its hero is within 2 m.
+## Latch Cloud on a hero: a big knot of yellow bugs circling them for as long as it
+## lasts, and their Buzz count over their head ("BUZZ 3/5").
+func _latch_swarm() -> Node3D:
+	var root := Node3D.new()
+	add_child(root)
+	var bug := SphereMesh.new()
+	bug.radius = 0.11
+	bug.height = 0.22
+	bug.radial_segments = 6
+	bug.rings = 3
+	for k in 16:
+		var a := k * 2.39996
+		var r := 0.75 + 0.25 * float(k % 3) / 2.0
+		UnitFactory.part(root, bug, Color("ffd23a") if k % 4 != 0 else Color("2a2418"), Vector3(cos(a) * r, 0.4 + float(k % 5) * 0.28, sin(a) * r), Vector3.ZERO, true)
+	var haze := SphereMesh.new()
+	haze.radius = 1.0
+	haze.height = 1.8
+	UnitFactory.part(root, haze, Color(1.0, 0.82, 0.2, 0.18), Vector3(0, 0.9, 0), Vector3.ZERO, true)
+	return root
+
+
+func _render_latch(h: HeroState, p: Dictionary, at: Vector3) -> void:
+	var sim := view.sim
+	var on := h.alive and sim.time < h.latched_until
+	var swarm: Node3D = p.latch
+	swarm.visible = on
+	if on:
+		swarm.position = at
+		swarm.rotation.y = Time.get_ticks_msec() / 160.0
+		var left := h.latched_until - sim.time
+		swarm.scale = Vector3.ONE * (0.85 + 0.15 * clampf(left, 0.0, 1.0))
+	var label: Label3D = p.buzz
+	label.visible = h.alive and (on or h.buzz > 0)
+	if label.visible:
+		var need := Kits.BUZZ_STACKS
+		var src := sim.get_entity(h.buzz_from) as HeroState
+		if src != null:
+			need = Kits.buzz_need(src)
+		label.text = "BUZZ %d/%d" % [h.buzz, need]
+		label.position = at + Vector3(0, 3.0, 0)
+
+
+## Missed Latch Clouds hanging in the air: a buzzing yellow puff, fading as it expires.
+var _clouds := {}
+
+
+func _render_clouds(sim: MatchSim) -> void:
+	var live := {}
+	for c: Dictionary in sim.clouds:
+		live[c.id] = true
+		if not _clouds.has(c.id):
+			var node := _latch_swarm()
+			node.scale = Vector3.ONE * 0.7
+			_clouds[c.id] = node
+		var n: Node3D = _clouds[c.id]
+		n.position = MatchView.to_world(c.pos, 0.0)
+		n.rotation.y = Time.get_ticks_msec() / 220.0
+	for id: int in _clouds.keys():
+		if not live.has(id):
+			_clouds[id].queue_free()
+			_clouds.erase(id)
+
+
+## Traps: the owner's side sees them clearly (ghostly while arming); the other side
+## always sees a faint chalk outline, so traps can be played around.
 func _render_traps(sim: MatchSim) -> void:
 	var me := sim.heroes[view.local_seat]
 	var live := {}
@@ -387,12 +463,25 @@ func _render_traps(sim: MatchSim) -> void:
 			for k in 6:
 				var a := TAU * k / 6.0
 				UnitFactory.part(trap, UnitFactory.box(Vector3(0.06, 0.22, 0.06)), Color("c9d1d9"), Vector3(cos(a) * 0.4, 0.15, sin(a) * 0.4), Vector3.ZERO, true)
+			# Chalk outline: what the enemy always sees.
+			var outline := TorusMesh.new()
+			outline.inner_radius = 0.62
+			outline.outer_radius = 0.7
+			outline.rings = 32
+			outline.ring_segments = 3
+			var ring := UnitFactory.part(trap, outline, Color(1.0, 0.95, 0.9, 0.7), Vector3(0, 0.03, 0), Vector3.ZERO, true)
+			ring.name = "Outline"
 			_traps[t.id] = trap
 		var node: Node3D = _traps[t.id]
 		node.position = MatchView.to_world(t.pos, 0.0)
 		var mine: bool = int(t.team) == view.local_seat
-		node.visible = mine or (me.alive and me.pos.distance_to(t.pos) < 2.0 and int(Time.get_ticks_msec() / 200) % 3 != 0)
+		node.visible = true
 		node.scale = Vector3.ONE * (0.7 if sim.time < t.armed_at else 1.0)
+		var faint := not mine and not (me.alive and me.pos.distance_to(t.pos) < 2.0)
+		for part in node.get_children():
+			var mi := part as MeshInstance3D
+			if mi != null and mi.name != "Outline":
+				mi.visible = not faint
 	for id: int in _traps.keys():
 		if not live.has(id):
 			_traps[id].queue_free()

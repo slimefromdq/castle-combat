@@ -66,8 +66,9 @@ func test_siege_scrolls() -> void:
 	var blue := sim.heroes[0]
 	place(blue, MatchSim.to_team_space(blue.team, sim.arena.heal_pad))
 	blue.gold = 5000.0
-	check(Economy.siege_scroll_problem(sim, blue).begins_with("siege scrolls at level"), "locked before level 6")
-	_level_to(sim, blue, 6)
+	_level_to(sim, blue, sim.config.siege_scroll_level - 1)
+	check(Economy.siege_scroll_problem(sim, blue).begins_with("siege scrolls at level"), "locked before level 7")
+	_level_to(sim, blue, sim.config.siege_scroll_level)
 	var first := Economy.siege_scroll_cost(sim, blue)
 	check(Economy.try_siege_scroll(sim, blue), "bought one")
 	check(sim.pending_siege[0] == 1, "a siege trooper joins the next wave")

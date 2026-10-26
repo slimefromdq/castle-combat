@@ -86,7 +86,7 @@ static func _after_basic(sim: MatchSim, src: HeroState, target: SimEntity, dealt
 		for e in Abilities.enemies_near(sim, src, target.pos, sword.splash_radius):
 			if e != target:
 				sim.apply_damage(e, dealt * sword.splash_fraction, src, &"item")
-	var steal := src.item_total(&"lifesteal")
+	var steal := src.item_total(&"lifesteal") + hero_lifesteal(src)
 	var rhythm := src.item_with(&"rhythm_every")
 	if rhythm != null:
 		if src.frenzy_left > 0:
@@ -103,6 +103,17 @@ static func _after_basic(sim: MatchSim, src: HeroState, target: SimEntity, dealt
 				sim.emit_event(&"item_proc", {"hero": src.id, "item": rhythm.id, "target": src.id})
 	if steal > 0.0 and dealt > 0.0:
 		sim.heal(src, dealt * steal)
+
+
+## The hero's own lifesteal (Poppet): base, plus her passives.
+static func hero_lifesteal(h: HeroState) -> float:
+	var steal := h.data.lifesteal + h.passive_special(&"lifesteal")
+	var re := h.passive_special(&"restitched")
+	if re > 0.0 and steal > 0.0:
+		for p in h.owned_passives():
+			if p.special == &"restitched" and h.hp < h.max_hp * p.special_value_2:
+				steal *= re
+	return steal
 
 
 ## Phoenix Feather: a blow that would knock the hero out leaves 1 HP and a shield

@@ -19,7 +19,7 @@ var perk_pick := -1
 var buy_slot := -1
 ## Deck card slot whose owned item to sell back, or -1.
 var sell_slot := -1
-## Buy a siege scroll (level 6+, at the shop).
+## Buy a siege scroll (level 7+, at the shop).
 var buy_scroll := false
-## Deck card slot whose owned item to make a Masterwork (level 6+), or -1.
+## Deck card slot whose owned item to make a Masterwork (level 8+), or -1.
 var masterwork_slot := -1

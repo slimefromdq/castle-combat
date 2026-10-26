@@ -90,16 +90,16 @@ extends Resource
 @export var candle_gold := 25.0
 
 @export_group("Levels")
-## Total XP needed to reach each level (index 0 = level 1). Abilities unlock at 1, 3, 5;
-## perks at 2, 4, 6 (the last is the capstone).
-@export var level_xp: Array[int] = [0, 120, 300, 560, 920, 1560]
+## Total XP needed to reach each level (index 0 = level 1). See Leveling for what each
+## level unlocks (abilities 1, 3, 6; perks 2, 4, 7; passives 3, 8).
+@export var level_xp: Array[int] = [0, 110, 260, 470, 760, 1200, 1650, 2150, 2700]
 @export var passive_xp_per_second := 0.35
 ## XP to the opposing hero for a knockout, plus this much per level the victim is above them.
 @export var ko_xp := 90.0
 @export var ko_xp_per_level_above := 25.0
 ## Catch-up: a hero behind the enemy hero in level gets this much extra XP per level behind.
 @export var catch_up_per_level := 0.25
-## At levels 2, 4 and 6 you pick one of two perks. Unpicked after this long, the first
+## At levels 2, 4 and 7 you pick one of two perks. Unpicked after this long, the first
 ## option is taken for you.
 @export var perk_auto_pick_time := 12.0
 
@@ -111,10 +111,11 @@ extends Resource
 @export var level_up_surge_time := 3.0
 ## From masterwork_level, a hero can pay masterwork_cost_fraction of an owned item's
 ## price to make it a Masterwork: masterwork_bonus more of its stats and effects.
-@export var masterwork_level := 6
+@export var masterwork_level := 8
 @export var masterwork_cost_fraction := 0.5
 @export var masterwork_bonus := 0.25
-## Siege scrolls (from masterwork_level): pay to add a siege trooper to your next wave.
+## Siege scrolls (from siege_scroll_level): pay to add a siege trooper to your next wave.
+@export var siege_scroll_level := 7
 ## The price rises with each scroll a hero buys; at most siege_scroll_max wait at once.
 @export var siege_scroll_cost := 350.0
 @export var siege_scroll_cost_step := 100.0

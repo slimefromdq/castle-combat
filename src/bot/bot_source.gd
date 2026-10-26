@@ -30,7 +30,7 @@ const COUNTERS := {
 	&"huddle": &"warding_cloak",
 	&"tot": &"thorncut",
 }
-## Which perk (0 or 1) the bot takes at levels 2, 4 and 6, per hero. Tests and the
+## Which perk (0 or 1) the bot takes at levels 2, 4 and 7, per hero. Tests and the
 ## bot-match script override it to try other builds.
 const PERK_PICKS := {
 	&"avery": [0, 0, 0],
@@ -523,7 +523,7 @@ func _wishlist_done(sim: MatchSim, me: HeroState) -> bool:
 	return true
 
 
-## Level 6 gold sink: once no wishlist upgrade is still to come, make the priciest owned
+## Level 8 gold sink: once no wishlist upgrade is still to come, make the priciest owned
 ## item a Masterwork. -1 for nothing to do.
 func _masterwork(sim: MatchSim, me: HeroState) -> int:
 	if me.level < sim.config.masterwork_level or not _wishlist_done(sim, me):

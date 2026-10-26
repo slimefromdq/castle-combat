@@ -21,7 +21,7 @@ func _init() -> void:
 	var games := {}
 	var rows: Array[String] = []
 	var lengths: Array[float] = []
-	var level_times := {3: [], 4: [], 5: [], 6: []}
+	var level_times := {3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}
 	var extra := {"ult_race": 0, "ult_race_won": 0, "masterworks": 0, "delivered": 0, "intercepted": 0, "spawned": 0, "scrolls": 0, "candles": 0, "candles_winner": 0, "candle_split": []}
 	for h in heroes:
 		wins[h.id] = 0
@@ -76,12 +76,12 @@ func _init() -> void:
 		var t5: Array = extra.get(h.id, [])
 		t5.sort()
 		if not t5.is_empty():
-			print("%s reached Lv5: median %s" % [h.display_name, _clock(t5[t5.size() / 2])])
+			print("%s reached Lv%d: median %s" % [h.display_name, Leveling.ULT_LEVEL, _clock(t5[t5.size() / 2])])
 	print("Relays: %d spawned, %d delivered, %d knocked loose; siege scrolls read: %d" % [extra.spawned, extra.delivered, extra.intercepted, extra.scrolls])
 	var split: Array = extra.candle_split
 	split.sort()
 	print("Candles: %d taken (%.1f a match), winners took %d; median gap between the two heroes %d" % [extra.candles, float(extra.candles) / maxf(1.0, lengths.size()), extra.candles_winner, split[split.size() / 2] if not split.is_empty() else 0])
-	print("First to Lv5 won %d of %d; Masterworks made: %d" % [extra.ult_race_won, extra.ult_race, extra.masterworks])
+	print("First to the ult level won %d of %d; Masterworks made: %d" % [extra.ult_race_won, extra.ult_race, extra.masterworks])
 	print("")
 	for id: StringName in perk_games:
 		print("  %s: won %d of %d" % [id, perk_wins.get(id, 0), perk_games[id]])
@@ -106,7 +106,7 @@ func _play(blue: HeroData, red: HeroData, picks_a: Array, picks_b: Array, level_
 			kos[data.team] += 1
 		elif type == &"level_up" and level_times.has(data.level):
 			level_times[data.level].append(sim.time)
-			if data.level == 5:
+			if data.level == Leveling.ULT_LEVEL:
 				var who: StringName = sim.get_entity(data.hero).data.id
 				if not extra.has(who):
 					extra[who] = []

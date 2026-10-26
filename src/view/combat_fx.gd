@@ -29,6 +29,11 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 	if type == &"gold_awarded" and data.team == view.local_seat:
 		_spawn_gold_text("+%d" % int(data.amount), Color("f5d76e"))
 		return
+	if type == &"dot_tick" and data.ability == &"latch_cloud" and data.amount >= 1.0:
+		var bitten: SimEntity = view.sim.get_entity(data.target)
+		if bitten != null:
+			_spawn_text_at("-%d" % int(data.amount), Color("ffd23a"), view.unit_position(bitten.id) + Vector3(randf_range(-0.5, 0.2), 2.2, 0))
+		return
 	if type == &"minion_denied" and data.team == view.local_seat:
 		_spawn_gold_text("Denied!", Color(0.85, 0.92, 1.0))
 		return

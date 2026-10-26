@@ -41,10 +41,13 @@ func test_level_growth_follows_the_lean() -> void:
 	var avery := sim.heroes[1]
 	Leveling.gain(sim, jack, 5000.0)
 	Leveling.gain(sim, avery, 5000.0)
-	check_near(jack.ability_power, 5 * jack.data.ability_power_per_level, 0.01, "Jack grows Ability Power")
+	var ups := Leveling.CROWN_LEVEL - 1
+	check(jack.level == Leveling.CROWN_LEVEL and avery.level == Leveling.CROWN_LEVEL, "both at max level")
+	# Growth per level, plus the two automatic passives (Jack: AP; Avery: HP).
+	check_near(jack.ability_power, ups * jack.data.ability_power_per_level + jack.passive_total(&"ability_power"), 0.01, "Jack grows Ability Power")
 	check_near(jack.attack_damage, jack.data.attack_damage, 0.01, "but not Attack Power")
-	check_near(avery.attack_damage, avery.data.attack_damage + 5 * avery.data.attack_power_per_level, 0.01, "Avery grows Attack Power")
-	check_near(avery.max_hp, avery.data.max_hp + 5 * avery.data.hp_per_level, 0.01, "and health")
+	check_near(avery.attack_damage, avery.data.attack_damage + ups * avery.data.attack_power_per_level, 0.01, "Avery grows Attack Power")
+	check_near(avery.max_hp, avery.data.max_hp + ups * avery.data.hp_per_level + avery.passive_total(&"max_hp"), 0.01, "and health")
 
 
 func test_armor_cuts_basics_and_ward_cuts_abilities() -> void:

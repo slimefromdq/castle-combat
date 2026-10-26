@@ -1,6 +1,6 @@
 class_name PerkData
 extends Resource
-## A level-up perk. At levels 2, 4 and 6 the player picks one of two (HeroData.perks
+## A level-up perk. At levels 2, 4 and 7 the player picks one of two (HeroData.perks
 ## holds them in pairs). Stat bonuses stack with items the same way; `ability_index` +
 ## `cooldown_cut` shortens one ability; `special` turns on a hand-written rule.
 

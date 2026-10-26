@@ -32,7 +32,7 @@ func _shot(sim: MatchSim) -> Skillshot:
 func test_aimed_skillshot_flies_where_you_aim() -> void:
 	var sim := _sim(AVERY, JOSE)
 	var blue := sim.heroes[0]
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2, Vector2(1, 0))
 	var shot := _shot(sim)
 	check(shot != null, "blade thrown")
@@ -45,7 +45,7 @@ func test_aiming_at_the_hero_hits() -> void:
 	var sim := _sim(AVERY, JOSE)
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2, (red.pos - blue.pos).normalized())
 	run_until(sim, func() -> bool: return red.hp < red.max_hp, 30)
 	check(red.is_stunned(sim.time), "aimed blade lands")
@@ -56,7 +56,7 @@ func test_bots_still_auto_aim() -> void:
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
 	place(red, Vector2(3, 3))
-	_level(sim, blue, 5)
+	_level(sim, blue, 6)
 	_cast(sim, 2, Vector2.ZERO)
 	var shot := _shot(sim)
 	check(shot != null and shot.dir.dot((red.pos - blue.pos).normalized()) > 0.99, "no aim given: aims at the hero")

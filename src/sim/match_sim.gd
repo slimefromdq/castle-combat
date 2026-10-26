@@ -34,9 +34,11 @@ var skillshots: Array[Skillshot] = []
 ## Slayer's traps and every running damage-over-time effect (see Kits).
 var traps: Array = []
 var dots: Array = []
+## Missed Latch Clouds hanging in the air (see Kits).
+var clouds: Array = []
 ## Multiplies last-hit gold while an ability hit resolves (Last Call, Sleight of Hand).
 var kill_gold_mult := 1.0
-## Team of the first hero to reach the ultimate level (Lv5), or -1 while nobody has.
+## Team of the first hero to reach the ultimate level (Lv6), or -1 while nobody has.
 var ult_race_winner := -1
 ## Banners dropped by special troopers: {"id", "pos", "expires_at"} (see Waves).
 var banners: Array[Dictionary] = []
@@ -68,6 +70,7 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	structures.clear()
 	minions.clear()
 	skillshots.clear()
+	clouds.clear()
 	banners.clear()
 	banner_pending = [false, false]
 	kill_gold_mult = 1.0

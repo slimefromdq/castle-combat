@@ -93,6 +93,9 @@ var engulfed_by := 0
 var miss_flip := false
 var buzz := 0
 var buzz_from := 0
+## Latch Cloud: the swarm stays on this hero until latched_until (for the view).
+var latched_until := 0.0
+var latched_by := 0
 ## Poppet: thread, Wind-Up frenzy, and the ult's snips.
 var thread_target := 0
 var thread_until := 0.0
@@ -132,7 +135,7 @@ var slow_until := 0.0
 var slow_amount := 0.0
 var shield_hp := 0.0
 var shield_until := 0.0
-## Perk picks per tier (levels 2, 4, 6): 0 or 1 into the pair, -1 = not picked yet, and
+## Perk picks per tier (levels 2, 4, 7): 0 or 1 into the pair, -1 = not picked yet, and
 ## when each choice was offered (for the auto-pick).
 var perk_picks: Array[int] = [-1, -1, -1]
 var perk_offered_at: Array[float] = [0.0, 0.0, 0.0]
@@ -285,17 +288,17 @@ func is_busy_casting() -> bool:
 	return is_channeling() or is_charging() or is_vanished() or Kits.is_busy(self)
 
 
-## Perks picked so far: one of each pair for levels 2, 4 and 6.
+## Perks picked so far: one of each pair for levels 2, 4 and 7.
 func owned_perks() -> Array[PerkData]:
 	var out: Array[PerkData] = []
 	for tier in 3:
 		var pick := perk_picks[tier]
-		if pick >= 0 and level >= 2 + tier * 2 and tier * 2 + pick < data.perks.size():
+		if pick >= 0 and level >= Leveling.PERK_LEVELS[tier] and tier * 2 + pick < data.perks.size():
 			out.append(data.perks[tier * 2 + pick])
 	return out
 
 
-## The two perks offered at a tier (0 = level 2, 1 = level 4, 2 = level 6).
+## The two perks offered at a tier (0 = level 2, 1 = level 4, 2 = level 7).
 func perk_options(tier: int) -> Array[PerkData]:
 	var out: Array[PerkData] = []
 	for k in 2:
@@ -307,7 +310,7 @@ func perk_options(tier: int) -> Array[PerkData]:
 ## The earliest tier this hero has reached but not picked yet, or -1.
 func pending_perk_tier() -> int:
 	for tier in 3:
-		if level >= 2 + tier * 2 and perk_picks[tier] < 0 and tier * 2 < data.perks.size():
+		if level >= Leveling.PERK_LEVELS[tier] and perk_picks[tier] < 0 and tier * 2 < data.perks.size():
 			return tier
 	return -1
 
@@ -325,9 +328,33 @@ func perk_with(special: StringName) -> PerkData:
 	return null
 
 
-## Ability i unlocks at level 1, 3, 5.
+## Ability i unlocks at level 1, 3, 6.
 func ability_unlocked(i: int) -> bool:
-	return i < data.abilities.size() and level >= 1 + i * 2
+	return i < data.abilities.size() and level >= Leveling.ABILITY_LEVELS[mini(i, 2)]
+
+
+## The automatic passives this hero has reached (Lv3, then Lv8).
+func owned_passives() -> Array[PassiveData]:
+	var out: Array[PassiveData] = []
+	for i in mini(data.passives.size(), Leveling.PASSIVE_LEVELS.size()):
+		if level >= Leveling.PASSIVE_LEVELS[i]:
+			out.append(data.passives[i])
+	return out
+
+
+func passive_total(property: StringName) -> float:
+	var sum := 0.0
+	for p in owned_passives():
+		sum += float(p.get(property))
+	return sum
+
+
+## Strength of an owned passive's special rule, or 0.
+func passive_special(special: StringName) -> float:
+	for p in owned_passives():
+		if p.special == special:
+			return p.special_value
+	return 0.0
 
 
 func ability_cooldown(i: int) -> float:
@@ -351,6 +378,7 @@ func perk_total(property: StringName) -> float:
 ## Ends every timed effect (knockouts and respawns).
 func clear_effects() -> void:
 	stun_until = 0.0
+	latched_until = 0.0
 	slow_until = 0.0
 	shield_hp = 0.0
 	shield_until = 0.0
@@ -423,16 +451,16 @@ func top_item_tier() -> int:
 func recompute_stats() -> void:
 	var old_max := max_hp
 	var base := HeroStats.at_level(data, level)
-	max_hp = (base.hp + item_total(&"max_hp_flat")) * (1.0 + item_total(&"max_hp_bonus") + perk_total(&"max_hp_bonus"))
+	max_hp = (base.hp + item_total(&"max_hp_flat") + passive_total(&"max_hp")) * (1.0 + item_total(&"max_hp_bonus") + perk_total(&"max_hp_bonus"))
 	if alive:
 		hp = minf(max_hp, hp + maxf(0.0, max_hp - old_max))
-	attack_damage = (base.atk + item_total(&"attack_power")) * (1.0 + perk_total(&"damage_bonus"))
-	ability_power = (base.ap + item_total(&"ability_power")) * (1.0 + item_total(&"ability_power_amp"))
-	armor = data.armor + item_total(&"armor")
-	ward = data.ward + item_total(&"ward")
+	attack_damage = (base.atk + item_total(&"attack_power") + passive_total(&"attack_power")) * (1.0 + perk_total(&"damage_bonus"))
+	ability_power = (base.ap + item_total(&"ability_power") + passive_total(&"ability_power")) * (1.0 + item_total(&"ability_power_amp"))
+	armor = data.armor + item_total(&"armor") + passive_total(&"armor")
+	ward = data.ward + item_total(&"ward") + passive_total(&"ward")
 	cooldown_haste = item_total(&"cooldown_haste")
 	armor_pierce = minf(1.0, item_total(&"armor_pierce"))
 	ward_pierce = minf(1.0, item_total(&"ward_pierce"))
-	attack_interval = data.attack_interval / (1.0 + item_total(&"attack_speed_bonus") + perk_total(&"attack_speed_bonus"))
-	attack_range = data.attack_range * (1.0 + item_total(&"range_bonus") + perk_total(&"range_bonus"))
+	attack_interval = data.attack_interval / (1.0 + item_total(&"attack_speed_bonus") + perk_total(&"attack_speed_bonus") + passive_total(&"attack_speed_bonus"))
+	attack_range = data.attack_range * (1.0 + item_total(&"range_bonus") + perk_total(&"range_bonus")) + passive_total(&"attack_range")
 	_move_speed_mult = 1.0 + item_total(&"move_speed_bonus") + perk_total(&"move_speed_bonus")
