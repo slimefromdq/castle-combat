@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fortissimo"
+display_name = "Fortissimo"
+summary = "Brass Section knocks back 1.5 m further"
+special = &"fortissimo"
+special_value = 1.5

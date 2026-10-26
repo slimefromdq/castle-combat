@@ -125,6 +125,33 @@ var rule_ability: AbilityData
 var rule_until := 0.0
 var rule_end := 0.0
 var rule_bonus := 0.0
+## Occult heroes (see OccultKits). Serpent's Venom on this hero: stacks, whose, and when
+## they pop.
+var venom := 0
+var venom_from := 0
+var venom_pops_at := 0.0
+## Fermata's Grand Finale: waves left and when the next one goes out.
+var finale: AbilityData
+var finale_left := 0
+var finale_next := 0.0
+var finale_key := 0
+## KOSMONAUT's satellite: its angle on the orbit, a planted anchor (else it circles him),
+## where it is (and was last tick), a Burn in progress, a Re-entry waiting to land, and
+## when each enemy can be hit by a pass again (id -> sim time).
+var sat_angle := 0.0
+var sat_planted := false
+var sat_anchor := Vector2.ZERO
+var sat_pos := Vector2.ZERO
+var sat_prev := Vector2.ZERO
+var sat_hits := {}
+var burn_ability: AbilityData
+var burn_until := 0.0
+var burn_key := 0
+var burn_hits := {}
+var reentry: AbilityData
+var reentry_at := 0.0
+var reentry_pos := Vector2.ZERO
+var reentry_key := 0
 
 ## Levels and abilities. cooldowns[i] is seconds until ability i is ready.
 var level := 1
@@ -206,6 +233,8 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 	pos = at
 	prev_pos = at
 	facing = MatchSim.forward(hero_team)
+	sat_pos = at + Vector2(OccultKits.ORBIT_RADIUS, 0.0)
+	sat_prev = sat_pos
 	attack_range = hero_data.attack_range
 	attack_damage = hero_data.attack_damage
 	attack_windup = hero_data.attack_windup
@@ -347,6 +376,14 @@ func passive_total(property: StringName) -> float:
 	for p in owned_passives():
 		sum += float(p.get(property))
 	return sum
+
+
+## The owned passive with this special rule, or null.
+func passive_with(special: StringName) -> PassiveData:
+	for p in owned_passives():
+		if p.special == special:
+			return p
+	return null
 
 
 ## Strength of an owned passive's special rule, or 0.

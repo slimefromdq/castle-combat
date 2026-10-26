@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="2_ab"]
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="3_pk"]
+[ext_resource type="Script" path="res://src/data/passive_data.gd" id="4_ps"]
+[ext_resource type="Resource" path="res://data/abilities/brass_section.tres" id="a0"]
+[ext_resource type="Resource" path="res://data/abilities/strings.tres" id="a1"]
+[ext_resource type="Resource" path="res://data/abilities/grand_finale.tres" id="a2"]
+[ext_resource type="Resource" path="res://data/perks/fortissimo.tres" id="p0"]
+[ext_resource type="Resource" path="res://data/perks/tempo.tres" id="p1"]
+[ext_resource type="Resource" path="res://data/perks/sostenuto.tres" id="p2"]
+[ext_resource type="Resource" path="res://data/perks/pizzicato.tres" id="p3"]
+[ext_resource type="Resource" path="res://data/perks/da_capo.tres" id="p4"]
+[ext_resource type="Resource" path="res://data/perks/crescendo.tres" id="p5"]
+[ext_resource type="Resource" path="res://data/passives/first_chair.tres" id="s0"]
+[ext_resource type="Resource" path="res://data/passives/standing_ovation.tres" id="s1"]
+
+[resource]
+script = ExtResource("1_hero")
+id = &"fermata"
+display_name = "Fermata"
+shape = "conductor"
+blurb = "A conductor whose baton calls instruments out of thin air. Two can play at once, and each one ends on a final note."
+max_hp = 680.0
+move_speed = 4.6
+radius = 0.5
+attack_range = 3.0
+attack_damage = 42.0
+attack_windup = 0.2
+attack_interval = 1.0
+hp_per_level = 55.0
+attack_power_per_level = 2.0
+ability_power_per_level = 10.0
+armor = 10.0
+hero_trait = &"ensemble"
+lean = "Ability"
+ratings = Array[int]([4, 3, 2, 4, 3])
+sprint_color = Color(0.95, 0.75, 0.3, 1)
+sprint_lean_deg = 10.0
+sprint_bob = 0.06
+abilities = Array[ExtResource("2_ab")]([ExtResource("a0"), ExtResource("a1"), ExtResource("a2")])
+perks = Array[ExtResource("3_pk")]([ExtResource("p0"), ExtResource("p1"), ExtResource("p2"), ExtResource("p3"), ExtResource("p4"), ExtResource("p5")])
+passives = Array[ExtResource("4_ps")]([ExtResource("s0"), ExtResource("s1")])

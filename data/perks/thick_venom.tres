@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"thick_venom"
+display_name = "Thick Venom"
+summary = "Venom pops deal 20% more"
+special = &"thick_venom"
+special_value = 0.2

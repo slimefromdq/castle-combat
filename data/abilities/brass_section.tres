@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"brass_section"
+display_name = "Brass Section"
+summary = "A tuba blasts a 5 m cone: 90 dmg and a big knockback. It floats 2.5 s, then plays a final note"
+effect = &"brass_section"
+cooldown = 9.0
+reach = 5.0
+damage = 90.0
+minion_damage = 70.0
+distance = 2.5
+travel_time = 0.25
+duration = 2.5
+ap_ratio = 0.6

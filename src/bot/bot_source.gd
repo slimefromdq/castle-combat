@@ -21,6 +21,9 @@ const WISHLISTS := {
 	&"huddle": [&"ink_quill", &"mending_charm", &"grimoire", &"archmages_crown"],
 	&"poppet": [&"training_blade", &"runed_saber", &"executioners_edge", &"warlords_greatsword"],
 	&"tot": [&"training_blade", &"padded_vest", &"runed_saber", &"warlords_greatsword"],
+	&"serpent": [&"ink_quill", &"mending_charm", &"grimoire", &"archmages_crown"],
+	&"fermata": [&"padded_vest", &"ink_quill", &"grimoire", &"colossus_heart"],
+	&"kosmonaut": [&"ink_quill", &"hourglass_charm", &"grimoire", &"archmages_crown"],
 }
 ## The counter item the bot slots in as its first mid item against each enemy hero.
 const COUNTERS := {
@@ -41,6 +44,9 @@ const PERK_PICKS := {
 	&"huddle": [0, 0, 0],
 	&"poppet": [0, 0, 0],
 	&"tot": [1, 1, 1],
+	&"serpent": [0, 0, 0],
+	&"fermata": [0, 0, 0],
+	&"kosmonaut": [0, 0, 0],
 }
 var perk_choices: Array = []
 var _points: Array[Vector2] = []
@@ -144,6 +150,8 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 					&"last_tango": ult_reach = 3.2
 					&"swarm_storm", &"cut_to_ribbons": ult_reach = 4.2
 					&"absolute_rule": ult_reach = 6.0
+					&"grand_finale": ult_reach = 4.2
+					&"snake_pit", &"re_entry": ult_reach = 7.0
 			if ready.call(2) and fight and their_hp < 0.7 and d < ult_reach:
 				return 2
 			if ready.call(0) and fight and d < 8.0:
@@ -203,6 +211,38 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 				return 0
 			if ready.call(0) and safe and _enemy_minions_near(sim, me.pos, 3.0) >= 3 and my_hp > 0.6:
 				return 0
+		&"serpent":
+			# Poison, slip away, and be close again when the venom pops.
+			if ready.call(1) and seen and (me.is_rooted() or (sim.time < me.slow_until and d < 5.0) or (my_hp < 0.4 and d < 5.0)):
+				cmd.move = _toward(me, me.pos + (me.pos - them.pos))
+				return 1
+			if ready.call(2) and fight and d < 7.0 and their_hp < 0.8:
+				return 2
+			if ready.call(0) and fight and d < 8.0:
+				return 0
+			if ready.call(0) and safe and _enemy_minions_near(sim, me.pos, 7.0) >= 3 and my_hp > 0.6:
+				return 0
+		&"fermata":
+			if ready.call(2) and fight and d < 4.2 and their_hp < 0.75:
+				return 2
+			if ready.call(0) and seen and d < 4.5 and (fight or my_hp < 0.5):
+				return 0  # The tuba blows them away when they dive her, too.
+			if ready.call(1) and fight and d < 6.0:
+				return 1
+			if ready.call(1) and safe and _enemy_minions_near(sim, me.pos, 6.0) >= 3:
+				return 1
+		&"kosmonaut":
+			var sat_to_them := me.sat_pos.distance_to(them.pos) if seen else INF
+			if me.sat_planted and Abilities.can_recast(sim, me, 0):
+				var anchor_off := me.sat_anchor.distance_to(them.pos) if seen else INF
+				if anchor_off > OccultKits.orbit_radius(me) + 2.5 or my_hp < 0.35:
+					return 0  # Call the satellite back.
+			if ready.call(2) and fight and sat_to_them < 1.6 and their_hp < 0.75:
+				return 2
+			if ready.call(0) and not me.sat_planted and fight and d < 8.0 and d > OccultKits.orbit_radius(me) + 0.5:
+				return 0
+			if ready.call(1) and fight and (me.sat_anchor if me.sat_planted else me.pos).distance_to(them.pos) < OccultKits.orbit_radius(me) + 1.0:
+				return 1
 	return -1
 
 

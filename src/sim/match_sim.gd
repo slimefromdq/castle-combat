@@ -36,6 +36,9 @@ var traps: Array = []
 var dots: Array = []
 ## Missed Latch Clouds hanging in the air (see Kits).
 var clouds: Array = []
+## Serpent's vipers and Fermata's instruments (see OccultKits).
+var vipers: Array = []
+var instruments: Array = []
 ## Multiplies last-hit gold while an ability hit resolves (Last Call, Sleight of Hand).
 var kill_gold_mult := 1.0
 ## Team of the first hero to reach the ultimate level (Lv6), or -1 while nobody has.
@@ -71,6 +74,8 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	minions.clear()
 	skillshots.clear()
 	clouds.clear()
+	vipers.clear()
+	instruments.clear()
 	banners.clear()
 	banner_pending = [false, false]
 	kill_gold_mult = 1.0

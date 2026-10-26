@@ -1,6 +1,7 @@
 class_name Kits
 ## Round-2 hero kits: Ahab, Slayer, Huddle, Poppet and Tot. Abilities (src/sim/abilities.gd)
-## calls in here for their effects, so the first three heroes stay as they were.
+## calls in here for their effects, so the first three heroes stay as they were. The
+## occult heroes (Serpent, Fermata, KOSMONAUT) live in OccultKits, reached from here.
 ##
 ## Shared pieces they introduce:
 ##   roots (can't walk, can still attack and cast), silence (can't cast), short untouchable
@@ -38,7 +39,7 @@ static func cast_problem(sim: MatchSim, h: HeroState, slot: int, a: AbilityData,
 		return "silenced"
 	if recast:
 		return ""
-	if a.is_movement and h.is_rooted():
+	if a.is_movement and h.is_rooted() and a.effect != &"shed_skin":
 		return "rooted"
 	match a.effect:
 		&"keelhaul":
@@ -115,6 +116,8 @@ static func cast(sim: MatchSim, h: HeroState, slot: int, a: AbilityData, move: V
 				Abilities.force(sim, h, Abilities.aim_dir(h, move, Abilities.aim_hero(sim, h, 6.0)) * lunge, 0.25)
 		&"absolute_rule":
 			_absolute_rule(sim, h, a, move)
+		_:
+			return OccultKits.cast(sim, h, slot, a, move, recast, key, info)
 	return true
 
 
@@ -144,6 +147,7 @@ static func tick(sim: MatchSim) -> void:
 	_tick_traps(sim)
 	_tick_dots(sim)
 	_tick_clouds(sim)
+	OccultKits.tick(sim)
 
 
 static func _tick_charges(_sim: MatchSim, h: HeroState) -> void:
@@ -795,6 +799,8 @@ static func incoming(sim: MatchSim, source: SimEntity, target: HeroState, amount
 static func after_damage(sim: MatchSim, src: HeroState, target: SimEntity, dealt: float, kind: StringName) -> void:
 	if not (target is HeroState) or target.team == src.team or dealt <= 0.0:
 		return
+	if kind == &"basic":
+		OccultKits.on_basic_hit(sim, src, target as HeroState)
 	if kind == &"basic" or kind == &"ability":
 		if src.debt > 0.0:
 			var share := 1.0 if kind == &"ability" or (sim.time < src.borrowed_until and src.has_special(&"ruthless") > 0.0) else 0.5
@@ -898,6 +904,8 @@ static func skillshot_hit(sim: MatchSim, s: Skillshot, e: SimEntity) -> bool:
 			_latched(sim, s, e)
 		&"threaded_needle":
 			_needle_hit(sim, s, e)
+		&"fang_dart":
+			OccultKits.fang_hit(sim, s, e)
 		_:
 			return false
 	return true
@@ -929,3 +937,4 @@ static func clear(h: HeroState) -> void:
 	h.armor_cut_until = 0.0
 	h.forced_by = 0
 	h.forced_how = &""
+	OccultKits.clear(h)

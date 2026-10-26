@@ -34,6 +34,11 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 		if bitten != null:
 			_spawn_text_at("-%d" % int(data.amount), Color("ffd23a"), view.unit_position(bitten.id) + Vector3(randf_range(-0.5, 0.2), 2.2, 0))
 		return
+	if type == &"venom_pop":
+		var poisoned: SimEntity = view.sim.get_entity(data.target)
+		if poisoned != null:
+			_spawn_text_at("-%d" % int(data.damage), Color("7be35a"), view.unit_position(poisoned.id) + Vector3(-0.2, 2.6, 0))
+		return
 	if type == &"minion_denied" and data.team == view.local_seat:
 		_spawn_gold_text("Denied!", Color(0.85, 0.92, 1.0))
 		return

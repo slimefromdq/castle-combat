@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fang_dart"
+display_name = "Fang Dart"
+summary = "Spit a dart 8 m: 70 dmg and 2 Venom stacks on the hero it hits"
+effect = &"fang_dart"
+cooldown = 7.0
+reach = 8.0
+speed = 18.0
+width = 0.45
+damage = 70.0
+minion_damage = 60.0
+extra = 2.0
+ap_ratio = 0.6
