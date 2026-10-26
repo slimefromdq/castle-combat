@@ -377,7 +377,11 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
       delayed-cast telegraphs, thread and hook lines, swarm, root / silence / phase markers,
       Absolute Rule ring, Debt slice on the HP bar, Buzz pips over it
 - [x] Bot rules for the five kits; `tools/bot_matches.gd` takes a shard (`-- 1 0/3`)
-- [x] 207 tests
+- [x] 207 tests. Bot matches (1 per pairing and seat, 56 games): Slayer 14/14 at first, so
+      he lost HP 590 -> 540, ATK 42 -> 39, trap root 1.2 -> 0.9 s, trap cooldown 7 -> 9 s.
+      After: Avery 13/14, Slayer 12/14, Jose 10/14, Ahab 6/14, Tot 5/14, Poppet 5/14,
+      Huddle 3/14, Jack 2/14; length median about 8:30; first to Lv5 won 31 of 56 (was 21 of 24).
+      The bots play the melee kits plainly; human playtests should decide the next tuning
 
 **Next: metrics runner; M5 iOS.**
 
