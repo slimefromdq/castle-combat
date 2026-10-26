@@ -4,8 +4,9 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"afterburner"
-display_name = "Afterburner"
-summary = "Burn cools down 2.5 s faster"
-ability_index = 1
-cooldown_cut = 2.5
+id = &"cold_pulse"
+display_name = "Cold Pulse"
+summary = "Pulse slows 50% for 1.5 s"
+special = &"cold_pulse"
+special_value = 0.5
+special_value_2 = 1.5

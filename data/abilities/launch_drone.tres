@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"launch_drone"
+display_name = "Launch Drone"
+summary = "Throw the drone up to 8 m: 50 dmg to all it flies through. It hovers there and zaps. Tap again to call it home (hitting on the way back)"
+effect = &"launch_drone"
+cooldown = 6.0
+reach = 8.0
+damage = 50.0
+minion_damage = 40.0
+ap_ratio = 0.4

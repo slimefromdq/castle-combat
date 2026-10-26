@@ -6,6 +6,6 @@
 script = ExtResource("1_s")
 id = &"heavy_payload"
 display_name = "Heavy Payload"
-summary = "Satellite passes deal 50% more"
+summary = "Drone zaps deal 50% more"
 special = &"heavy_payload"
 special_value = 0.5

@@ -221,47 +221,68 @@ func test_grand_finale_sends_four_waves() -> void:
 
 # --- KOSMONAUT ------------------------------------------------------------------
 
-func test_satellite_passes_hurt_but_not_every_tick() -> void:
-	var sim := _sim(KOSMONAUT, JOSE, Vector2(0, 1.0))
-	var blue := sim.heroes[0]
-	blue.attack_damage = 0.0
-	run_ticks(sim, _secs(sim, OccultKits.ORBIT_PERIOD))
-	var hits := events.filter(func(e: Array) -> bool: return e[0] == &"ability_hit" and e[1].ability == &"orbit" and e[1].target == sim.heroes[1].id)
-	check(hits.size() >= 1, "a lap hits the hero")
-	check(hits.size() <= 2, "but not every tick (got %d)" % hits.size())
-
-
-func test_anchor_plants_recalls_and_leashes() -> void:
+func test_drone_stays_put_at_his_side() -> void:
 	var sim := _sim(KOSMONAUT, JOSE, Vector2(0, 30.0))
 	var blue := sim.heroes[0]
+	run_ticks(sim, 10)
+	var home := OccultKits.drone_home(blue)
+	check(blue.drone_pos.distance_to(home) < 0.01, "home: beside him")
+	var first := blue.drone_pos
+	run_ticks(sim, 30)
+	check(blue.drone_pos.distance_to(first) < 0.01, "it doesn't wander while he stands still")
+
+
+func test_drone_zaps_once_a_second() -> void:
+	var sim := _sim(KOSMONAUT, JOSE, Vector2(0, 30.0))
+	var blue := sim.heroes[0]
+	blue.attack_damage = 0.0
+	var red := sim.heroes[1]
+	run_ticks(sim, 1)
+	place(red, blue.drone_pos + Vector2(0, 2.0))
+	run_ticks(sim, _secs(sim, 2.05))
+	check(_count(&"drone_zap") == 2 or _count(&"drone_zap") == 3, "about one zap a second (got %d)" % _count(&"drone_zap"))
+	check(red.hp < red.max_hp, "zaps hurt")
+
+
+func test_launch_drone_parks_hits_and_comes_home() -> void:
+	var sim := _sim(KOSMONAUT, JOSE, Vector2(0, 30.0))
+	var blue := sim.heroes[0]
+	blue.attack_damage = 0.0
+	var red := sim.heroes[1]
+	var hp := red.hp
 	_cast(sim, 0, Vector2(1, 0))
-	check(blue.sat_planted and blue.sat_anchor.distance_to(blue.pos + Vector2(8, 0)) < 1.0, "anchor planted 8 m out")
-	run_ticks(sim, 5)
-	check(blue.sat_pos.distance_to(blue.sat_anchor) < OccultKits.ORBIT_RADIUS + 0.01, "the satellite circles the anchor")
+	check(blue.drone_out and blue.drone_spot.distance_to(blue.pos + Vector2(8, 0)) < 0.6, "thrown 8 m out")
+	place(red, blue.pos + Vector2(4, 0.2))  # Standing in its flight path.
+	run_ticks(sim, _secs(sim, 0.8))
+	check(red.hp < hp, "it hits what it flies through")
+	check(blue.drone_pos.distance_to(blue.drone_spot) < 0.01, "and parks there")
+	var parked := blue.drone_pos
+	run_ticks(sim, 20)
+	check(blue.drone_pos.distance_to(parked) < 0.01, "it stays parked")
 	_cast(sim, 0)
-	check(not blue.sat_planted, "tap again: recalled")
+	check(not blue.drone_out and blue.drone_back, "tap again: it flies home")
+	run_ticks(sim, _secs(sim, 1.0))
+	check(not blue.drone_back and blue.drone_pos.distance_to(OccultKits.drone_home(blue)) < 0.01, "home again")
 	blue.cooldowns[0] = 0.0
 	_cast(sim, 0, Vector2(1, 0))
-	place(blue, blue.sat_anchor + Vector2(-OccultKits.LEASH - 1.0, 0))
+	run_ticks(sim, _secs(sim, 0.8))
+	place(blue, blue.drone_spot + Vector2(-OccultKits.LEASH - 1.0, 0))
 	run_ticks(sim, 1)
-	check(not blue.sat_planted, "walking off leashes it back")
+	check(not blue.drone_out, "walking off leashes it back")
 
 
-func test_burn_hits_and_slows() -> void:
+func test_pulse_bursts_around_the_drone() -> void:
 	var sim := _sim(KOSMONAUT, JOSE, Vector2(0, 30.0))
 	var blue := sim.heroes[0]
 	_level(sim, blue, 3)
 	blue.attack_damage = 0.0
 	var red := sim.heroes[1]
-	# Put the enemy half an orbit ahead of the satellite.
 	run_ticks(sim, 1)
-	var ahead := blue.pos + Vector2(cos(blue.sat_angle + PI * 0.5), sin(blue.sat_angle + PI * 0.5)) * OccultKits.ORBIT_RADIUS
-	place(red, ahead)
-	blue.sat_hits[red.id] = 1000.0  # Only the Burn counts here.
+	place(red, blue.drone_pos + Vector2(0, 1.5))
+	blue.zap_next = 1000.0  # Only the Pulse counts here.
 	var hp := red.hp
 	_cast(sim, 1)
-	run_ticks(sim, _secs(sim, 0.4))
-	check(red.hp < hp, "the Burn hits")
+	check(red.hp < hp, "the Pulse hits")
 	check(sim.time < red.slow_until, "and slows")
 
 
@@ -272,10 +293,10 @@ func test_re_entry_lands_after_a_second_and_stuns() -> void:
 	blue.attack_damage = 0.0
 	var red := sim.heroes[1]
 	run_ticks(sim, 1)
-	place(red, blue.sat_pos)
-	var spot := blue.sat_pos
+	place(red, blue.drone_pos)
+	var spot := blue.drone_pos
 	_cast(sim, 2)
-	check(blue.reentry != null and blue.reentry_pos.distance_to(spot) < 0.5, "telegraphed where the satellite is")
+	check(blue.reentry != null and blue.reentry_pos.distance_to(spot) < 0.5, "telegraphed where the drone is")
 	var hp := red.hp
 	run_ticks(sim, _secs(sim, 0.8))
 	check(_count(&"reentry_landed") == 0, "not yet")

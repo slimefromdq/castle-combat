@@ -5,8 +5,8 @@ extends Node3D
 ##   it pops, shed skins left behind, the snake pit and its vipers.
 ##   Fermata: floating tubas and violins (the violin's circle on the ground), the brass
 ##   cone, Strings pulses, final notes and Grand Finale waves.
-##   KOSMONAUT: the satellite, its orbit ring, the planted anchor and its tether, the
-##   Burn glow and the Re-entry telegraph.
+##   KOSMONAUT: the drone, its zap ring, the tether while it is parked, zaps, pulses
+##   and the Re-entry telegraph.
 
 const VENOM := Color("7be35a")
 const BRASS := Color("e8b84a")
@@ -62,8 +62,15 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 		&"finale_wave":
 			_ring(data.pos, data.radius, BRASS, 0.45)
 			_ring(data.pos, data.radius * 0.6, Color(1, 1, 1), 0.35)
-		&"anchor_planted":
-			_ring(data.pos, 1.2, Color("9fd3ff"), 0.35)
+		&"drone_launched":
+			_ring(data.pos, 1.0, Color("9fd3ff"), 0.3)
+		&"drone_pulse":
+			_ring(data.pos, data.radius, Color("9fd3ff"), 0.45)
+			_ring(data.pos, data.radius * 0.5, Color(1, 1, 1), 0.3)
+		&"drone_zap":
+			var zapped: SimEntity = view.sim.get_entity(data.target)
+			if zapped != null:
+				_zap_line(MatchView.to_world(data.from, 1.6), view.unit_position(zapped.id) + Vector3(0, 0.8, 0))
 		&"reentry_landed":
 			_ring(data.pos, data.radius + 0.6, Color(1.0, 0.55, 0.2), 0.55)
 			_ring(data.pos, data.radius, Color(1, 1, 1), 0.4)
@@ -92,7 +99,7 @@ func _parts_for(h: HeroState) -> Dictionary:
 	p.venom_label.modulate = VENOM
 	p.venom_label.outline_modulate = Color(0.05, 0.15, 0.05)
 	p.venom_ring = UnitFactory.part(self, _ring_mesh, VENOM, Vector3.ZERO, Vector3.ZERO, true)
-	# KOSMONAUT's satellite: a silver ball with two team-coloured panels.
+	# KOSMONAUT's drone: a silver ball with two team-coloured panels.
 	var sat := Node3D.new()
 	add_child(sat)
 	var ball := SphereMesh.new()
@@ -101,19 +108,10 @@ func _parts_for(h: HeroState) -> Dictionary:
 	UnitFactory.part(sat, ball, Color("dfe4ea"), Vector3.ZERO, Vector3.ZERO, true)
 	for side: float in [-1.0, 1.0]:
 		UnitFactory.part(sat, UnitFactory.box(Vector3(0.5, 0.04, 0.28)), team_c, Vector3(side * 0.55, 0, 0), Vector3.ZERO, true)
-	var glow := SphereMesh.new()
-	glow.radius = 0.55
-	glow.height = 1.1
-	var burn := UnitFactory.part(sat, glow, Color(1.0, 0.55, 0.15, 0.55), Vector3.ZERO, Vector3.ZERO, true)
-	burn.name = "Burn"
 	p.sat = sat
+	# Its zap reach, as a faint ring on the ground under it.
 	p.orbit = UnitFactory.part(self, _ring_mesh, Color(team_c.lightened(0.3), 0.45), Vector3.ZERO, Vector3.ZERO, true)
-	var anchor := Node3D.new()
-	add_child(anchor)
-	UnitFactory.part(anchor, UnitFactory.cylinder(0.08, 0.12, 1.0, 8), Color("6b6f78"), Vector3(0, 0.5, 0), Vector3.ZERO, true)
-	UnitFactory.part(anchor, UnitFactory.box(Vector3(0.6, 0.08, 0.08)), Color("6b6f78"), Vector3(0, 0.15, 0), Vector3.ZERO, true)
-	UnitFactory.part(anchor, UnitFactory.cylinder(0.14, 0.14, 0.12, 10), team_c, Vector3(0, 1.0, 0), Vector3.ZERO, true)
-	p.anchor = anchor
+	p.shadow = UnitFactory.part(self, UnitFactory.cylinder(0.35, 0.35, 0.02, 16), Color(0, 0, 0, 0.3), Vector3.ZERO, Vector3.ZERO, true)
 	var tether := MeshInstance3D.new()
 	tether.mesh = UnitFactory.cylinder(1.0, 1.0, 1.0, 6)
 	tether.material_override = UnitFactory.material(Color(team_c.lightened(0.4), 0.5), true)
@@ -157,16 +155,15 @@ func _render_venom(h: HeroState, p: Dictionary, hidden: bool) -> void:
 
 func _render_satellite(h: HeroState, p: Dictionary, alpha: float) -> void:
 	var sim := view.sim
-	var mine := h.data.hero_trait == &"orbit" and h.alive
+	var mine := h.data.hero_trait == &"drone" and h.alive
 	var sat: Node3D = p.sat
-	var orbit: MeshInstance3D = p.orbit
-	var anchor: Node3D = p.anchor
+	var ring: MeshInstance3D = p.orbit
+	var shadow: MeshInstance3D = p.shadow
 	var tether: MeshInstance3D = p.tether
-	sat.visible = mine
-	orbit.visible = mine and h.reentry == null
-	anchor.visible = mine and h.sat_planted
-	tether.visible = mine and h.sat_planted
 	var falling := h.alive and h.reentry != null
+	sat.visible = mine
+	shadow.visible = mine
+	tether.visible = mine and h.drone_out and not falling
 	(p.tele as Node3D).visible = falling
 	(p.tele_edge as Node3D).visible = falling
 	if falling:
@@ -177,22 +174,26 @@ func _render_satellite(h: HeroState, p: Dictionary, alpha: float) -> void:
 		p.tele_edge.position = MatchView.to_world(h.reentry_pos, 0.08)
 		p.tele_edge.scale = Vector3(radius, 0.04, radius)
 	if not mine:
+		ring.visible = false
 		return
-	var anchor_at := h.sat_anchor if h.sat_planted else h.prev_pos.lerp(h.pos, alpha)
-	var r := OccultKits.orbit_radius(h)
-	orbit.position = MatchView.to_world(anchor_at, 0.07)
-	orbit.scale = Vector3(r, 0.02, r)
+	var at := h.drone_prev.lerp(h.drone_pos, alpha)
+	var flying := h.drone_out and h.drone_pos.distance_to(h.drone_spot) > 0.05 or h.drone_back
+	# The zap ring shows only while it hovers (it doesn't zap in flight).
+	ring.visible = not falling and not flying
+	var r := OccultKits.zap_range(h)
+	ring.position = MatchView.to_world(at, 0.07)
+	ring.scale = Vector3(r, 0.02, r)
+	shadow.position = MatchView.to_world(at, 0.04)
 	if falling:
 		var k := 1.0 - clampf((h.reentry_at - sim.time) / maxf(0.05, h.reentry.delay), 0.0, 1.0)
 		sat.position = MatchView.to_world(h.reentry_pos, lerpf(6.0, 0.4, k * k))
 	else:
-		sat.position = MatchView.to_world(h.sat_prev.lerp(h.sat_pos, alpha), 1.0)
-	sat.rotation.y = Time.get_ticks_msec() / 300.0
-	sat.get_node("Burn").visible = sim.time < h.burn_until
-	if h.sat_planted:
-		anchor.position = MatchView.to_world(h.sat_anchor, 0.0)
+		# A gentle hover bob; it never circles.
+		sat.position = MatchView.to_world(at, 1.6 + 0.08 * sin(Time.get_ticks_msec() / 300.0))
+	sat.rotation.y = 0.0
+	if tether.visible:
 		var from := view.unit_position(h.id) + Vector3(0, 0.9, 0)
-		var to := MatchView.to_world(h.sat_anchor, 1.0)
+		var to := sat.position
 		var length := maxf(0.01, from.distance_to(to))
 		tether.position = (from + to) / 2.0
 		var up := (to - from) / length
@@ -313,6 +314,18 @@ func _cone(p: Vector2, dir: Vector2, length: float, half_angle_deg: float) -> vo
 	node.position = MatchView.to_world(p, 0.08)
 	add_child(node)
 	_fades.append({"node": node, "t": 0.0, "life": 0.35})
+
+
+## A quick electric line from the drone to what it zapped.
+func _zap_line(from: Vector3, to: Vector3) -> void:
+	var line := MeshInstance3D.new()
+	line.mesh = UnitFactory.cylinder(1.0, 1.0, 1.0, 6)
+	line.material_override = UnitFactory.material(Color(0.7, 0.9, 1.0, 0.9), true)
+	add_child(line)
+	var length := maxf(0.01, from.distance_to(to))
+	line.position = (from + to) / 2.0
+	line.basis = Basis(Quaternion(Vector3.UP, (to - from) / length)).scaled(Vector3(0.06, length, 0.06))
+	_fades.append({"node": line, "t": 0.0, "life": 0.18})
 
 
 func _ring(p: Vector2, radius: float, color: Color, life := 0.35) -> void:

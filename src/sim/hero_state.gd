@@ -135,19 +135,17 @@ var finale: AbilityData
 var finale_left := 0
 var finale_next := 0.0
 var finale_key := 0
-## KOSMONAUT's satellite: its angle on the orbit, a planted anchor (else it circles him),
-## where it is (and was last tick), a Burn in progress, a Re-entry waiting to land, and
-## when each enemy can be hit by a pass again (id -> sim time).
-var sat_angle := 0.0
-var sat_planted := false
-var sat_anchor := Vector2.ZERO
-var sat_pos := Vector2.ZERO
-var sat_prev := Vector2.ZERO
-var sat_hits := {}
-var burn_ability: AbilityData
-var burn_until := 0.0
-var burn_key := 0
-var burn_hits := {}
+## KOSMONAUT's drone: where it is (and was last tick), parked out at a spot or flying
+## back home, the trip's hits and the Launch Drone cast that sent it, and the next zap.
+var drone_pos := Vector2.ZERO
+var drone_prev := Vector2.ZERO
+var drone_out := false
+var drone_back := false
+var drone_spot := Vector2.ZERO
+var drone_ability: AbilityData
+var drone_key := 0
+var drone_hits := {}
+var zap_next := 0.0
 var reentry: AbilityData
 var reentry_at := 0.0
 var reentry_pos := Vector2.ZERO
@@ -233,8 +231,8 @@ func setup(hero_data: HeroData, hero_team: int, at: Vector2) -> void:
 	pos = at
 	prev_pos = at
 	facing = MatchSim.forward(hero_team)
-	sat_pos = at + Vector2(OccultKits.ORBIT_RADIUS, 0.0)
-	sat_prev = sat_pos
+	drone_pos = OccultKits.drone_home(self)
+	drone_prev = drone_pos
 	attack_range = hero_data.attack_range
 	attack_damage = hero_data.attack_damage
 	attack_windup = hero_data.attack_windup
