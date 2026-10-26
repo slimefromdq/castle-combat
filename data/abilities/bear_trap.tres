@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"bear_trap"
+display_name = "Bear Trap"
+summary = "Set a trap up to 5 m away (2 at once). It hides after 1 s; a hero that steps on it is rooted 1.2 s: 60 dmg"
+effect = &"bear_trap"
+cooldown = 7.0
+reach = 5.0
+radius = 0.9
+delay = 1.0
+damage = 60.0
+root = 1.2
+pulses = 2
+ap_ratio = 0.4

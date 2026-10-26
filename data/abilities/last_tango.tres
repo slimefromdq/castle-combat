@@ -9,6 +9,7 @@ display_name = "Last Tango"
 summary = "Dance for 3 s: 6 bursts of 45 around you, moving slowly"
 effect = &"last_tango"
 cooldown = 55.0
+ap_ratio = 0.15
 duration = 3.0
 pulses = 6
 radius = 3.5

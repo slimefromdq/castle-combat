@@ -9,6 +9,7 @@ display_name = "Judgment Blade"
 summary = "Sword wave, 9 m: 140 dmg, stuns the hero 1 s and pulls it to you"
 effect = &"judgment_blade"
 cooldown = 50.0
+ap_ratio = 0.8
 reach = 9.0
 speed = 20.0
 width = 0.7

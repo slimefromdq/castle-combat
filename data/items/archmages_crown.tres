@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"archmages_crown"
+display_name = "Archmage's Crown"
+cost = 2400
+tier = 2
+summary = "+90 AP, +15% Haste; all AP +25%"
+ability_power = 90.0
+cooldown_haste = 0.15
+ability_power_amp = 0.25

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"thar_she_blows"
+display_name = "Thar She Blows"
+summary = "The whale's line is 14 m"
+special = &"thar_she_blows"
+special_value = 4.0

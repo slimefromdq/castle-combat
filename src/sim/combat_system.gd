@@ -11,7 +11,10 @@ static func is_valid_target(sim: MatchSim, attacker: SimEntity, target: SimEntit
 		return false
 	if target is HeroState and target.team != attacker.team:
 		# In the shadows nobody can touch you; a decoy fools troopers and towers.
-		if sim.time < target.vanish_until or sim.is_hidden(target):
+		if target.is_untargetable() or sim.is_hidden(target):
+			return false
+		# Inside Huddle's swarm you can't hit the swarm riding you.
+		if attacker is HeroState and target.engulf_target == attacker.id:
 			return false
 		if not (attacker is HeroState) and sim.time < target.decoy_until:
 			return false

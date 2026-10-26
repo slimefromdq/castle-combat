@@ -355,6 +355,30 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
 - [x] Dev: `--stage=aim`, `--stage=shop`
 - [x] 176 tests
 
+### M15: closer camera, five new heroes, stats and items (Lucy)
+
+- [x] Camera closer: `VIEW_WIDTH` 14 -> 11.5, `LEAD` 2.7, hero side margin 1.2; clamp unchanged
+- [x] Stat model (`HeroStats`): ATK = base + growth + items; AP = growth + items, x (1 + amp).
+      Abilities scale with `ap_ratio` / `atk_ratio` / `hp_ratio` (`heal_ap_ratio` for shields
+      and heals). Per-level growth (`hp_per_level`, `attack_power_per_level`,
+      `ability_power_per_level`). Armor cuts basic hits, Ward cuts enemy hero ability and item
+      damage, both as 100 / (100 + points); pierce ignores a share. Cooldown haste divides cooldowns
+- [x] Stat card (`StatCard`): lean, five rating pips, Lv1 -> Lv6 HP / ATK / AP, speed and range
+      in the hero menu; live stats in the in-match details panel; every ability shows its scaling
+- [x] 14 new items (16 -> 30): flat stat items, Runed Saber (ability resets the attack timer),
+      Warlord's Greatsword (splash), Sunder Pick / Hex Needle (pierce), Archmage's Crown (AP amp,
+      the late gold sink), Phoenix Feather (cheat death). Old % items converted to flat stats
+- [x] Ahab (hook, Keelhaul fling, White Whale lane), Slayer (bear traps, Recoil Bolt, Headsman's
+      Axe), Huddle (Latch Cloud, Scatter, Swarm Storm; Buzz stacks -> Overwhelm), Poppet
+      (Threaded Needle + reel, Wind-Up Key terror freeze, Cut to Ribbons), Tot (Sovereign Sweep
+      with Blood Price, Borrowed Time, Absolute Rule; Blood Debt defers 35% of damage).
+      All kit logic in `src/sim/kits.gd`; displacement into a tower turns that tower on the victim
+- [x] Looks: five silhouettes + gear tiers; traps (owner sees, enemy sees a glint within 2 m),
+      delayed-cast telegraphs, thread and hook lines, swarm, root / silence / phase markers,
+      Absolute Rule ring, Debt slice on the HP bar, Buzz pips over it
+- [x] Bot rules for the five kits; `tools/bot_matches.gd` takes a shard (`-- 1 0/3`)
+- [x] 207 tests
+
 **Next: metrics runner; M5 iOS.**
 
 ## Assumptions (change by editing data)
@@ -389,8 +413,8 @@ Doc: https://claude.ai/artifact/VbQ4tux3mNk3tAK6rJV1pG
   is not in yet. Gold pacing: bots own 2–3 items by 6 min, the GDD's target.
 - Pacing: bot vs an idle opponent took ~14 min to win in M1 (~10.5 min with Relay sieges), mostly the Core. Minions deal 1.5x
   to structures and towers deal 70. Real tuning waits for the M4 metrics runner.
-- Item damage (storm strikes, Overcharge) is resisted by Warding Cloak but not boosted by
-  ability damage, and never triggers on-hit effects (no chains). Overcharge and storms skip structures.
+- Item damage (storm strikes, Overcharge) is cut by Ward but does not scale with AP, and
+  never triggers on-hit effects (no chains). Overcharge and storms skip structures.
 - Aegis Mirror only blocks hits of 60+ before defences, so single Barrage pulses get through.
 
 ## Known gaps

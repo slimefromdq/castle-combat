@@ -393,6 +393,7 @@ func _refresh_details(sim: MatchSim, seat: int) -> void:
 		var color := Palette.ALLY.lightened(0.3) if side == seat else Palette.ENEMY.lightened(0.25)
 		t += "[color=#%s][b]%s %s · Lv %d[/b][/color]\n" % [color.to_html(false), "You:" if side == seat else "Them:", h.data.display_name, h.level]
 		t += "Items: %s\n" % _items_text(h, sim.config.max_items)
+		t += StatCard.live(h) + "\n"
 		var parts: Array[String] = []
 		for s in sim.structures_of(side):
 			var state := "%d%%" % ceili(100.0 * s.hp / s.max_hp) if s.alive else "down"

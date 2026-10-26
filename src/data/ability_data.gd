@@ -15,6 +15,14 @@ extends Resource
 ## Counts as a movement ability: the Relay carrier can't use it (GDD 7.4).
 @export var is_movement := false
 
+@export_group("Scaling (added to damage: base + ratio x stat)")
+## Share of Ability Power, Attack Power and max HP added to this ability's damage.
+@export var ap_ratio := 0.0
+@export var atk_ratio := 0.0
+@export var hp_ratio := 0.0
+## Share of Ability Power added to this ability's shields and heals.
+@export var heal_ap_ratio := 0.0
+
 @export_group("Numbers (each effect uses the ones it needs)")
 ## How far the ability looks for an enemy to aim at, or a skillshot's range (metres).
 @export var reach := 0.0
@@ -45,6 +53,19 @@ extends Resource
 ## Move speed boost (0.25 = +25%) for buff_duration seconds.
 @export var move_speed_bonus := 0.0
 @export var buff_duration := 0.0
+## Round-2 kits: slow (fraction) and its length, root length, a telegraph or windup
+## before the effect, a health cost paid into Debt (fraction of max HP), a bleed (fraction
+## of the target's max HP over bleed_time), attack speed while buffed, and one extra
+## number whose meaning the effect documents in Kits.
+@export var slow := 0.0
+@export var slow_time := 0.0
+@export var root := 0.0
+@export var delay := 0.0
+@export var hp_cost := 0.0
+@export var bleed_fraction := 0.0
+@export var bleed_time := 0.0
+@export var attack_speed_bonus := 0.0
+@export var extra := 0.0
 ## Healing for each trooper and each enemy hero an attack hits.
 @export var heal_per_minion := 0.0
 @export var heal_per_hero := 0.0

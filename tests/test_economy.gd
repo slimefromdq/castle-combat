@@ -81,7 +81,7 @@ func test_buying_spends_gold_and_applies_stats() -> void:
 	check_near(blue.max_hp, blue.data.max_hp * 1.06, 0.01, "+6% max HP")
 	check_near(blue.hp, blue.max_hp - 100.0, 0.01, "extra max HP is added to current HP too")
 	_buy(sim, _slot(blue, &"trooper_cleaver"))
-	check_near(blue.attack_damage, blue.data.attack_damage * 1.05, 0.01, "+5% damage")
+	check_near(blue.attack_damage, blue.data.attack_damage + 3.0, 0.01, "+3 ATK")
 
 
 func test_fleet_sandals_double_out_of_combat() -> void:

@@ -114,6 +114,86 @@ static func hero_body(body: Node3D, shape: String, c: Color) -> void:
 			for k in 3:
 				var ang := deg_to_rad(120.0 * k + 30.0)
 				part(body, box(Vector3(0.18, 0.26, 0.02)), Palette.ACCENT, Vector3(cos(ang) * 0.75, 1.15 + 0.12 * k, sin(ang) * 0.75), Vector3(0, -rad_to_deg(ang), 12))
+		"sailor":
+			# Ahab: a heavy pea coat, a captain's cap, a hook arm and a harpoon on his back.
+			var navy := Color("24324f")
+			part(body, cylinder(0.42, 0.55, 1.0, 20), c, Vector3(0, 0.5, 0))
+			part(body, box(Vector3(0.95, 0.3, 0.6)), navy, Vector3(0, 1.02, 0))
+			var head := SphereMesh.new()
+			head.radius = 0.23
+			head.height = 0.46
+			part(body, head, skin, Vector3(0, 1.36, 0))
+			part(body, cylinder(0.24, 0.26, 0.2, 16), Color("e9e5d8"), Vector3(0, 1.38, 0.12))
+			part(body, cylinder(0.27, 0.27, 0.12, 16), navy, Vector3(0, 1.56, 0))
+			part(body, box(Vector3(0.36, 0.03, 0.14)), Color("1a1a1a"), Vector3(0, 1.52, -0.26))
+			part(body, box(Vector3(0.08, 0.08, 0.4)), Color("9aa3ad"), Vector3(-0.55, 0.85, -0.25))
+			part(body, cylinder(0.02, 0.07, 0.22, 8), Color("c9d1d9"), Vector3(-0.55, 0.95, -0.48), Vector3(0, 0, 0))
+			part(body, box(Vector3(0.06, 0.06, 1.7)), Color("6b4a2b"), Vector3(0.3, 1.0, 0.3), Vector3(35, 0, 20))
+		"hunter":
+			# Slayer: a long hooded coat, a crossbow on the arm and a belt of knives.
+			var leather := Color("5a3d28")
+			part(body, cylinder(0.26, 0.48, 1.08, 16), c, Vector3(0, 0.54, 0))
+			part(body, cylinder(0.34, 0.34, 0.1, 16), leather, Vector3(0, 0.72, 0))
+			for k in 5:
+				var ang := deg_to_rad(-60.0 + 30.0 * k)
+				part(body, box(Vector3(0.04, 0.2, 0.06)), Color("c9d1d9"), Vector3(sin(ang) * 0.36, 0.72, -cos(ang) * 0.36))
+			var head := SphereMesh.new()
+			head.radius = 0.21
+			head.height = 0.42
+			part(body, head, skin, Vector3(0, 1.26, 0))
+			part(body, cylinder(0.06, 0.3, 0.5, 12), leather.darkened(0.3), Vector3(0, 1.38, 0.05))
+			part(body, box(Vector3(0.1, 0.1, 0.55)), leather, Vector3(0.42, 0.85, -0.3))
+			part(body, box(Vector3(0.6, 0.04, 0.06)), Color("2b2b31"), Vector3(0.42, 0.88, -0.52))
+		"swarm":
+			# Huddle: no body at all, just a buzzing knot of yellow bugs around a dark core.
+			var core := SphereMesh.new()
+			core.radius = 0.28
+			core.height = 0.56
+			part(body, core, c.darkened(0.35), Vector3(0, 0.9, 0))
+			var bug := SphereMesh.new()
+			bug.radius = 0.09
+			bug.height = 0.14
+			bug.radial_segments = 8
+			bug.rings = 4
+			for k in 22:
+				var a := k * 2.39996
+				var y := 0.35 + float(k % 7) * 0.17
+				var r := 0.32 + 0.22 * float((k * 5) % 3) / 2.0
+				part(body, bug, Color("ffd23a") if k % 3 else Color("e3a91a"), Vector3(cos(a) * r, y, sin(a) * r))
+			part(body, cylinder(0.5, 0.5, 0.04, 24), c, Vector3(0, 0.05, 0))
+		"doll":
+			# Poppet: a porcelain doll in a puffed dress, button eyes, a big bow and a wind-up key.
+			var pink := Color("e88fb0")
+			var porcelain := Color("f6eee8")
+			part(body, cylinder(0.12, 0.5, 0.72, 20), c, Vector3(0, 0.36, 0))
+			part(body, cylinder(0.5, 0.5, 0.06, 20), pink, Vector3(0, 0.05, 0))
+			part(body, cylinder(0.15, 0.13, 0.3, 12), porcelain, Vector3(0, 0.84, 0))
+			var head := SphereMesh.new()
+			head.radius = 0.3
+			head.height = 0.6
+			part(body, head, porcelain, Vector3(0, 1.22, 0))
+			for side: float in [-1.0, 1.0]:
+				part(body, cylinder(0.06, 0.06, 0.03, 10), Color("1a1a1a"), Vector3(side * 0.11, 1.26, -0.27), Vector3(90, 0, 0))
+				part(body, box(Vector3(0.24, 0.16, 0.08)), pink, Vector3(side * 0.16, 1.55, 0.05), Vector3(0, 0, side * 20))
+			part(body, box(Vector3(0.04, 0.04, 0.3)), Color("c9a43a"), Vector3(0, 0.85, 0.3))
+			part(body, box(Vector3(0.3, 0.14, 0.04)), Color("c9a43a"), Vector3(0, 0.85, 0.46))
+			part(body, box(Vector3(0.05, 0.05, 0.45)), Color("c9d1d9"), Vector3(0.36, 0.72, -0.3))
+		"emperor":
+			# Tot: a tall black-and-gold emperor in a high-collared mantle with a broadsword.
+			var gold := Color("e8c35a")
+			var black := Color("1d1a22")
+			part(body, cylinder(0.4, 0.66, 1.1, 24), black, Vector3(0, 0.55, 0))
+			part(body, box(Vector3(0.7, 0.55, 0.5)), c, Vector3(0, 1.0, 0))
+			part(body, cylinder(0.34, 0.24, 0.32, 16), gold, Vector3(0, 1.36, 0.06))
+			var head := SphereMesh.new()
+			head.radius = 0.21
+			head.height = 0.42
+			part(body, head, Color("d9cfc7"), Vector3(0, 1.48, 0))
+			for k in 5:
+				var ang := deg_to_rad(-60.0 + 30.0 * k)
+				part(body, box(Vector3(0.05, 0.18, 0.05)), gold, Vector3(sin(ang) * 0.17, 1.72, -cos(ang) * 0.17))
+			part(body, box(Vector3(0.16, 0.08, 1.6)), Color("c9d1d9"), Vector3(0.55, 0.85, -0.55))
+			part(body, box(Vector3(0.5, 0.1, 0.1)), gold, Vector3(0.55, 0.85, 0.22))
 		_:
 			# Avery: armored body over a wide skirt, a crown and a long sword.
 			var gold := Color("e8c35a")
@@ -160,6 +240,39 @@ static func hero_gear(body: Node3D, shape: String, c: Color) -> void:
 			part(late, cylinder(0.2, 0.2, 0.42, 16), Color("2f2a3a"), Vector3(0, 1.72, 0.02))
 			part(late, cylinder(0.21, 0.21, 0.08, 16), Palette.ACCENT, Vector3(0, 1.56, 0.02))
 			part(late, box(Vector3(0.9, 0.06, 0.9)), Color("6d4bb3").darkened(0.25), Vector3(0, 0.95, 0.42), Vector3(-28, 0, 0))
+		"sailor":
+			# Ahab: the hook glows; late, a heavy oilskin cloak and a tall collar.
+			part(mid, cylinder(0.04, 0.11, 0.3, 8), glow, Vector3(-0.55, 0.95, -0.48), Vector3.ZERO, true)
+			part(late, cylinder(0.5, 0.72, 0.5, 20), Color("c8a64a"), Vector3(0, 0.95, 0.05))
+			part(late, cylinder(0.32, 0.3, 0.22, 16), Color("c8a64a").darkened(0.2), Vector3(0, 1.3, 0.05))
+		"hunter":
+			# Slayer: the crossbow glows; late, a wide-brimmed hunter's hat and a fur mantle.
+			part(mid, box(Vector3(0.7, 0.08, 0.1)), glow, Vector3(0.42, 0.88, -0.52), Vector3.ZERO, true)
+			part(late, cylinder(0.58, 0.58, 0.05, 20), Color("3a2a1c"), Vector3(0, 1.5, 0))
+			part(late, cylinder(0.5, 0.36, 0.25, 16), Color("8a7258"), Vector3(0, 1.05, 0.05))
+		"swarm":
+			# Huddle: the core glows; late, a wider ring of bugs.
+			var core := SphereMesh.new()
+			core.radius = 0.32
+			core.height = 0.64
+			part(mid, core, Color(1.0, 0.85, 0.2, 0.6), Vector3(0, 0.9, 0), Vector3.ZERO, true)
+			var bug := SphereMesh.new()
+			bug.radius = 0.08
+			bug.height = 0.12
+			for k in 12:
+				var a := TAU * k / 12.0
+				part(late, bug, Color("ffd23a"), Vector3(cos(a) * 0.78, 0.6 + 0.25 * float(k % 2), sin(a) * 0.78))
+		"doll":
+			# Poppet: the scissors glow; late, a lace parasol overhead.
+			part(mid, box(Vector3(0.1, 0.1, 0.5)), glow, Vector3(0.36, 0.72, -0.3), Vector3.ZERO, true)
+			part(late, cylinder(0.05, 0.62, 0.22, 20), Color("e88fb0").lightened(0.3), Vector3(-0.2, 1.85, 0.1))
+			part(late, box(Vector3(0.03, 0.8, 0.03)), Color("6b4a2b"), Vector3(-0.2, 1.4, 0.1))
+		"emperor":
+			# Tot: the broadsword glows; late, a gold mantle and a tall red cape.
+			part(mid, box(Vector3(0.24, 0.14, 1.7)), glow, Vector3(0.55, 0.85, -0.55), Vector3.ZERO, true)
+			for side: float in [-1.0, 1.0]:
+				part(late, box(Vector3(0.36, 0.22, 0.52)), gold, Vector3(side * 0.48, 1.22, 0))
+			part(late, box(Vector3(0.9, 0.06, 1.1)), Color("8a1c24"), Vector3(0, 0.85, 0.48), Vector3(-30, 0, 0))
 		_:
 			# Avery: the blade glows; late, gold pauldrons and a team-colored cape.
 			part(mid, box(Vector3(0.18, 0.18, 1.5)), glow, Vector3(0.5, 0.82, -0.55), Vector3.ZERO, true)

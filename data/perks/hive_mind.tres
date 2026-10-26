@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"hive_mind"
+display_name = "Hive Mind"
+summary = "Overwhelm at 4 Buzz instead of 5"
+special = &"hive_mind"
+special_value = 4.0

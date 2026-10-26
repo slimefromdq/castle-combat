@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"white_whale"
+display_name = "White Whale"
+summary = "After 0.6 s a whale breaches 10 m ahead: 160 dmg, knocks up 1 s, carries enemies to the end"
+effect = &"white_whale"
+cooldown = 55.0
+reach = 10.0
+width = 1.4
+delay = 0.6
+damage = 160.0
+minion_damage = 120.0
+stun = 1.0
+travel_time = 0.6
+ap_ratio = 0.7

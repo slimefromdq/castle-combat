@@ -41,7 +41,7 @@ var _play: Button
 
 # Heroes & Items page
 var _hero_cards: Array[Button] = []
-var _kit_label: Label
+var _kit_label: RichTextLabel
 var _deck_title: Label
 var _deck_slots: GridContainer
 var _item_buttons: Array[Button] = []
@@ -116,10 +116,11 @@ func pick_hero(i: int) -> void:
 	var unlock := [1, 3, 5]
 	for k in hero.abilities.size():
 		var ab := hero.abilities[k]
-		lines.append("Lv%d  %s: %s" % [unlock[k], ab.display_name, ab.summary])
+		var scale := StatCard.scaling(ab)
+		lines.append("Lv%d  [b]%s[/b]: %s%s" % [unlock[k], ab.display_name, ab.summary, ("  (" + scale + ")") if scale != "" else ""])
 	for tier in hero.perks.size() / 2:
 		lines.append("Lv%d  perk: %s or %s" % [2 + tier * 2, hero.perks[tier * 2].display_name, hero.perks[tier * 2 + 1].display_name])
-	_kit_label.text = "\n".join(lines)
+	_kit_label.text = StatCard.for_hero(hero) + "\n\n" + "\n".join(lines)
 
 
 func deck_full() -> bool:
@@ -430,15 +431,17 @@ func _build_heroes_page() -> Control:
 	v.add_theme_constant_override("separation", 12)
 	m.add_child(v)
 	v.add_child(_section("HEROES", Zine.TEAL, 71))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	var row := GridContainer.new()
+	row.columns = 4
+	row.add_theme_constant_override("h_separation", 10)
+	row.add_theme_constant_override("v_separation", 10)
 	v.add_child(row)
 	for i in MatchController.HEROES.size():
 		var hero := MatchController.HEROES[i]
 		var card := Button.new()
 		card.focus_mode = Control.FOCUS_NONE
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.custom_minimum_size = Vector2(0, 236)
+		card.custom_minimum_size = Vector2(0, 200)
 		card.tooltip_text = hero.blurb
 		card.pressed.connect(pick_hero.bind(i))
 		var cv := VBoxContainer.new()
@@ -467,8 +470,16 @@ func _build_heroes_page() -> Control:
 		_hero_cards.append(card)
 	var kit := Zine.panel(Zine.WHITE, 72, 12)
 	(kit.get_theme_stylebox("panel") as ZineBox).tape = Zine.TAPE
-	_kit_label = Zine.label("", Zine.HAND, 22)
-	_kit_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_kit_label = RichTextLabel.new()
+	_kit_label.bbcode_enabled = true
+	_kit_label.fit_content = true
+	_kit_label.scroll_active = false
+	_kit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_kit_label.add_theme_font_override("normal_font", Zine.HAND)
+	_kit_label.add_theme_font_override("bold_font", Zine.MARKER)
+	_kit_label.add_theme_font_size_override("normal_font_size", 22)
+	_kit_label.add_theme_font_size_override("bold_font_size", 20)
+	_kit_label.add_theme_color_override("default_color", Zine.INK)
 	kit.add_child(_kit_label)
 	v.add_child(kit)
 	_deck_title = Zine.label("", Zine.DISPLAY, 1)  # text set in _refresh_deck

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cut_to_ribbons"
+display_name = "Cut to Ribbons"
+summary = "Leap 4 m onto an enemy, sew its feet down 1.2 s and snip 8 times. A threaded hero loses 15% of its missing HP at the end"
+effect = &"cut_to_ribbons"
+cooldown = 50.0
+reach = 4.5
+travel_time = 0.2
+root = 1.2
+duration = 1.2
+pulses = 8
+damage = 20.0
+atk_ratio = 0.25
+ap_ratio = 0.15
+extra = 0.15

@@ -9,6 +9,7 @@ display_name = "Vanish"
 summary = "Vanish 2.5 s (immune, very slow); tap again to burst out: 150 dmg around you"
 effect = &"vanish"
 cooldown = 15.0
+ap_ratio = 0.9
 duration = 2.5
 radius = 3.8
 damage = 150.0

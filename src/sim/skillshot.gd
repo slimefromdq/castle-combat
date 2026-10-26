@@ -22,6 +22,8 @@ var stop_at_hero := false
 ## Charge fraction 0..1 (Sweet Talk), for visuals.
 var charge := 0.0
 var key := 0
+## Headsman's Axe on its way back (Boomerang): it doesn't return twice.
+var returning := false
 var done := false
 ## Entity ids already hit.
 var hits := {}

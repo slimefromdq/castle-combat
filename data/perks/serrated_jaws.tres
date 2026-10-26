@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"serrated_jaws"
+display_name = "Serrated Jaws"
+summary = "A trapped hero also bleeds 8% max HP over 2 s"
+special = &"serrated_jaws"
+special_value = 0.08
+special_duration = 2.0

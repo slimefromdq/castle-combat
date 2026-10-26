@@ -18,8 +18,28 @@ extends Resource
 @export var attack_damage := 40.0
 @export var attack_windup := 0.25
 @export var attack_interval := 0.85
-## Basic-attack damage gained per level above 1 (0.08 = +8% of base per level).
-@export var attack_damage_per_level := 0.0
+
+@export_group("Growth per level (added for each level above 1)")
+@export var hp_per_level := 0.0
+## Attack Power: the damage of one basic attack.
+@export var attack_power_per_level := 0.0
+## Ability Power: added to abilities through their ratios (AbilityData.ap_ratio).
+@export var ability_power_per_level := 0.0
+
+@export_group("Defences (points: 25 = 20% less, 100 = 50% less)")
+## Cuts basic-attack damage taken.
+@export var armor := 0.0
+## Cuts ability and item damage taken from the enemy hero.
+@export var ward := 0.0
+
+## A rule the hero always has: &"blood_debt" (Tot), &"buzz" (Huddle), or none.
+@export var hero_trait: StringName = &""
+
+@export_group("Stat card")
+## "Attack", "Ability", "Hybrid" or "Tank": what the hero leans on.
+@export var lean := "Attack"
+## 1-5 pips: toughness, damage, mobility, control, difficulty.
+@export var ratings: Array[int] = [3, 3, 3, 3, 3]
 
 @export_group("Sprint look")
 ## Speed-trail colour, forward lean (degrees) and bounce height while sprinting.

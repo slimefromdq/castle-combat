@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"tight_stitch"
+display_name = "Tight Stitch"
+summary = "The thread snaps at 5 m, and the snap roots 0.6 s"
+special = &"tight_stitch"
+special_value = 5.0
+special_value_2 = 0.6

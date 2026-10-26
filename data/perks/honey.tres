@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"honey"
+display_name = "Honey"
+summary = "Latch Cloud also slows 20%"
+special = &"honey"
+special_value = 0.2

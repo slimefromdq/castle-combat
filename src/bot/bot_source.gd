@@ -16,12 +16,19 @@ const WISHLISTS := {
 	&"avery": [&"mending_charm", &"trooper_cleaver", &"overcharge_gem", &"stormcrown", &"aegis_mirror"],
 	&"jose": [&"mending_charm", &"whetstone", &"bloodthirst_blade", &"reapers_rhythm", &"duelists_crest"],
 	&"jack": [&"spark_band", &"mending_charm", &"overcharge_gem", &"stormcrown", &"aegis_mirror"],
+	&"ahab": [&"padded_vest", &"mending_charm", &"bulwark_plate", &"colossus_heart"],
+	&"slayer": [&"training_blade", &"whetstone", &"war_gauntlet", &"warlords_greatsword"],
+	&"huddle": [&"ink_quill", &"mending_charm", &"grimoire", &"archmages_crown"],
+	&"poppet": [&"training_blade", &"runed_saber", &"executioners_edge", &"warlords_greatsword"],
+	&"tot": [&"training_blade", &"padded_vest", &"runed_saber", &"warlords_greatsword"],
 }
 ## The counter item the bot slots in as its first mid item against each enemy hero.
 const COUNTERS := {
 	&"avery": &"thorncut",
 	&"jose": &"overcharge_gem",
 	&"jack": &"warding_cloak",
+	&"huddle": &"warding_cloak",
+	&"tot": &"thorncut",
 }
 ## Which perk (0 or 1) the bot takes at levels 2, 4 and 6, per hero. Tests and the
 ## bot-match script override it to try other builds.
@@ -29,6 +36,11 @@ const PERK_PICKS := {
 	&"avery": [0, 0, 0],
 	&"jose": [0, 1, 0],
 	&"jack": [0, 1, 0],
+	&"ahab": [0, 0, 1],
+	&"slayer": [0, 0, 0],
+	&"huddle": [0, 0, 0],
+	&"poppet": [0, 0, 0],
+	&"tot": [1, 1, 1],
 }
 var perk_choices: Array = []
 var _points: Array[Vector2] = []
@@ -126,7 +138,12 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 				if _healing and seen and me.cloak_pos.distance_to(them.pos) > d + 3.0:
 					return 0  # Blink away.
 			var copied := Abilities.ability_for(sim, me, 2)
-			var ult_reach := 3.2 if copied != null and copied.effect == &"last_tango" else 8.5
+			var ult_reach := 8.5
+			if copied != null:
+				match copied.effect:
+					&"last_tango": ult_reach = 3.2
+					&"swarm_storm", &"cut_to_ribbons": ult_reach = 4.2
+					&"absolute_rule": ult_reach = 6.0
 			if ready.call(2) and fight and their_hp < 0.7 and d < ult_reach:
 				return 2
 			if ready.call(0) and fight and d < 8.0:
@@ -137,6 +154,55 @@ func _choose_ability(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> int:
 				return 1
 			if ready.call(1) and safe and _enemy_minions_near(sim, me.pos, 3.0) >= 3:
 				return 1  # Vanish into the wave; the burst follows next tick.
+		&"ahab":
+			# Hook them in under his tower, fling them back, harpoon from range; the whale
+			# when they are close to dead or already pulled in.
+			if ready.call(2) and fight and d < 9.0 and (their_hp < 0.55 or them.is_stunned(sim.time)):
+				return 2
+			if ready.call(0) and fight and d > 3.0 and d < 8.5:
+				return 0
+			if ready.call(1) and seen and d < 2.6 and (fight or my_hp < 0.5):
+				return 1
+		&"slayer":
+			# Trap where they stand, then shoot; the bolt also kicks him back out of trouble.
+			if ready.call(2) and fight and d < 11.0 and (their_hp < 0.6 or them.is_rooted()):
+				return 2
+			if ready.call(0) and seen and d < 4.5 and (fight or my_hp < 0.6):
+				return 0
+			if ready.call(1) and seen and d < 8.5 and (fight or (my_hp < 0.45 and d < 3.0)):
+				return 1
+		&"huddle":
+			if me.engulf_target != 0:
+				return -1
+			if ready.call(2) and fight and d < 4.2 and (their_hp < 0.75 or them.buzz >= 3):
+				return 2
+			if ready.call(0) and fight and d < 6.5:
+				return 0
+			if ready.call(1) and seen and d < 4.0 and my_hp < 0.45:
+				cmd.move = _toward(me, me.pos + (me.pos - them.pos))
+				return 1
+			if ready.call(1) and fight and d > me.attack_range + 1.0 and d < 5.0 and their_hp < 0.4:
+				cmd.move = _toward(me, them.pos)
+				return 1
+		&"poppet":
+			if Abilities.can_recast(sim, me, 0) and me.thread_target != 0 and ready.call(0) and fight and d > me.attack_range + 0.5:
+				return 0  # Reel them in.
+			if ready.call(2) and fight and d < 4.2 and their_hp < 0.7:
+				return 2
+			if ready.call(1) and seen and d < 4.5 and (fight or my_hp < 0.5):
+				return 1
+			if ready.call(0) and me.thread_target == 0 and fight and d < 7.5:
+				return 0
+		&"tot":
+			# Rule only when the kill is likely before the Debt lands.
+			if ready.call(2) and fight and d < 6.0 and their_hp < 0.45 and my_hp > their_hp:
+				return 2
+			if ready.call(1) and seen and d < 5.0 and (fight or me.debt > me.hp * 0.3):
+				return 1
+			if ready.call(0) and fight and d < 2.8 and my_hp > 0.3:
+				return 0
+			if ready.call(0) and safe and _enemy_minions_near(sim, me.pos, 3.0) >= 3 and my_hp > 0.6:
+				return 0
 	return -1
 
 

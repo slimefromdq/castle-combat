@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"zealot"
+display_name = "Zealot"
+summary = "Absolute Rule adds 10% of your Debt per hit"
+special = &"zealot"
+special_value = 0.1

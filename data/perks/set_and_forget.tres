@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="PerkData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/perk_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"set_and_forget"
+display_name = "Set and Forget"
+summary = "3 traps at once"
+special = &"set_and_forget"
+special_value = 3.0

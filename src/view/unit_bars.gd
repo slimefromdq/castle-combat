@@ -42,9 +42,34 @@ func _draw() -> void:
 		if e is MinionState and e.team == view.local_seat and CombatSystem.can_deny(view.sim, view.sim.heroes[view.local_seat], e):
 			draw_rect(r.grow(3.0), Color(1, 1, 1, 0.9), false, 2.0)
 		draw_rect(Rect2(r.position, Vector2(size.x * e.hp / e.max_hp, size.y)), color)
+		if e is HeroState:
+			_draw_kit_marks(e as HeroState, r)
 		if e is HeroState and e.is_winding_up():
 			draw_rect(Rect2(r.position + Vector2(0, size.y + 3), Vector2(size.x * e.windup_progress(), 4)), Color(1, 1, 1, 0.9))
 	_draw_relay_pointer(cam)
+
+
+## Tot's Debt: the slice of the bar it will drain, in dark red at the end of the health.
+## Buzz stacks: yellow pips under the bar (Huddle's Overwhelm pops at the last one).
+func _draw_kit_marks(h: HeroState, r: Rect2) -> void:
+	if h.debt > 0.0:
+		var hp_w := r.size.x * h.hp / h.max_hp
+		var debt_w := minf(hp_w, r.size.x * h.debt / h.max_hp)
+		var dr := Rect2(r.position + Vector2(hp_w - debt_w, 0), Vector2(debt_w, r.size.y))
+		draw_rect(dr, Color(0.35, 0.02, 0.06))
+		for k in int(debt_w / 5.0):
+			var x := dr.position.x + 5.0 * k
+			draw_line(Vector2(x, dr.end.y), Vector2(x + 4.0, dr.position.y), Color(0.85, 0.15, 0.2), 1.5)
+	if h.buzz > 0:
+		var need := Kits.BUZZ_STACKS
+		var src := view.sim.get_entity(h.buzz_from) as HeroState
+		if src != null:
+			need = Kits.buzz_need(src)
+		for k in need:
+			var c := Vector2(r.position.x + 5.0 + 9.0 * k, r.position.y - 7.0)
+			draw_circle(c, 3.2, Color(0, 0, 0, 0.7))
+			if k < h.buzz:
+				draw_circle(c, 2.5, Color("ffd23a"))
 
 
 ## The Relay is globally visible: when it is off screen, a gold arrow on the edge of

@@ -12,6 +12,11 @@ const HEROES: Array[HeroData] = [
 	preload("res://data/heroes/avery.tres"),
 	preload("res://data/heroes/jose.tres"),
 	preload("res://data/heroes/jack.tres"),
+	preload("res://data/heroes/ahab.tres"),
+	preload("res://data/heroes/slayer.tres"),
+	preload("res://data/heroes/huddle.tres"),
+	preload("res://data/heroes/poppet.tres"),
+	preload("res://data/heroes/tot.tres"),
 ]
 const MINIONS := {
 	&"melee": preload("res://data/minions/melee.tres"),
@@ -38,6 +43,20 @@ const ITEMS: Array[ItemData] = [
 	preload("res://data/items/whetstone.tres"),
 	preload("res://data/items/executioners_edge.tres"),
 	preload("res://data/items/duelists_crest.tres"),
+	preload("res://data/items/training_blade.tres"),
+	preload("res://data/items/ink_quill.tres"),
+	preload("res://data/items/padded_vest.tres"),
+	preload("res://data/items/hourglass_charm.tres"),
+	preload("res://data/items/war_gauntlet.tres"),
+	preload("res://data/items/grimoire.tres"),
+	preload("res://data/items/runed_saber.tres"),
+	preload("res://data/items/bulwark_plate.tres"),
+	preload("res://data/items/sunder_pick.tres"),
+	preload("res://data/items/hex_needle.tres"),
+	preload("res://data/items/colossus_heart.tres"),
+	preload("res://data/items/warlords_greatsword.tres"),
+	preload("res://data/items/archmages_crown.tres"),
+	preload("res://data/items/phoenix_feather.tres"),
 ]
 ## Indices into ITEMS: the deck you start with in the menu.
 const DEFAULT_DECK := [0, 1, 13, 4, 5, 14, 9, 15]
@@ -46,6 +65,11 @@ const BOT_DECKS := {
 	&"avery": [0, 1, 2, 6, 7, 8, 9, 11],
 	&"jose": [0, 1, 13, 4, 5, 14, 10, 15],
 	&"jack": [0, 1, 3, 6, 7, 5, 9, 11],
+	&"ahab": [18, 1, 23, 6, 5, 26, 9, 19],
+	&"slayer": [16, 1, 13, 20, 24, 27, 15, 5],
+	&"huddle": [17, 1, 19, 21, 25, 28, 6, 9],
+	&"poppet": [16, 17, 22, 5, 14, 27, 29, 13],
+	&"tot": [16, 18, 22, 5, 20, 27, 29, 1],
 }
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),

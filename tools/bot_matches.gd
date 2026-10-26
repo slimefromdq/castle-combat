@@ -1,5 +1,6 @@
 extends SceneTree
-## Bot-vs-bot balance runs:  godot --headless --path . -s tools/bot_matches.gd -- [matches per pairing]
+## Bot-vs-bot balance runs:  godot --headless --path . -s tools/bot_matches.gd -- [matches per pairing] [shard/shards]
+## (a shard such as 0/3 plays every third pairing, so runs can be split across cores)
 ## Every pairing of different heroes, both seats, with the bots' perk picks rotated so
 ## each perk gets played. Prints win rates, match length, knockouts and level timings.
 
@@ -9,6 +10,12 @@ const MAX_TIME := 15.0 * 60.0
 func _init() -> void:
 	var args := OS.get_cmdline_user_args()
 	var per_pair := int(args[0]) if args.size() > 0 else 4
+	var shard := 0
+	var shards := 1
+	if args.size() > 1:
+		shard = int(args[1].get_slice("/", 0))
+		shards = int(args[1].get_slice("/", 1))
+	var pair_index := -1
 	var heroes := MatchController.HEROES
 	var wins := {}
 	var games := {}
@@ -24,6 +31,9 @@ func _init() -> void:
 	for i in heroes.size():
 		for j in heroes.size():
 			if i == j:
+				continue
+			pair_index += 1
+			if pair_index % shards != shard:
 				continue
 			var pair_wins := 0
 			for n in per_pair:

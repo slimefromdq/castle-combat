@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"headsmans_axe"
+display_name = "Headsman's Axe"
+summary = "Wind up 0.5 s, hurl a huge axe 12 m: 120 dmg + 12% max HP to heroes, then a bleed of 10% max HP over 3 s"
+effect = &"headsmans_axe"
+cooldown = 55.0
+reach = 12.0
+speed = 14.0
+width = 0.9
+delay = 0.5
+damage = 120.0
+minion_damage = 120.0
+bleed_fraction = 0.1
+bleed_time = 3.0
+extra = 0.12
+atk_ratio = 1.0

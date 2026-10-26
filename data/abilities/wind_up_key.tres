@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"wind_up_key"
+display_name = "Wind-Up Key"
+summary = "Her head spins: a hero within 5 m facing her freezes 0.6 s (40 dmg). Then 3 s of 60% faster snips; every 3rd snip bleeds"
+effect = &"wind_up_key"
+cooldown = 13.0
+radius = 5.0
+stun = 0.6
+damage = 40.0
+ap_ratio = 0.4
+duration = 3.0
+attack_speed_bonus = 0.6
+bleed_fraction = 0.0
+bleed_time = 2.0
+extra = 25.0

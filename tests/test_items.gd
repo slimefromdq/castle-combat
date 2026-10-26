@@ -34,9 +34,12 @@ func test_damage_kinds_and_ability_bonuses() -> void:
 	var hp := red.hp
 	sim.apply_damage(red, 100.0, blue, &"basic")
 	check_near(hp - red.hp, 100.0, 0.01, "Titan Core leaves basic attacks alone")
+	check_near(blue.ability_power, 60.0, 0.01, "Titan Core gives +60 Ability Power")
 	hp = red.hp
 	sim.apply_damage(red, 100.0, blue, &"ability")
-	check_near(hp - red.hp, 135.0, 0.01, "+35% ability damage")
+	check_near(hp - red.hp, 100.0, 0.01, "AP adds to abilities through their ratios, not raw damage")
+	var cloak: AbilityData = load("res://data/abilities/cloak_toss.tres")
+	check_near(HeroStats.ability_bonus(blue, cloak), 60.0 * cloak.ap_ratio, 0.01, "Cloak Toss gains its share of AP")
 
 
 func test_trooper_cleaver_and_siege_banner() -> void:
@@ -58,10 +61,12 @@ func test_warding_cloak_resists_abilities_only() -> void:
 	var red := sim.heroes[1]
 	var hp := red.hp
 	sim.apply_damage(red, 100.0, blue, &"ability")
-	check_near(hp - red.hp, 75.0, 0.01, "-25% ability damage")
+	var left := 100.0 * 100.0 / (100.0 + red.ward)
+	check(red.ward >= 33.0, "Warding Cloak gives Ward")
+	check_near(hp - red.hp, left, 0.01, "Ward cuts ability damage (about 25%)")
 	hp = red.hp
 	sim.apply_damage(red, 100.0, blue, &"item")
-	check_near(hp - red.hp, 75.0, 0.01, "item damage counts too")
+	check_near(hp - red.hp, left, 0.01, "item damage counts too")
 	hp = red.hp
 	sim.apply_damage(red, 100.0, blue, &"basic")
 	check_near(hp - red.hp, 100.0, 0.01, "basic attacks are not resisted")
@@ -153,10 +158,11 @@ func test_overcharge_gem_on_big_ability_hits() -> void:
 	var red := sim.heroes[1]
 	var hp := red.hp
 	sim.apply_damage(red, 50.0, blue, &"ability")
-	check_near(hp - red.hp, 56.0 * 0.75, 0.01, "small hit: just +12%, then resisted")
+	var keep := 100.0 / (100.0 + red.ward)
+	check_near(hp - red.hp, 50.0 * keep, 0.01, "small hit: no proc, then resisted")
 	hp = red.hp
 	sim.apply_damage(red, 100.0, blue, &"ability")
-	var expected := 112.0 * 0.75 + red.max_hp * 0.06 * 0.75
+	var expected := 100.0 * keep + red.max_hp * 0.06 * keep
 	check_near(hp - red.hp, expected, 0.01, "big hit adds 6% max HP (both resisted)")
 
 

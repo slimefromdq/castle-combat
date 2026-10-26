@@ -308,7 +308,8 @@ func test_jose_basic_attack_grows_with_level() -> void:
 	var sim := _sim(JOSE, AVERY)
 	var blue := sim.heroes[0]
 	_level(sim, blue, 5)
-	check_near(blue.attack_damage, blue.data.attack_damage * (1.0 + 4 * blue.data.attack_damage_per_level), 0.01, "+8% basic damage per level")
+	check_near(blue.attack_damage, blue.data.attack_damage + 4 * blue.data.attack_power_per_level, 0.01, "Attack Power grows each level")
+	check_near(blue.ability_power, 0.0, 0.01, "an Attack hero gets no Ability Power from levels")
 
 
 func test_spin_dash_twice_only_after_a_hit() -> void:
@@ -514,7 +515,7 @@ func test_vanish_is_immune_then_bursts() -> void:
 	check_near(blue.move_speed(), blue.data.move_speed * blue.data.abilities[1].move_mult, 0.01, "moves very slowly")
 	_cast(sim, 1)
 	check(not blue.is_vanished(), "recast bursts out")
-	check_near(red.hp, red.max_hp - blue.data.abilities[1].damage, 0.01, "the burst hit")
+	check_near(red.hp, red.max_hp - blue.data.abilities[1].damage - HeroStats.ability_bonus(blue, blue.data.abilities[1]), 0.01, "the burst hit (base + AP share)")
 
 
 func test_vanish_bursts_by_itself() -> void:
