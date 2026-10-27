@@ -108,6 +108,24 @@ func _on_sim_event(type: StringName, data: Dictionary) -> void:
 			if h == null:
 				return
 			data = {"pos": h.pos, "team": data.team}
+		&"trick_used":
+			text = Tricks.display_name(data.trick) + "!"
+			color = Tricks.COLORS.get(data.trick, Color.WHITE)
+			data = {"pos": data.get("to", data.pos), "team": data.team}
+		&"cc_resisted":
+			text = "Immune"
+			color = Color("8ff0b0")
+		&"interrupted":
+			# Shown for the hero who did the interrupting.
+			mine = data.team != view.local_seat
+			text = "Interrupted!" if data.refund <= 0.0 else "Interrupted! -%.0fs" % data.refund
+			color = Color("ffd166")
+		&"brand_landed":
+			text = "Branded!"
+			color = Tricks.COLORS[&"brand"]
+		&"shutdown":
+			text = "Shutdown! +%dg" % roundi(data.amount)
+			color = COIN
 		&"fruit_eaten":
 			text = "Yum!" if mine else "Fruit eaten"
 			color = HONEY

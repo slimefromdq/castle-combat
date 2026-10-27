@@ -16,6 +16,8 @@ func _ready() -> void:
 		for a in args:
 			if a.begins_with("--hero="):
 				_menu.pick_hero(int(a.get_slice("=", 1)))  # Before the match starts.
+			elif a.begins_with("--trick="):
+				_menu.pick_trick(maxi(0, Tricks.IDS.find(StringName(a.get_slice("=", 1)))))
 		_start_match()
 		_apply_dev_args(args)
 	elif args.size() > 0:
@@ -69,6 +71,7 @@ func _start_match() -> void:
 	_menu.visible = false
 	_match = MatchController.new()
 	_match.hero_index = _menu.hero_index
+	_match.trick = Tricks.IDS[_menu.trick_index]
 	_match.deck = MatchController.deck_from(_menu.deck)
 	var args := OS.get_cmdline_user_args()
 	_match.play_intro = "--autoplay" not in args or "--intro" in args

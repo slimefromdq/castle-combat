@@ -11,6 +11,7 @@ const BINDINGS := {
 	"cast_2": [KEY_E],
 	"cast_3": [KEY_R],
 	"drop_relay": [KEY_F],
+	"use_trick": [KEY_T],
 	"perk_1": [KEY_Z],
 	"perk_2": [KEY_X],
 	"master_1": [KEY_C],

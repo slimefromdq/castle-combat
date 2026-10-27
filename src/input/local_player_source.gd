@@ -19,6 +19,9 @@ var pending_perk := -1
 var pending_masterwork := -1
 ## Buy a siege scroll (N or the button).
 var pending_scroll := false
+## Use the Trick (T or its button), and a drag-to-aim for it (sim space, zero for none).
+var pending_trick := false
+var pending_trick_aim := Vector2.ZERO
 ## Where you aim (sim space, unit length): the mouse on desktop, the way you move on touch.
 ## Kept between casts, so a tap casts the way you last aimed or moved.
 var aim := Vector2.ZERO
@@ -57,6 +60,12 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_masterwork = -1
 	cmd.buy_scroll = pending_scroll
 	pending_scroll = false
+	cmd.use_trick = pending_trick
+	if pending_trick and pending_trick_aim != Vector2.ZERO:
+		cmd.aim = pending_trick_aim
+		aim = pending_trick_aim
+	pending_trick = false
+	pending_trick_aim = Vector2.ZERO
 	return cmd
 
 

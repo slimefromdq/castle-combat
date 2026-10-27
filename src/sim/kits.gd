@@ -176,7 +176,7 @@ static func _keelhaul(sim: MatchSim, h: HeroState, a: AbilityData, key: int) -> 
 		return
 	sim.emit_event(&"flung", {"hero": h.id, "target": t.id, "from": t.pos, "to": goal})
 	if t is HeroState:
-		Abilities.force(sim, t, goal - t.pos, a.travel_time, false)
+		Abilities.displace(sim, t, goal - t.pos, a.travel_time)
 		Abilities.interrupt(sim, t)
 		_displaced_by(t, h, &"fling", goal)
 	else:
@@ -194,7 +194,7 @@ static func _hooked(sim: MatchSim, s: Skillshot, e: SimEntity) -> void:
 	var spot := h.pos + dir * (h.radius + e.radius + 0.5)
 	sim.emit_event(&"hooked", {"hero": h.id, "target": e.id, "from": e.pos, "to": spot})
 	if e is HeroState:
-		Abilities.force(sim, e, spot - e.pos, 0.3, false)
+		Abilities.displace(sim, e, spot - e.pos, 0.3)
 		Abilities.interrupt(sim, e)
 		_displaced_by(e, h, &"hook", spot)
 		var barb := h.perk_with(&"barbed_hook")
@@ -287,7 +287,7 @@ static func _breach(sim: MatchSim, h: HeroState, a: AbilityData) -> void:
 		var spot := Abilities.free_spot(sim, e, end, origin + dir * along)
 		if e is HeroState:
 			Abilities.stun(sim, e, a.stun)
-			Abilities.force(sim, e, spot - e.pos, a.travel_time, false)
+			Abilities.displace(sim, e, spot - e.pos, a.travel_time)
 			_displaced_by(e, h, &"whale", spot)
 		else:
 			e.pos = spot
@@ -355,7 +355,7 @@ static func _bolt_hit(sim: MatchSim, s: Skillshot, e: SimEntity) -> void:
 	var pin := h.perk_with(&"pinned")
 	if pin != null:
 		var goal: Vector2 = e.pos + s.dir * pin.special_value_2
-		Abilities.force(sim, e, goal - e.pos, 0.15, false)
+		Abilities.displace(sim, e, goal - e.pos, 0.15)
 		_displaced_by(e, h, &"pin", goal)
 
 
@@ -843,6 +843,8 @@ static func on_kill(sim: MatchSim, target: SimEntity, source: SimEntity) -> void
 
 static func root(sim: MatchSim, e: HeroState, seconds: float) -> void:
 	if seconds <= 0.0:
+		return
+	if not Abilities.take_hard_cc(sim, e, seconds):
 		return
 	e.root_until = maxf(e.root_until, sim.time + seconds)
 	sim.emit_event(&"rooted", {"hero": e.id, "until": e.root_until})

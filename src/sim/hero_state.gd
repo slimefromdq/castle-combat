@@ -17,6 +17,8 @@ var preferred_lost_time := 0.0
 var respawn_at := 0.0
 ## Knockouts so far (respawn timers grow with them).
 var deaths := 0
+## Knockouts scored since this hero last died (shutdown bounty, see Economy).
+var streak := 0
 ## True while this hero carries the Relay (set by RelayController).
 var carrying_relay := false
 ## Speed multiplier while carrying (copied from the config by RelayController).
@@ -205,6 +207,22 @@ var forced_ticks := 0
 var forced_volley: AbilityData
 var forced_key := 0
 var forced_recast := false
+## True while the forced movement is the hero's own dash (not a knockback or a pull).
+var forced_self := false
+
+## Duel First. The pre-match Trick (see Tricks), its cooldown, and an armed Brand.
+var trick: StringName = &"blink"
+var trick_cd := 0.0
+var brand_armed_until := 0.0
+## CC grace: when the last stun, root or knockback on this hero ends. For
+## MatchConfig.cc_grace_time after it, new hard CC slides off. Cleanse grants a flat
+## immunity until cc_immune_until.
+var hard_cc_until := 0.0
+var cc_immune_until := 0.0
+## The hero's last cast (interrupt refunds go to it) and the last interrupt it was paid for.
+var last_cast_slot := -1
+var last_cast_time := -1000.0
+var last_interrupt_time := -1000.0
 ## Sprint: build-up seconds, running direction, and the speed multiplier while sprinting.
 var sprint_build := 0.0
 var sprint_dir := Vector2.ZERO
@@ -437,6 +455,10 @@ func clear_effects() -> void:
 	forced_ticks = 0
 	forced_vel = Vector2.ZERO
 	forced_volley = null
+	forced_self = false
+	brand_armed_until = 0.0
+	hard_cc_until = 0.0
+	cc_immune_until = 0.0
 	channel = null
 	wounds_until = 0.0
 	shred_until = 0.0

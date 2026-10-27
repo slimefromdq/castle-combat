@@ -17,6 +17,7 @@ signal fullscreen_pressed
 signal menu_pressed
 signal restart_pressed
 signal drop_pressed
+signal trick_aimed(screen_dir: Vector2)
 signal buy_pressed(slot: int)
 signal sell_pressed(slot: int)
 ## A cast from an ability button: screen_dir is the drag-to-aim direction (y up), or zero
@@ -64,6 +65,7 @@ var _clock_sub: Label
 var _flash: Label
 var _flash_until := 0
 var _drop: Button
+var _trick: AimButton
 var _tray: PanelContainer
 var _cards: Array[Button] = []
 var _master_row: HBoxContainer
@@ -133,6 +135,8 @@ func set_touch_mode(on: bool, mouse_emulation: bool) -> void:
 	for b in _ability_buttons:
 		b.use_mouse = mouse_emulation or not on
 		b.cancel()
+	_trick.use_mouse = mouse_emulation or not on
+	_trick.cancel()
 	_touch_button.text = "Touch controls: on" if on else "Touch controls: off"
 
 
@@ -174,8 +178,8 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	var me := sim.heroes[seat]
 	var them := sim.heroes[1 - seat]
 	_me = me
-	_name_plate(_you_name, _you_level, _you_portrait, me)
-	_name_plate(_them_name, _them_level, _them_portrait, them)
+	_name_plate(sim, _you_name, _you_level, _you_portrait, me)
+	_name_plate(sim, _them_name, _them_level, _them_portrait, them)
 	_you_portrait.set_mood(_you_mood.update(me, them, sim.time))
 	_them_portrait.set_mood(_them_mood.update(them, me, sim.time))
 	_you_xp.value = Leveling.progress(sim, me)
@@ -186,6 +190,7 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_them_pips.refresh(sim, 1 - seat)
 	_refresh_clock(sim, seat)
 	_refresh_abilities(sim, me)
+	_refresh_trick(sim, me)
 	_refresh_perks(sim, me)
 	_refresh_tray(sim, me)
 	_refresh_spikes(sim, me)
@@ -209,12 +214,13 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 
 ## Name in the hero's own lettering, level under it in the HUD type. Fonts are only
 ## swapped when the hero changes (seat swap).
-func _name_plate(name: Label, level: Label, portrait: HeroPortrait, h: HeroState) -> void:
+func _name_plate(sim: MatchSim, name: Label, level: Label, portrait: HeroPortrait, h: HeroState) -> void:
 	if portrait.hero_id != h.data.id:
 		name.text = h.data.display_name
 		HeroLettering.apply(name, h.data.id, 26 if h.data.display_name.length() <= 7 else 20)
 		portrait.setup(h.data.id, portrait.team_color)
-	level.text = "Lv %d" % h.level
+	var bounty := Economy.shutdown_bounty(sim, h)
+	level.text = "Lv %d" % h.level if bounty <= 0.0 else "Lv %d · Bounty %dg" % [h.level, roundi(bounty)]
 
 
 ## Wide screens: keep the HUD in a centred column so the thumbs and the lane stay close.
@@ -277,6 +283,20 @@ func _refresh_abilities(sim: MatchSim, me: HeroState) -> void:
 		b.text = "%s\n%s\n%s" % [KEYS[i], title, status]
 		b.disabled = problem != ""
 		b.tooltip_text = "%s (%s)\n%s\nCooldown %.0f s\nAims at the mouse; on touch, drag the button to aim." % [title, KEYS[i], a.summary, me.ability_cooldown(i)]
+
+
+## The Trick button: key, name, cooldown.
+func _refresh_trick(sim: MatchSim, me: HeroState) -> void:
+	var problem := Tricks.problem(sim, me)
+	var status := ""
+	if me.trick_cd > 0.0:
+		status = "%.0f" % ceilf(me.trick_cd)
+	elif me.trick == &"brand" and sim.time < me.brand_armed_until:
+		status = "Armed!"
+	_trick.text = "T\n%s\n%s" % [Tricks.display_name(me.trick), status]
+	_trick.disabled = problem != ""
+	_trick.add_theme_color_override("font_color", Tricks.COLORS.get(me.trick, Color.WHITE))
+	_trick.tooltip_text = "%s (T)\n%s\nCooldown %.0f s" % [Tricks.display_name(me.trick), Tricks.summary(sim.config, me.trick), Tricks.cooldown(sim.config, me.trick)]
 
 
 ## The level-up perk choice: two cards while a pick is waiting (Z / X on a keyboard).
@@ -490,6 +510,10 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 				text = "Delivered! A siege minion joins your next wave" if data.team == seat else "Enemy delivered: their siege minion is coming"
 		&"phase_two":
 			text = "Phase 2! The long Relay drop is open"
+		&"shutdown":
+			text = ("Shutdown! +%d gold" % roundi(data.amount)) if data.team == seat else "Shut down! They took your %d gold bounty" % roundi(data.amount)
+		&"bounty_up":
+			text = ("You're on a streak: your head is worth %d gold" % roundi(data.amount)) if data.team == seat else "Enemy on a streak: knock them out for %d gold" % roundi(data.amount)
 		&"relay_expired":
 			text = "The Relay faded"
 		&"relay_fizzling":
@@ -858,6 +882,15 @@ func _build_thumbs() -> void:
 	_ability_buttons.append(_ability_button(136, 28, 28, 0))
 	_ability_buttons.append(_ability_button(108, 28 + 136 + 18, 28, 1))
 	_ability_buttons.append(_ability_button(108, 28 + 14, 28 + 136 + 18, 2))
+	# Your Trick (keyboard: T), above E. Drag to aim a Blink.
+	_trick = AimButton.new()
+	_trick.custom_minimum_size = Vector2(88, 88)
+	_trick.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_trick.add_theme_font_size_override("font_size", 14)
+	_trick.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_trick.clip_text = true
+	_trick.cast.connect(func(dir: Vector2) -> void: trick_aimed.emit(dir))
+	_root.add_child(_trick)
 	# Shown only while you carry the Relay (keyboard: F).
 	_drop = UiKit.button("F\nDrop", Vector2(96, 96))
 	_drop.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -898,9 +931,13 @@ func _place_thumbs(base: float) -> void:
 		b.offset_left = -o[1] - o[0]
 		b.offset_bottom = -base - o[2]
 		b.offset_top = -base - o[2] - o[0]
-	_drop.offset_right = -(28 + 136 + 18)
+	_trick.offset_right = -(28 + 136 + 18 + 10)
+	_trick.offset_left = _trick.offset_right - 88
+	_trick.offset_bottom = -base - (28 + 108 + 18)
+	_trick.offset_top = _trick.offset_bottom - 88
+	_drop.offset_right = -(28 + 136 + 18 + 6)
 	_drop.offset_left = _drop.offset_right - 96
-	_drop.offset_bottom = -base - (28 + 108 + 18)
+	_drop.offset_bottom = -base - (28 + 108 + 18 + 88 + 14)
 	_drop.offset_top = _drop.offset_bottom - 96
 	_perk_box.offset_bottom = -base - 330
 	_perk_box.offset_top = _perk_box.offset_bottom - 150
