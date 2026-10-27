@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://drgm26yn3xwn3"
-path="res://.godot/imported/PatrickHand-Regular.ttf-576f5715074e983a25a9c4b60a90b5ea.fontdata"
+uid="uid://ig6yn8ehn82a"
+path="res://.godot/imported/AbrilFatface-Regular.ttf-a030cdfd8416d2876298be797cec65d3.fontdata"
 
 [deps]
 
-source_file="res://assets/fonts/PatrickHand-Regular.ttf"
-dest_files=["res://.godot/imported/PatrickHand-Regular.ttf-576f5715074e983a25a9c4b60a90b5ea.fontdata"]
+source_file="res://assets/fonts/noir/AbrilFatface-Regular.ttf"
+dest_files=["res://.godot/imported/AbrilFatface-Regular.ttf-a030cdfd8416d2876298be797cec65d3.fontdata"]
 
 [params]
 

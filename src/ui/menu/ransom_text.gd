@@ -1,12 +1,13 @@
 class_name RansomText
 extends Control
-## Cut-out letters, each on its own crooked scrap of paper in a mix of fonts:
-## the zine version of a game logo.
+## Ransom-note lettering: each letter cut from a different print, on its own tilted
+## tile of black, white or yellow, in a mix of slab, grotesque and fat serif. Used for
+## the big moments only (logo, VS, VICTORY), so the rest of the UI stays easy to read.
 
 var text := ""
 var font_size := 52
 var text_seed := 1
-var fills: Array = [Zine.WHITE, Zine.SUN, Zine.PINK, Zine.TEAL, Zine.WHITE, Zine.LILAC, Zine.MINT, Zine.TANGERINE]
+var fills: Array = [Noir.INK, Noir.WHITE, Noir.YELLOW, Noir.INK, Noir.WHITE]
 var _glyphs: Array[Dictionary] = []
 
 
@@ -28,25 +29,34 @@ func _layout() -> void:
 	_glyphs.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = text_seed
-	var fonts: Array[Font] = [Zine.DISPLAY, Zine.MARKER, Zine.DISPLAY, Zine.HAND]
+	var fonts: Array[Font] = [Noir.SLAB, Noir.SERIF, Noir.BLOCK, Noir.SLAB]
 	var x := 0.0
 	var h := font_size * 1.25
+	var last_fill := Color.TRANSPARENT
 	for i in text.length():
 		var ch := text[i]
 		if ch == " ":
-			x += font_size * 0.35
+			x += font_size * 0.3
 			continue
 		var f: Font = fonts[rng.randi() % fonts.size()]
-		var fs := int(font_size * rng.randf_range(0.82, 1.05) * (1.15 if f == Zine.HAND else 1.0))
+		var fs := int(font_size * rng.randf_range(0.82, 1.06) * (0.86 if f == Noir.BLOCK else 1.0))
+		# Serif letters go lower case now and then, like clippings.
+		if f == Noir.SERIF and rng.randf() < 0.4:
+			ch = ch.to_lower()
 		var w := f.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		var box_w := maxf(w + font_size * 0.28, font_size * 0.62)
+		var box_w := maxf(w + font_size * 0.24, font_size * 0.56)
 		var fill: Color = fills[rng.randi() % fills.size()]
+		if fill == last_fill:
+			fill = fills[(fills.find(fill) + 1) % fills.size()]
+		last_fill = fill
+		var dark := fill.get_luminance() < 0.2
 		_glyphs.append({
 			"ch": ch, "font": f, "size": fs, "x": x, "w": box_w, "fill": fill,
-			"rot": rng.randf_range(-0.14, 0.14), "dy": rng.randf_range(-font_size * 0.08, font_size * 0.08),
-			"ink": Zine.INK if fill.get_luminance() > 0.45 else Zine.WHITE,
+			"rot": rng.randf_range(-0.13, 0.13), "dy": rng.randf_range(-font_size * 0.08, font_size * 0.08),
+			"ink": (Noir.YELLOW if rng.randf() < 0.6 else Noir.WHITE) if dark else Noir.INK,
+			"edge": Noir.WHITE if dark else Noir.INK,
 		})
-		x += box_w + font_size * 0.04
+		x += box_w + font_size * 0.02
 	custom_minimum_size = Vector2(x, h + font_size * 0.25)
 	queue_redraw()
 
@@ -54,14 +64,14 @@ func _layout() -> void:
 func _draw() -> void:
 	var total := custom_minimum_size.x
 	var ox := (size.x - total) * 0.5
-	var h := font_size * 1.18
+	var h := font_size * 1.16
 	for g in _glyphs:
 		var c := Vector2(ox + g.x + g.w * 0.5, size.y * 0.5 + g.dy)
 		draw_set_transform(c, g.rot, Vector2.ONE)
 		var r := Rect2(Vector2(-g.w * 0.5, -h * 0.5), Vector2(g.w, h))
-		draw_rect(Rect2(r.position + Vector2(4, 5), r.size), Zine.INK)
+		draw_rect(Rect2(r.position + Vector2(4, 5), r.size), Noir.INK)
 		draw_rect(r, g.fill)
-		draw_rect(r, Zine.INK, false, 2.5)
+		draw_rect(r, g.edge, false, 2.5)
 		var f: Font = g.font
 		var asc := f.get_ascent(g.size)
 		var desc := f.get_descent(g.size)

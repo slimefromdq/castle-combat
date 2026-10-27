@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://btlu6hrjajaff"
-path="res://.godot/imported/PermanentMarker-Regular.ttf-147798058b4bc9c35b652069b6af9cfc.fontdata"
+uid="uid://bn5xrg1kv7w0c"
+path="res://.godot/imported/ArchivoBlack-Regular.ttf-cc123efd075336354db82d6f93c58884.fontdata"
 
 [deps]
 
-source_file="res://assets/fonts/PermanentMarker-Regular.ttf"
-dest_files=["res://.godot/imported/PermanentMarker-Regular.ttf-147798058b4bc9c35b652069b6af9cfc.fontdata"]
+source_file="res://assets/fonts/noir/ArchivoBlack-Regular.ttf"
+dest_files=["res://.godot/imported/ArchivoBlack-Regular.ttf-cc123efd075336354db82d6f93c58884.fontdata"]
 
 [params]
 

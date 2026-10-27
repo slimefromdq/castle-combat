@@ -61,6 +61,9 @@ var _you_xp: ProgressBar
 var _you_pips: StructPips
 var _gold: Label
 var _clock: Label
+var _clock_box: NoirBox
+## Last look per tray card, so styleboxes are only rebuilt when a card changes.
+var _card_looks: Array[String] = []
 var _clock_sub: Label
 var _flash: Label
 var _flash_until := 0
@@ -200,8 +203,8 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	if _respawn.visible:
 		_respawn.text = "Respawning in %d" % ceili(me.respawn_at - sim.time)
 	if sim.over and not _result.visible and not hold_result:
-		_result_title.text = "Victory!" if sim.winner == seat else "Defeat"
-		_result_title.add_theme_color_override("font_color", Palette.ALLY.lightened(0.3) if sim.winner == seat else Palette.ENEMY.lightened(0.2))
+		_result_title.text = "VICTORY!" if sim.winner == seat else "DEFEAT"
+		_result_title.add_theme_color_override("font_color", Noir.YELLOW if sim.winner == seat else Noir.WHITE)
 		_result.visible = true
 	_seat_button.text = "Seat: %s (F2)" % ("blue" if seat == MatchSim.BLUE else "red")
 	_sound_button.text = "Sound: %s (M)" % ("off" if Sfx.muted else "on")
@@ -237,7 +240,10 @@ func _fit_column() -> void:
 func _refresh_clock(sim: MatchSim, seat: int) -> void:
 	var t := int(sim.time)
 	_clock.text = "%d:%02d" % [t / 60, t % 60]
-	_clock.add_theme_color_override("font_color", Color("ff7a6e") if sim.overtime else Color.WHITE)
+	# Overtime flips the clock tag to black with yellow numbers.
+	_clock_box.fill = Noir.INK if sim.overtime else Noir.YELLOW
+	_clock_box.border_color = Noir.YELLOW if sim.overtime else Noir.INK
+	_clock.add_theme_color_override("font_color", Noir.YELLOW if sim.overtime else Noir.INK)
 	var lines: Array[String] = []
 	if sim.overtime:
 		lines.append("OVERTIME")
@@ -295,7 +301,7 @@ func _refresh_trick(sim: MatchSim, me: HeroState) -> void:
 		status = "Armed!"
 	_trick.text = "T\n%s\n%s" % [Tricks.display_name(me.trick), status]
 	_trick.disabled = problem != ""
-	_trick.add_theme_color_override("font_color", Tricks.COLORS.get(me.trick, Color.WHITE))
+	_trick.add_theme_color_override("font_color", Noir.YELLOW)
 	_trick.tooltip_text = "%s (T)\n%s\nCooldown %.0f s" % [Tricks.display_name(me.trick), Tricks.summary(sim.config, me.trick), Tricks.cooldown(sim.config, me.trick)]
 
 
@@ -346,6 +352,7 @@ func _refresh_tray(sim: MatchSim, me: HeroState) -> void:
 func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
 	if _deck_seen != me.deck:
 		_deck_seen = me.deck.duplicate()
+		_card_looks.clear()
 		for i in _cards.size():
 			var c := _cards[i]
 			if i < me.deck.size():
@@ -364,13 +371,53 @@ func _refresh_cards(sim: MatchSim, me: HeroState) -> void:
 		if owned:
 			status = "Sell +%d?" % int(Economy.sell_value(sim, item, me)) if _sell_armed == i else ("OWNED+" if me.is_masterwork(item) else "OWNED")
 		c.text = "%s\n%s" % [item.display_name, status]
-		var color := Color("8fe388") if owned else (Color("f5d76e") if problem == "" else Color(1, 1, 1, 0.45))
-		if owned and _sell_armed == i:
-			color = Color("ff9f6e")
-		c.add_theme_color_override("font_color", color)
-		c.add_theme_color_override("font_disabled_color", color)
-		c.add_theme_color_override("font_hover_color", color)
-		c.self_modulate = [Color(0.85, 0.95, 1.0), Color(1.0, 0.92, 0.8), Color(1.0, 0.8, 1.0)][item.tier]
+		var look := "sell" if owned and _sell_armed == i else ("owned" if owned else ("buy%d" % item.tier if problem == "" else "off%d" % item.tier))
+		if _card_looks.size() != _cards.size():
+			_card_looks.resize(_cards.size())
+		if _card_looks[i] != look:
+			_card_looks[i] = look
+			_style_card(c, look, item.tier)
+
+
+## Tray card looks, noir style: the tier's fill (white, yellow, black) when you can
+## buy it, a faded fill when you can't, black with a yellow edge when owned, and white
+## with a yellow shadow while a sell is waiting for its second tap.
+func _style_card(c: Button, look: String, tier: int) -> void:
+	var fill: Color = Noir.TIER_COLORS[tier]
+	var ink := Noir.WHITE if fill.get_luminance() < 0.2 else Noir.INK
+	var edge := Noir.WHITE if fill.get_luminance() < 0.2 else Noir.INK
+	var shadow := Noir.YELLOW if fill.get_luminance() < 0.2 else Noir.INK
+	match look:
+		"owned":
+			fill = Noir.INK
+			ink = Noir.YELLOW
+			edge = Noir.YELLOW
+			shadow = Noir.YELLOW
+		"sell":
+			fill = Noir.WHITE
+			ink = Noir.INK
+			edge = Noir.INK
+			shadow = Noir.YELLOW
+		_:
+			if look.begins_with("off"):
+				# Can't buy yet: a see-through black card, edged in its tier's colour.
+				edge = [Color(Noir.WHITE, 0.55), Color(Noir.YELLOW, 0.7), Color(Noir.ASH, 0.35)][tier]
+				fill = Color(Noir.INK, 0.62)
+				ink = Color(1, 1, 1, 0.62)
+				shadow = Color(0, 0, 0, 0)
+	var box := NoirBox.make(fill, 6, 8)
+	box.border_color = edge
+	box.shadow = Vector2(4, 4)
+	box.shadow_color = shadow
+	box.set_margins(6)
+	var down := box.copy()
+	down.pressed = true
+	for st in ["normal", "hover", "disabled"]:
+		c.add_theme_stylebox_override(st, box)
+	c.add_theme_stylebox_override("pressed", down)
+	c.add_theme_stylebox_override("hover_pressed", down)
+	for k in ["font_color", "font_hover_color", "font_disabled_color", "font_pressed_color", "font_hover_pressed_color"]:
+		c.add_theme_color_override(k, ink)
 
 
 func _refresh_masterwork(sim: MatchSim, me: HeroState) -> void:
@@ -423,7 +470,7 @@ func _refresh_spikes(sim: MatchSim, me: HeroState) -> void:
 	var next := _affordable_card(sim, me)
 	var away := next >= 0 and not Economy.in_shop_range(sim, me)
 	_gold.text = "%d%s" % [int(me.gold), "\nShop!" if away else " gold"]
-	_gold.modulate = Color(1, 1, 1).lerp(Color(1.6, 1.4, 0.6), pulse) if away else Color.WHITE
+	_gold.modulate = Color(1, 1, 1).lerp(Color(1.5, 1.5, 1.5), pulse) if away else Color.WHITE
 	if next >= 0 and not _afford_called.has(me.deck[next].id) and me.alive:
 		_afford_called[me.deck[next].id] = true
 		if away:
@@ -661,7 +708,8 @@ func _band_row(color: Color, name_color: Color) -> Dictionary:
 	name.clip_text = true
 	_outlined(name)
 	plate.add_child(name)
-	var level := UiKit.label("", 17, Color(1, 1, 1, 0.85))
+	var level := UiKit.label("", 17, Noir.YELLOW)
+	level.add_theme_font_override("font", HeroLettering.hud_bold())
 	plate.add_child(level)
 	row.add_child(plate)
 	var bars := VBoxContainer.new()
@@ -670,7 +718,7 @@ func _band_row(color: Color, name_color: Color) -> Dictionary:
 	bars.add_theme_constant_override("separation", 3)
 	var hp := UiKit.bar(color, 20)
 	bars.add_child(hp)
-	var xp := UiKit.bar(Color("f5d76e"), 5)
+	var xp := UiKit.bar(Noir.YELLOW, 5)
 	bars.add_child(xp)
 	row.add_child(bars)
 	var pips := StructPips.new()
@@ -721,19 +769,23 @@ func _build_clock(inset: float) -> void:
 	var pill := PanelContainer.new()
 	pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.08, 0.1, 0.72)
-	style.set_corner_radius_all(16)
-	style.content_margin_left = 18
-	style.content_margin_right = 18
-	style.content_margin_top = 2
-	style.content_margin_bottom = 2
-	pill.add_theme_stylebox_override("panel", style)
+	# The clock: a tilted yellow tag with slab numbers.
+	_clock_box = NoirBox.make(Noir.YELLOW, 4, 10)
+	_clock_box.shadow = Vector2(4, 4)
+	_clock_box.shadow_color = Noir.INK
+	_clock_box.set_margins(4)
+	_clock_box.content_margin_left += 12
+	_clock_box.content_margin_right += 12
+	pill.add_theme_stylebox_override("panel", _clock_box)
+	pill.rotation_degrees = -3.0
+	pill.resized.connect(func() -> void: pill.pivot_offset = pill.size * 0.5)
 	box.add_child(pill)
-	_clock = UiKit.label("0:00", 30)
+	_clock = UiKit.label("0:00", 32, Noir.INK)
+	_clock.add_theme_font_override("font", Noir.SLAB)
 	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pill.add_child(_clock)
-	_clock_sub = _outlined(UiKit.label("", 19, Palette.RELAY))
+	_clock_sub = _outlined(UiKit.label("", 19, Noir.YELLOW))
+	_clock_sub.add_theme_font_override("font", HeroLettering.hud_bold())
 	_clock_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_clock_sub)
 	_flash = _outlined(UiKit.label("", 20, Color(1, 1, 1, 0.95)))
@@ -808,7 +860,8 @@ func _build_bottom() -> void:
 	_you_hp = r.hp
 	_you_xp = r.xp
 	_you_pips = r.pips
-	_gold = UiKit.label("0 gold", 20, Color("f5d76e"))
+	_gold = UiKit.label("0 gold", 22, Noir.YELLOW)
+	_gold.add_theme_font_override("font", Noir.SLAB)
 	_gold.custom_minimum_size = Vector2(92, 0)
 	_gold.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_gold.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -855,7 +908,6 @@ func _build_tray() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.add_theme_font_size_override("font_size", 14)
 		b.clip_text = true
-		b.add_theme_color_override("font_color", Color("f5d76e"))
 		b.tooltip_text = "C / V / B: pay half the item's price for +%d%% to its stats" % roundi(100.0 * MatchController.CONFIG.masterwork_bonus)
 		b.pressed.connect(func() -> void: masterwork_key(k))
 		_master_row.add_child(b)
@@ -863,7 +915,7 @@ func _build_tray() -> void:
 	_scroll_button = UiKit.button("", Vector2(0, TRAY_ROW))
 	_scroll_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll_button.add_theme_font_size_override("font_size", 14)
-	_scroll_button.add_theme_color_override("font_color", Palette.RELAY)
+	_scroll_button.add_theme_color_override("font_color", Noir.YELLOW)
 	_scroll_button.tooltip_text = "N: a single-use scroll that adds a siege trooper to your next wave"
 	_scroll_button.pressed.connect(func() -> void: scroll_pressed.emit())
 	_master_row.add_child(_scroll_button)
@@ -894,7 +946,7 @@ func _build_thumbs() -> void:
 	# Shown only while you carry the Relay (keyboard: F).
 	_drop = UiKit.button("F\nDrop", Vector2(96, 96))
 	_drop.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_drop.add_theme_color_override("font_color", Palette.RELAY)
+	_drop.add_theme_color_override("font_color", Noir.YELLOW)
 	_drop.tooltip_text = "F: drop the Relay"
 	_drop.pressed.connect(func() -> void: drop_pressed.emit())
 	_drop.visible = false
@@ -952,7 +1004,8 @@ func _build_perk_picker() -> void:
 	_perk_box.add_theme_constant_override("separation", 6)
 	_perk_box.visible = false
 	_root.add_child(_perk_box)
-	_perk_title = _outlined(UiKit.label("", 24, Palette.RELAY))
+	_perk_title = _outlined(UiKit.label("", 26, Noir.YELLOW))
+	_perk_title.add_theme_font_override("font", Noir.SLAB)
 	_perk_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_perk_box.add_child(_perk_title)
 	var row := HBoxContainer.new()
@@ -963,6 +1016,13 @@ func _build_perk_picker() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.add_theme_font_size_override("font_size", 17)
+		# Perk cards are white slabs, so the choice jumps out of the black HUD.
+		Noir.style_button(b, Noir.WHITE, 8.0, 10.0)
+		for st in ["normal", "hover", "pressed", "hover_pressed"]:
+			(b.get_theme_stylebox(st) as NoirBox).shadow_color = Noir.YELLOW
+		b.add_theme_font_override("font", HeroLettering.hud_bold())
+		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
+			b.add_theme_color_override(c, Noir.INK)
 		b.pressed.connect(func() -> void: perk_pressed.emit(k))
 		row.add_child(b)
 		_perk_buttons.append(b)
@@ -991,7 +1051,8 @@ func _build_details(inset: float) -> void:
 
 
 func _build_status() -> void:
-	_respawn = _outlined(UiKit.label("", 40, Color(1, 1, 1, 0.95)))
+	_respawn = _outlined(UiKit.label("", 44, Noir.WHITE))
+	_respawn.add_theme_font_override("font", Noir.SLAB)
 	_respawn.set_anchors_preset(Control.PRESET_CENTER)
 	_respawn.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_respawn.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -1008,20 +1069,25 @@ func _build_status() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 16)
 	_result.add_child(v)
-	_result_title = UiKit.label("", 64)
+	_result_title = UiKit.label("", 72)
+	_result_title.add_theme_font_override("font", Noir.slanted(Noir.SLAB))
 	_result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(_result_title)
-	var again := UiKit.button("Play again", Vector2(0, 76))
+	var again := Noir.button("PLAY AGAIN", Noir.YELLOW, Noir.SLAB, 34, Vector2(0, 80))
+	for st in ["normal", "hover", "pressed", "hover_pressed"]:
+		(again.get_theme_stylebox(st) as NoirBox).shadow_color = Noir.WHITE
 	again.pressed.connect(func() -> void: restart_pressed.emit())
 	v.add_child(again)
-	var menu := UiKit.button("Hero select", Vector2(0, 64))
+	var menu := UiKit.button("HERO SELECT", Vector2(0, 64))
+	menu.add_theme_font_override("font", Noir.SLAB)
+	menu.add_theme_font_size_override("font_size", 26)
 	menu.pressed.connect(func() -> void: menu_pressed.emit())
 	v.add_child(menu)
 
 
 func _outlined(l: Label) -> Label:
 	l.add_theme_constant_override("outline_size", 8)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.add_theme_color_override("font_outline_color", Noir.INK)
 	return l
 
 
@@ -1083,6 +1149,6 @@ class StructPips extends Control:
 				fill = fill.lerp(Color.WHITE, 0.6)
 			draw_rect(r, fill)
 			if st[2]:
-				draw_rect(r.grow(2.0), Color("f5d76e"), false, 3.0)
+				draw_rect(r.grow(2.0), Noir.YELLOW, false, 3.0)
 			elif st[1]:
 				draw_rect(r.grow(1.0), Color(1, 1, 1, 0.85), false, 2.0)

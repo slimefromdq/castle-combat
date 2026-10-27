@@ -1,36 +1,51 @@
 class_name UiKit
-## Shared look for HUD and menus. Sizes assume the 720x1280 design resolution.
+## The in-match HUD look (noir black slabs, see Noir). Sizes assume the 720x1280
+## design resolution.
 
 
 static func make_theme() -> Theme:
 	var t := Theme.new()
 	t.default_font_size = 24
 	t.default_font = HeroLettering.hud_font()
-	var panel := StyleBoxFlat.new()
-	panel.bg_color = Color(0.07, 0.08, 0.1, 0.72)
-	panel.set_corner_radius_all(14)
-	panel.set_content_margin_all(12)
+	# Panels: black slabs with a yellow edge.
+	var panel := NoirBox.make(Color(Noir.INK, 0.9), 12, 14)
+	panel.border_color = Noir.YELLOW
+	panel.shadow = Vector2.ZERO
+	panel.set_margins(12)
 	t.set_stylebox("panel", "PanelContainer", panel)
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.2, 0.23, 0.28, 0.92)
-	normal.set_corner_radius_all(12)
-	normal.set_content_margin_all(8)
-	var hover := normal.duplicate()
-	hover.bg_color = Color(0.27, 0.31, 0.37, 0.95)
-	var pressed := normal.duplicate()
-	pressed.bg_color = Palette.ALLY.darkened(0.2)
-	var disabled := normal.duplicate()
-	disabled.bg_color = Color(0.15, 0.17, 0.2, 0.75)
+	# Buttons: black slabs, white edge, yellow shadow; pressed they turn yellow.
+	var normal := NoirBox.make(Color(Noir.INK, 0.92), 8, 10)
+	normal.border_color = Noir.WHITE
+	normal.shadow = Vector2(4, 4)
+	normal.shadow_color = Noir.YELLOW
+	normal.set_margins(8)
+	var hover := normal.copy()
+	hover.fill = Color("1f1f1f")
+	var pressed := normal.copy()
+	pressed.pressed = true
+	pressed.fill = Noir.YELLOW
+	pressed.border_color = Noir.INK
+	var disabled := normal.copy()
+	disabled.fill = Color(Noir.INK, 0.6)
+	disabled.border_color = Color(Noir.WHITE, 0.4)
+	disabled.shadow = Vector2.ZERO
 	t.set_stylebox("normal", "Button", normal)
 	t.set_stylebox("hover", "Button", hover)
 	t.set_stylebox("pressed", "Button", pressed)
 	t.set_stylebox("hover_pressed", "Button", pressed)
 	t.set_stylebox("disabled", "Button", disabled)
 	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
-	t.set_color("font_disabled_color", "Button", Color(1, 1, 1, 0.4))
+	t.set_font("font", "Button", HeroLettering.hud_bold())
+	t.set_color("font_color", "Button", Noir.WHITE)
+	t.set_color("font_hover_color", "Button", Noir.WHITE)
+	t.set_color("font_pressed_color", "Button", Noir.INK)
+	t.set_color("font_hover_pressed_color", "Button", Noir.INK)
+	t.set_color("font_disabled_color", "Button", Color(1, 1, 1, 0.45))
+	t.set_color("default_color", "RichTextLabel", Noir.WHITE)
 	return t
 
 
+## A slanted bar: a smoke track with a white edge, filled in `color`.
 static func bar(color: Color, height := 18.0) -> ProgressBar:
 	var b := ProgressBar.new()
 	b.show_percentage = false
@@ -39,11 +54,18 @@ static func bar(color: Color, height := 18.0) -> ProgressBar:
 	b.max_value = 1.0
 	b.value = 1.0
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0, 0, 0, 0.55)
-	bg.set_corner_radius_all(6)
+	bg.bg_color = Noir.SMOKE
+	bg.skew = Vector2(0.45, 0)
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = color
-	fill.set_corner_radius_all(6)
+	fill.skew = Vector2(0.45, 0)
+	if height >= 12.0:
+		bg.border_color = Noir.WHITE
+		bg.set_border_width_all(2)
+		bg.expand_margin_left = 2
+		bg.expand_margin_right = 2
+		bg.expand_margin_top = 2
+		bg.expand_margin_bottom = 2
 	b.add_theme_stylebox_override("background", bg)
 	b.add_theme_stylebox_override("fill", fill)
 	b.mouse_filter = Control.MOUSE_FILTER_IGNORE

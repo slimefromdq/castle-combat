@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://c7ltg6rvaic0e"
-path="res://.godot/imported/LuckiestGuy-Regular.ttf-c4c7b931b81deae8d808cda2d33d2791.fontdata"
+uid="uid://bikjjddn75nwq"
+path="res://.godot/imported/Anton-Regular.ttf-b705ba2c651b44dcc669c5e762976465.fontdata"
 
 [deps]
 
-source_file="res://assets/fonts/LuckiestGuy-Regular.ttf"
-dest_files=["res://.godot/imported/LuckiestGuy-Regular.ttf-c4c7b931b81deae8d808cda2d33d2791.fontdata"]
+source_file="res://assets/fonts/noir/Anton-Regular.ttf"
+dest_files=["res://.godot/imported/Anton-Regular.ttf-b705ba2c651b44dcc669c5e762976465.fontdata"]
 
 [params]
 
