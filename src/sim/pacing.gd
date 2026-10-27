@@ -108,12 +108,16 @@ static func on_structure_killed(sim: MatchSim, s: StructureState) -> void:
 
 
 ## A Relay delivery: gold for the carrier and siege minions, both growing each activation.
-static func on_relay_delivered(sim: MatchSim, hero: HeroState, activation: int) -> void:
+static func on_relay_delivered(sim: MatchSim, hero: HeroState, activation: int, long := false) -> void:
 	var cfg := sim.config
 	var sieges := mini(cfg.relay_siege_max, 1 + activation / maxi(1, cfg.relay_siege_every))
+	if long:
+		sieges += cfg.relay_long_extra_siege
 	for i in sieges:
 		sim.queue_siege(hero.team)
 	var gold := cfg.relay_gold_base + cfg.relay_gold_per_activation * activation
+	if long:
+		gold *= cfg.relay_long_gold_mult
 	hero.gold += gold
 	sim.emit_event(&"gold_awarded", {"hero": hero.id, "team": hero.team, "amount": gold, "reason": &"relay"})
 
@@ -126,7 +130,21 @@ static func overtime_at(sim: MatchSim) -> float:
 	return sim.config.overtime_time
 
 
+## Phase 2: the first Outer Tower to fall, or phase_two_time, whichever comes first.
+static func _tick_phase(sim: MatchSim) -> void:
+	if sim.phase >= 2:
+		return
+	var tower_down := false
+	for s in sim.structures:
+		if s.tier == 0 and not s.alive:
+			tower_down = true
+	if tower_down or sim.time + 0.0001 >= sim.config.phase_two_time:
+		sim.phase = 2
+		sim.emit_event(&"phase_two", {"tower": tower_down})
+
+
 static func tick(sim: MatchSim) -> void:
+	_tick_phase(sim)
 	if not sim.overtime:
 		if sim.time >= overtime_at(sim):
 			sim.overtime = true
@@ -134,6 +152,63 @@ static func tick(sim: MatchSim) -> void:
 	for s in sim.structures:
 		if s.alive and s.is_guardian():
 			_tick_slam(sim, s)
+		elif s.tier == 2:
+			s.guarded = s.alive and core_guarded(sim, s)
+			if s.alive and sim.is_exposed(s):
+				_tick_core_stun(sim, s)
+
+
+## Core last stand: the Core's own hero, alive, within core_guard_radius and on the
+## enemy-facing side of it. Overtime ends it.
+static func core_guarded(sim: MatchSim, s: StructureState) -> bool:
+	if sim.overtime:
+		return false
+	var h := sim.heroes[s.team]
+	return h.alive and in_guard_zone(sim, s, h.pos)
+
+
+## True if p is inside the Core's guard half circle (in front of it, toward the enemy).
+static func in_guard_zone(sim: MatchSim, s: StructureState, p: Vector2) -> bool:
+	var off := p - s.pos
+	return off.length() <= sim.config.core_guard_radius and off.dot(MatchSim.forward(s.team)) >= 0.0
+
+
+## Core stun: slow, telegraphed, no damage. Heroes and troopers inside when it lands
+## are stunned (troopers longer), which buys the defender time without wiping a wave.
+static func _tick_core_stun(sim: MatchSim, s: StructureState) -> void:
+	var cfg := sim.config
+	var r := cfg.core_stun_radius
+	if s.stun_at < 0.0:
+		if sim.time + 0.0001 < s.stun_ready_at or not _enemy_near(sim, s, r):
+			return
+		s.stun_at = sim.time + cfg.core_stun_windup
+		sim.emit_event(&"core_stun_windup", {"id": s.id, "team": s.team, "radius": r, "at": s.stun_at})
+		return
+	if sim.time + 0.0001 < s.stun_at:
+		return
+	s.stun_at = -1.0
+	s.stun_ready_at = sim.time + cfg.core_stun_interval
+	var enemy := sim.heroes[1 - s.team]
+	var hit := enemy.alive and enemy.pos.distance_to(s.pos) <= r + enemy.radius
+	var troopers := 0
+	for m in sim.minions:
+		if m.alive and m.team >= 0 and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
+			m.stun_until = maxf(m.stun_until, sim.time + cfg.core_stun_minion)
+			CombatSystem.cancel(sim, m)
+			troopers += 1
+	if hit:
+		Abilities._stun(sim, enemy, cfg.core_stun_hero)
+	sim.emit_event(&"core_stun", {"id": s.id, "team": s.team, "radius": r, "hit": hit, "troopers": troopers})
+
+
+static func _enemy_near(sim: MatchSim, s: StructureState, r: float) -> bool:
+	var enemy := sim.heroes[1 - s.team]
+	if enemy.alive and enemy.pos.distance_to(s.pos) <= r + enemy.radius:
+		return true
+	for m in sim.minions:
+		if m.alive and m.team >= 0 and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
+			return true
+	return false
 
 
 ## Guardian stomp: each health threshold crossed starts a long telegraph; then every
@@ -157,7 +232,7 @@ static func _tick_slam(sim: MatchSim, s: StructureState) -> void:
 	var hit := enemy.alive and enemy.pos.distance_to(s.pos) <= d.slam_radius + enemy.radius
 	sim.emit_event(&"guardian_slam", {"id": s.id, "team": s.team, "radius": d.slam_radius, "hit": hit})
 	for m in sim.minions:
-		if m.alive and m.team != s.team and m.pos.distance_to(s.pos) <= d.slam_radius + m.radius:
+		if m.alive and m.team >= 0 and m.team != s.team and m.pos.distance_to(s.pos) <= d.slam_radius + m.radius:
 			sim.apply_damage(m, m.max_hp * d.slam_minion_fraction, s)
 			if m.alive:
 				var push := m.pos - s.pos

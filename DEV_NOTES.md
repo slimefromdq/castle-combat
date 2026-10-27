@@ -495,3 +495,38 @@ Plan: [Occult Expansion Plan](https://claude.ai/artifact/8cY8YgQfxRdwM9Koj3BefU)
 - Dev: `--perf` with `--screenshot` prints draw calls, visible objects and node count. A busy mid-lane fight is about 150 draw calls and an alley about 240, with about 4.8k nodes (most are static scenery parts).
 - Listen outside the game: `godot --headless --path . -s tools/export_sounds.gd -- <folder>` writes every sound as a .wav.
 - Tests: `tests/test_audio.gd` (every recipe renders, is audible and doesn't clip; event mapping; distance falloff; volume and mute).
+
+## Diamond map rework, part 1: Core last stand and pacing
+
+Plan: [The Diamond Map](https://claude.ai/artifact/9QsLceWMzyf4wTLAmwZML2).
+
+- **Heal pad** stays on all match (it used to switch off when your Guardian fell). It sits behind the Core.
+- **Core last stand** (`Pacing.core_guarded`, `StructureState.guarded`): while the Core's own hero is alive and inside an 8 m half circle in front of the Core (toward the enemy), the Core takes no damage. The heal pad is behind the Core, so it never counts: healing means leaving the Core open. Overtime turns the guard off. The view shows the half circle on the ground (brighter while guarded), the Core's dome and a "Guarded" tag; the HUD structure line says "(guarded)".
+- **Core stun** (`Pacing._tick_core_stun`): once the Guardian has fallen, an enemy hero or trooper within 8 m starts a 2.5 s gold telegraph; everyone still inside is stunned (heroes 1 s, troopers 2 s, `MinionState.stun_until`), no damage. Ready again 18 s after it lands. Numbers: `core_guard_radius`, `core_stun_*` in MatchConfig.
+- **Pacing via resist only** (Lucy: no floors, no HP changes): resist starts higher (Outer Tower 45%, Guardian 35%, Core 30%), decays from 2:30 instead of 2:00 and reaches −30% at 10:00 instead of 12:00, so early structure damage counts for less and late damage for more. Gold for soaked damage halved to 0.15 per point, so the higher resist doesn't pay the leader more.
+- **Banners removed** (Lucy: too snowbally). Special troopers stay.
+- Bot: defends its Core from inside the guard half circle.
+- Dev: `--stage=laststand`. Tests: `tests/test_last_stand.gd`.
+
+## Diamond map rework, part 2: the diamond
+
+- **Map** (`data/arena_default.tres`, `ArenaData`): the lane opens into a diamond 32 m wide at the centre, its edges meeting the lane edges just in front of each Guardian (`shoulder_y()`). Walkable ground is the lane strip plus the diamond (`in_bounds`, used by `Movement.is_blocked`); line of sight also stops where a line would leave the map (`ArenaGeometry.segment_in_bounds`). Walls are now only the lane edges behind the diamond, the end caps and a few pieces of rubble. Towers moved from 20 m to 16 m. The back alleys and their bushes are gone; six bushes sit on the diamond.
+- **Relay spots** are the two half moons at the diamond's sides (`pockets`, 5 x 7 m). The short Relay works as before between them.
+- **Pickups** (`PickupController`, 20 spots): walk over a coin (+12 gold) or a spark (+18 XP). They appear at 0:30 and come back 35 s after being taken. Coin or spark comes from a fixed hash per spot and spawn, so mirrored pairs always match and runs replay the same. Replaces the votive candles.
+- **Pwee camps** (`NeutralCamps`, `data/minions/pwee.tres`): one per side, from 1:00, back 60 s after dying. It's a MinionState on team -1: heroes and their abilities can hit it, troopers and towers can't (`CombatSystem.is_valid_target`), and heroes auto-target it only when nothing else is in range. It chases its attacker, then walks home healing when they leave 8 m or stop hitting it for 5 s. Hits pay their share of 80 gold / 110 XP, up to half; the killer gets the rest. Healing back up doesn't refill the half.
+- **Tarot altar** (`TarotAltar`): from 2:00, one at a time, alternating between the two ? spots, every 90 s after the last was taken or faded (40 s). Stand on it alone for 1 s; draw three of Swords (+15% damage, 60 s), Cups (heal 25%), Pentacles (+90 gold), Wands (cooldowns 25% faster, 60 s). Pick with G / H / J or the cards; after 8 s the first is picked. Buffs end on death.
+- **Honey fruit** (`Fruits`, 4 bushes by the Relay spots): from 1:30, stand on one for 0.8 s to heal 12% of max HP over 3 s; any damage ends the heal. Back after 60 s.
+- **Relay**: carrier 8% faster (was 10% slower), no sprinting, any damage from the enemy hero knocks it off (`RelayController.on_enemy_damage`), nobody can pick it up for 3 s after a drop, and it fizzles on its 3rd knock-off or 20 s after the first one (warning at 15 s).
+- **Sprint**: starts after 2 s of moving (was 3.5 s) and is 8% slower (x1.334).
+- **Minimap** (`src/ui/minimap.gd`): top right, your base at the bottom. Shows the lane and diamond, structures, both heroes (the enemy only while visible), the Relay, the altar, Pwees, fruit and pickups.
+- View: `src/view/diamond_view.gd` draws pickups, fruit, the altar and camp rings, and an edge arrow to the altar. Pwee is the round bee from Lucy's sketchbook (`UnitFactory._make_pwee`).
+- Bot: walks to pickups on its half, the altar, and fruit when hurt; clears its own side's Pwee when the enemy hero is away; takes the first Tarot card.
+- Dev: `--stage=diamond|camp|altar`. Tests: `tests/test_diamond.gd`.
+
+## Diamond map rework, part 3: phase 2
+
+- **Phase 2** (`Pacing._tick_phase`, `MatchSim.phase`): starts when the first Outer Tower falls, or at 6:00 (`phase_two_time`). Emits `phase_two` (banner text and a chime).
+- **Moon buffs** (`NeutralCamps.on_killed`, `HeroState.moon`): in phase 2 the hero who kills a Pwee gets a moon for 75 s; it ends on death. The Pwee on your own half gives **Waxing** (+12% damage, cooldowns 15% faster). The one on the enemy's half gives **Waning** (15% lifesteal on basic attacks, 10% less damage from the enemy hero). The plan said Waning made your next wave hit harder; I swapped that for a defensive buff because stronger waves for the player already ahead is the snowball the banners caused. A small moon circles the hero's head (pale gold or lavender).
+- **Long Relay** (`RelayController.long_rect`, `ArenaData.long_drop`): in phase 2 the carrier can deliver to the usual pocket, or to their long drop, a 3.2 m square about 9 m past the enemy Outer Tower toward their Guardian. It pays 1.75x gold and one more siege minion. An enemy hero standing on it blocks it like the pocket. Shown as a square in your team colour ("Long drop x1.75") plus the enemy's dimmer one, and on the minimap; the HUD carry line says "or the long drop".
+- Bot: takes the long drop when it's above 60% health and the enemy hero is at least 14 m from it.
+- Dev: `--stage=phase2`. Tests: `tests/test_phase_two.gd`.

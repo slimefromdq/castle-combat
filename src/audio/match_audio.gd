@@ -32,8 +32,10 @@ const SIMPLE := {
 	&"drone_launched": [&"drone_launch", 0.0], &"drone_recalled": [&"drone_recall", 0.0],
 	&"drone_zap": [&"drone_zap", 0.1], &"drone_pulse": [&"drone_pulse", 0.0],
 	&"reentry_started": [&"reentry_whistle", 0.0], &"reentry_landed": [&"boom", 0.0],
-	&"candle_lit": [&"candle_lit", 0.3], &"candle_taken": [&"candle_taken", 0.0],
+	&"pickup_taken": [&"candle_taken", 0.08],
+	&"phase_two": [&"phase_two", 0.0], &"moon_gained": [&"moon", 0.0],
 	&"guardian_slam_windup": [&"slam_windup", 0.0], &"guardian_slam": [&"slam", 0.0],
+	&"core_stun_windup": [&"slam_windup", 0.0], &"core_stun": [&"immune", 0.0],
 	&"core_immune": [&"immune", 0.0], &"siege_spawned": [&"wave", 0.0],
 }
 

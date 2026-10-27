@@ -7,8 +7,11 @@ class_name CombatSystem
 
 
 static func is_valid_target(sim: MatchSim, attacker: SimEntity, target: SimEntity) -> bool:
-	if target == null or not target.alive or target.team < 0:
+	if target == null or not target.alive:
 		return false
+	if target.team < 0:
+		# Neutral camps: only heroes fight them.
+		return attacker is HeroState and target is MinionState
 	if target is HeroState and target.team != attacker.team:
 		# In the shadows nobody can touch you; a decoy fools troopers and towers.
 		if target.is_untargetable() or sim.is_hidden(target):

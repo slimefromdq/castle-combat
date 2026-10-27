@@ -42,13 +42,13 @@ func test_structure_resist_decays_and_pays_gold() -> void:
 	var sim := new_sim()
 	var outer := sim.structures_of(MatchSim.RED)[0]
 	var guardian := sim.structures_of(MatchSim.RED)[1]
-	check_near(Pacing.structure_resist(sim, outer), 0.2, 0.0001, "outer towers start at +20%")
-	check_near(Pacing.structure_resist(sim, guardian), 0.1, 0.0001, "Guardians start at +10%")
+	check_near(Pacing.structure_resist(sim, outer), 0.45, 0.0001, "outer towers start at +45%")
+	check_near(Pacing.structure_resist(sim, guardian), 0.35, 0.0001, "Guardians start at +35%")
 	var blue := sim.heroes[0]
 	var hp := outer.hp
 	sim.apply_damage(outer, 100.0, blue)
-	check_near(hp - outer.hp, 80.0, 0.01, "early towers take 20% less")
-	check_near(blue.gold, 20.0 * _cfg().resist_gold_per_damage, 0.01, "soaked damage pays gold")
+	check_near(hp - outer.hp, 55.0, 0.01, "early towers take 45% less")
+	check_near(blue.gold, 45.0 * _cfg().resist_gold_per_damage, 0.01, "soaked damage pays gold")
 	_at(sim, _cfg().resist_end_time)
 	check_near(Pacing.structure_resist(sim, outer), -0.3, 0.0001, "down to -30% late")
 	check_near(Pacing.structure_resist(sim, guardian), -0.3, 0.0001, "Guardians too")
@@ -102,7 +102,7 @@ func test_guardian_stomps_at_health_thresholds() -> void:
 	m.attack_damage = 0.0
 	sim.step([null, null])
 	check(guardian.slam_at < 0.0, "no stomp at full health, however close you are")
-	sim.apply_damage(guardian, guardian.max_hp * 0.45, sim.heroes[0])
+	guardian.hp -= guardian.max_hp * 0.45  # Straight to health: resist doesn't matter here
 	sim.step([null, null])
 	check(guardian.slam_at >= 0.0, "dropping below 66% starts a stomp")
 	var hp := blue.hp
@@ -115,14 +115,14 @@ func test_guardian_stomps_at_health_thresholds() -> void:
 	check(blue.pos.distance_to(guardian.pos) > 5.0 + guardian.data.slam_knockback * 0.6, "and knocks the hero back")
 	check(guardian.is_busy(sim.time), "the Guardian can't attack while it recovers")
 	run_ticks(sim, int(5.0 / sim.dt))
-	sim.apply_damage(guardian, guardian.max_hp * 0.1, sim.heroes[0])
+	guardian.hp -= guardian.max_hp * 0.1
 	sim.step([null, null])
 	check(guardian.slam_at < 0.0, "no second stomp until the next threshold")
-	sim.apply_damage(guardian, guardian.max_hp * 0.25, sim.heroes[0])
+	guardian.hp -= guardian.max_hp * 0.25
 	sim.step([null, null])
 	check(guardian.slam_at >= 0.0, "below 33%: the second stomp")
 	run_ticks(sim, int(guardian.data.slam_windup / sim.dt) + int(4.0 / sim.dt))
-	sim.apply_damage(guardian, guardian.max_hp * 0.2, sim.heroes[0])
+	guardian.hp -= guardian.max_hp * 0.2
 	sim.step([null, null])
 	check(guardian.slam_at < 0.0, "and that's all of them")
 
@@ -132,7 +132,7 @@ func test_guardian_stomp_can_be_dodged() -> void:
 	var guardian := _guardian(sim)
 	var blue := sim.heroes[0]
 	place(blue, guardian.pos + Vector2(0, -5.0))
-	sim.apply_damage(guardian, guardian.max_hp * 0.4, sim.heroes[1])
+	guardian.hp -= guardian.max_hp * 0.4
 	sim.step([null, null])
 	check(guardian.slam_at >= 0.0, "stomp started")
 	var hp := blue.hp
@@ -208,7 +208,7 @@ func test_heal_pad_behind_the_core() -> void:
 	sim.apply_damage(mine[1], mine[1].max_hp * 5.0, sim.heroes[1])
 	var before := blue.hp
 	run_ticks(sim, 30)
-	check(blue.hp <= before + 0.01, "the pad shuts off once your Guardian falls")
+	check(blue.hp > before, "the pad stays on after your Guardian falls (last stand)")
 
 
 func test_guardian_fall_shortens_your_respawn() -> void:

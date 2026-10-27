@@ -14,8 +14,14 @@ static func for_hero(sim: MatchSim, hero: HeroState) -> SimEntity:
 		return enemy_hero
 	var last_hit: SimEntity = null
 	var nearest: SimEntity = null
+	var neutral: SimEntity = null
 	for m in sim.minions:
 		if not _ok(sim, hero, m):
+			continue
+		if m.team < 0:
+			# Neutral camps come last: lane troopers first, so farming never pulls a camp.
+			if neutral == null or _closer(hero, m, neutral):
+				neutral = m
 			continue
 		if m.hp <= hero.attack_damage and (last_hit == null or m.hp < last_hit.hp):
 			last_hit = m
@@ -25,7 +31,8 @@ static func for_hero(sim: MatchSim, hero: HeroState) -> SimEntity:
 		return last_hit
 	if nearest != null:
 		return nearest
-	return _nearest_structure(sim, hero, 0.0)
+	var structure := _nearest_structure(sim, hero, 0.0)
+	return structure if structure != null else neutral
 
 
 ## A hero who hit this minion's hero nearby comes first (hero-hit aggro). Otherwise

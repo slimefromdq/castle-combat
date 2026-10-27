@@ -1,72 +1,76 @@
 class_name PickupController
 extends RefCounted
-## Votive candles: small XP + gold pickups away from the lane (ArenaData.candles).
-## All candles light together at candle_first_time. A taken candle relights
-## candle_respawn_time later, so where and when they come back is predictable.
-## Taking one works like picking up the Relay: stand on it alone for candle_take_time.
-## Taking damage restarts the count, so a candle can be contested.
+## Walk-over pickups (Lucy's replacement for the votive candles): small coins (gold) and
+## sparks (XP) scattered over the map (ArenaData.pickups, mirrored). Walk over one and
+## it's yours, no waiting. Each spawn is a coin or a spark, decided when it appears and
+## shown on the ground, so you can pick which to go for. Mirrored pairs always match.
 
-## One candle: position, whether it is lit, when it relights, and each team's progress.
-class Candle:
+const COIN := &"coin"
+const SPARK := &"spark"
+
+class Pickup:
 	var index := 0
 	var pos := Vector2.ZERO
-	var lit := false
-	var lit_at := 0.0
-	var progress: Array[float] = [0.0, 0.0]
+	var kind := COIN
+	var up := false
+	var up_at := 0.0
+	var spawns := 0
 
-var candles: Array[Candle] = []
+var pickups: Array[Pickup] = []
 
 
 func setup(sim: MatchSim) -> void:
-	candles.clear()
-	var spots := sim.arena.all_candles()
+	pickups.clear()
+	var spots := ArenaData.mirrored(sim.arena.pickups)
 	for i in spots.size():
-		var c := Candle.new()
-		c.index = i
-		c.pos = spots[i]
-		c.lit_at = sim.config.candle_first_time
-		candles.append(c)
+		var p := Pickup.new()
+		p.index = i
+		p.pos = spots[i]
+		p.up_at = sim.config.pickup_first_time
+		pickups.append(p)
 
 
 func tick(sim: MatchSim) -> void:
-	for c in candles:
-		if not c.lit:
-			if sim.time + 0.0001 >= c.lit_at:
-				c.lit = true
-				c.progress = [0.0, 0.0]
-				sim.emit_event(&"candle_lit", {"candle": c.index, "pos": c.pos})
+	var cfg := sim.config
+	var half := sim.arena.pickups.size()
+	for p in pickups:
+		if not p.up:
+			if sim.time + 0.0001 >= p.up_at:
+				p.up = true
+				p.kind = kind_for(p.index % maxi(1, half), p.spawns, cfg.pickup_spark_chance)
+				p.spawns += 1
+				sim.emit_event(&"pickup_spawned", {"pickup": p.index, "pos": p.pos, "kind": p.kind})
 			continue
-		_tick_take(sim, c)
+		for h in sim.heroes:
+			if h.alive and h.pos.distance_to(p.pos) <= cfg.pickup_radius + h.radius:
+				_take(sim, p, h)
+				break
 
 
-func _tick_take(sim: MatchSim, c: Candle) -> void:
-	var inside: Array[HeroState] = []
-	for h in sim.heroes:
-		var hurt := sim.time - h.last_damaged_time < sim.dt * 1.5
-		if h.alive and not hurt and h.pos.distance_to(c.pos) <= sim.config.candle_radius:
-			inside.append(h)
-		else:
-			c.progress[h.team] = 0.0
-	if inside.size() != 1:
-		for h in inside:
-			c.progress[h.team] = 0.0
-		return
-	var h := inside[0]
-	c.progress[h.team] += sim.dt
-	if c.progress[h.team] + 0.0001 < sim.config.candle_take_time:
-		return
-	c.lit = false
-	c.lit_at = sim.time + sim.config.candle_respawn_time
-	c.progress = [0.0, 0.0]
-	Leveling.gain(sim, h, sim.config.candle_xp)
-	Economy.award(sim, h, sim.config.candle_gold, &"candle")
-	sim.emit_event(&"candle_taken", {"candle": c.index, "pos": c.pos, "hero": h.id, "team": h.team, "relit_at": c.lit_at})
+func _take(sim: MatchSim, p: Pickup, h: HeroState) -> void:
+	var cfg := sim.config
+	p.up = false
+	p.up_at = sim.time + cfg.pickup_respawn_time
+	if p.kind == SPARK:
+		Leveling.gain(sim, h, cfg.pickup_xp)
+	else:
+		Economy.award(sim, h, cfg.pickup_gold, &"pickup")
+	sim.emit_event(&"pickup_taken", {"pickup": p.index, "pos": p.pos, "kind": p.kind, "hero": h.id, "team": h.team, "back_at": p.up_at})
 
 
-## Lit candles, for bots and the HUD.
-func lit_candles() -> Array[Candle]:
-	var out: Array[Candle] = []
-	for c in candles:
-		if c.lit:
-			out.append(c)
+## Coin or spark for a spot's nth spawn. A fixed hash instead of a random roll, so
+## matches replay the same and both halves of the map always match.
+static func kind_for(base_index: int, spawn: int, spark_chance: float) -> StringName:
+	var h := (base_index * 73856093) ^ (spawn * 19349663) ^ 0x5bd1e995
+	h = (h ^ (h >> 13)) * 1274126177
+	h = h ^ (h >> 16)
+	return SPARK if float(absi(h) % 1000) / 1000.0 < spark_chance else COIN
+
+
+## Pickups on the ground right now, for bots, the minimap and the HUD.
+func active() -> Array[Pickup]:
+	var out: Array[Pickup] = []
+	for p in pickups:
+		if p.up:
+			out.append(p)
 	return out

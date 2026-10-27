@@ -21,17 +21,35 @@ static func segment_hits_rect(a: Vector2, b: Vector2, rect: Rect2) -> bool:
 	return false
 
 
-## Walls block sight; units never do.
+## Walls block sight; units never do. On the diamond map, so does leaving walkable
+## ground (a line from the diamond's side to the lane behind its shoulder).
 static func has_line_of_sight(arena: ArenaData, a: Vector2, b: Vector2) -> bool:
 	for wall in arena.walls:
 		if segment_hits_rect(a, b, wall):
+			return false
+	return segment_in_bounds(arena, a, b)
+
+
+## True if every point on a-b is on walkable ground (sampled every half metre).
+static func segment_in_bounds(arena: ArenaData, a: Vector2, b: Vector2, r := 0.0) -> bool:
+	if not arena.has_diamond():
+		return true
+	# The lane strip and the diamond are each convex: a segment with both ends inside
+	# one of them stays inside it.
+	if arena.in_lane(a, r) and arena.in_lane(b, r):
+		return true
+	if arena.in_diamond(a, r) and arena.in_diamond(b, r):
+		return true
+	var steps := maxi(1, ceili(a.distance_to(b) / 0.5))
+	for i in steps + 1:
+		if not arena.in_bounds(a.lerp(b, float(i) / steps), r):
 			return false
 	return true
 
 
 ## Widest point of the map from the centre line, walls included.
 static func half_width(arena: ArenaData) -> float:
-	var w := arena.lane_half_width
+	var w := maxf(arena.lane_half_width, arena.diamond_half_width)
 	for r in arena.walls + arena.floors:
 		w = maxf(w, maxf(absf(r.position.x), absf(r.end.x)))
 	return w

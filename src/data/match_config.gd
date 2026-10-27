@@ -8,7 +8,7 @@ extends Resource
 ## Base respawn time; it grows over the match (see Pacing: respawn).
 @export var respawn_time := 4.0
 ## Heroes on their own healing pad (ArenaData.heal_pad, behind the Core) heal this
-## fraction of max HP per second, until their Guardian falls.
+## fraction of max HP per second, all match (the pad sits behind the Core).
 @export var base_heal_per_second := 0.12
 
 @export_group("Waves")
@@ -18,12 +18,6 @@ extends Resource
 @export var wave_ranged := 1
 ## Every special_wave_every-th wave adds a special trooper (Sapper, then Shieldbearer).
 @export var special_wave_every := 4
-## A banner (dropped by a dead special trooper) lasts banner_lifetime seconds; a hero who
-## walks within banner_pickup_radius takes it, and their next wave gets these bonuses.
-@export var banner_lifetime := 15.0
-@export var banner_pickup_radius := 1.0
-@export var banner_hp_bonus := 0.2
-@export var banner_damage_bonus := 0.2
 ## Minions notice enemies this close (metres) and leave the lane to fight them.
 @export var minion_aggro_range := 5.0
 
@@ -64,30 +58,95 @@ extends Resource
 @export var relay_first_pocket := 0
 @export var relay_pickup_radius := 1.3
 @export var relay_pickup_time := 0.5
-@export var relay_carrier_speed_mult := 0.9
+@export var relay_carrier_speed_mult := 1.08
 ## This many enemy-hero hits on the carrier within the window force a drop.
 @export var relay_intercept_hits := 1
 @export var relay_intercept_window := 3.0
-@export var relay_drop_lockout := 0.75
+## After a drop nobody can pick the Relay up for this long.
+@export var relay_drop_lockout := 3.0
 ## A dropped Relay left alone this long goes back to its pickup spot.
 @export var relay_drop_return_time := 8.0
+## Fought over too long: the Relay fizzles out on its relay_fizzle_knocks-th knock-off, or
+## relay_fizzle_time seconds after the first knock-off (warning relay_fizzle_warning before).
+@export var relay_fizzle_knocks := 3
+@export var relay_fizzle_time := 20.0
+@export var relay_fizzle_warning := 5.0
 @export var relay_deliver_time := 0.8
 ## A Relay nobody picks up disappears after this long (seconds).
 @export var relay_expire_time := 25.0
 ## Expiry timer after a dropped Relay returns home, so it never vanishes without warning.
 @export var relay_return_expire_time := 12.0
 
-@export_group("Votive candles")
-## Candles in the back alleys and Relay pockets (ArenaData.candles). Each is first lit at
-## candle_first_time and relit candle_respawn_time after it is taken. Standing on one for
-## candle_take_time (alone, without taking damage) takes it: XP (with the usual catch-up)
-## and gold.
-@export var candle_first_time := 90.0
-@export var candle_respawn_time := 60.0
-@export var candle_radius := 1.1
-@export var candle_take_time := 0.5
-@export var candle_xp := 45.0
-@export var candle_gold := 25.0
+@export_group("Pickups")
+## Walk-over coins and sparks (ArenaData.pickups, see PickupController). All appear at
+## pickup_first_time; a taken one comes back pickup_respawn_time later, as a coin or a
+## spark (pickup_spark_chance). Coins pay pickup_gold, sparks pickup_xp.
+@export var pickup_first_time := 30.0
+@export var pickup_respawn_time := 35.0
+@export var pickup_radius := 0.7
+@export var pickup_spark_chance := 0.5
+@export var pickup_gold := 12.0
+@export var pickup_xp := 18.0
+
+@export_group("Neutral camps")
+## Pwees (see NeutralCamps): first appear at camp_first_time, come back camp_respawn_time
+## after dying. A full kill is worth camp_gold and camp_xp; hits pay up to
+## camp_damage_share of that, the killer gets the rest. A Pwee chases its attacker until
+## they leave camp_leash metres of its home or stop hitting it for camp_reset_time, then
+## walks home, healing camp_regen_per_second of its max HP per second.
+@export var camp_first_time := 60.0
+@export var camp_respawn_time := 60.0
+@export var camp_gold := 80.0
+@export var camp_xp := 110.0
+@export var camp_damage_share := 0.5
+@export var camp_leash := 8.0
+@export var camp_reset_time := 5.0
+@export var camp_regen_per_second := 0.25
+
+@export_group("Phase 2")
+## Phase 2 starts when the first Outer Tower falls, or at phase_two_time at the latest.
+## It unlocks the moon buffs from Pwees and the long Relay drop.
+@export var phase_two_time := 360.0
+## Killing a Pwee in phase 2 gives a moon buff for moon_time seconds (ends on death).
+## The Pwee on your own half gives Waxing: more damage and faster cooldowns.
+## The one on the enemy's half gives Waning: lifesteal on basic attacks and less damage
+## taken from the enemy hero.
+@export var moon_time := 75.0
+@export var moon_waxing_damage := 0.12
+@export var moon_waxing_haste := 0.15
+@export var moon_waning_lifesteal := 0.15
+@export var moon_waning_guard := 0.10
+## The long Relay drop (phase 2): a square of this size deep in the enemy half
+## (ArenaData.long_drop). Delivering there pays relay_long_gold_mult x the gold and
+## relay_long_extra_siege more siege minions.
+@export var relay_long_size := 3.2
+@export var relay_long_gold_mult := 1.75
+@export var relay_long_extra_siege := 1
+
+@export_group("Tarot altar")
+## See TarotAltar.
+@export var tarot_first_time := 120.0
+@export var tarot_interval := 90.0
+@export var tarot_expire_time := 40.0
+@export var tarot_radius := 1.0
+@export var tarot_take_time := 1.0
+@export var tarot_pick_time := 8.0
+@export var tarot_buff_time := 60.0
+@export var tarot_swords_bonus := 0.15
+@export var tarot_cups_heal := 0.25
+@export var tarot_pentacles_gold := 90.0
+@export var tarot_wands_haste := 0.25
+
+@export_group("Honey fruit")
+## Fruit bushes out on the diamond (see Fruits): stand on a ripe one for fruit_eat_time
+## (taking damage stops you) to heal fruit_heal of max HP over fruit_heal_time seconds.
+## Taking damage while the heal runs ends it. It ripens again fruit_respawn_time later.
+@export var fruit_first_time := 90.0
+@export var fruit_respawn_time := 60.0
+@export var fruit_radius := 0.9
+@export var fruit_eat_time := 0.8
+@export var fruit_heal := 0.12
+@export var fruit_heal_time := 3.0
 
 @export_group("Levels")
 ## Total XP needed to reach each level (index 0 = level 1). See Leveling for what each
@@ -149,8 +208,8 @@ extends Resource
 
 @export_group("Sprint")
 ## Move this long in roughly one direction, out of combat, to start sprinting.
-@export var sprint_build_time := 3.5
-@export var sprint_speed_mult := 1.45
+@export var sprint_build_time := 2.0
+@export var sprint_speed_mult := 1.334
 ## Turning more than this (degrees) away from your running direction resets the build-up.
 @export var sprint_turn_degrees := 50.0
 ## How fast the running direction follows gentle curves (0..1 per tick).
@@ -177,11 +236,11 @@ extends Resource
 ## Structure resist starts at StructureData.resist_start and falls in a straight line to
 ## resist_end between resist_decay_start and resist_end_time seconds. Damage taken is
 ## x (1 - resist), so -30% resist means +30% damage.
-@export var resist_decay_start := 120.0
-@export var resist_end_time := 720.0
+@export var resist_decay_start := 150.0
+@export var resist_end_time := 600.0
 @export var resist_end := -0.3
 ## Gold a hero earns for each point of its damage that structure resist soaks up.
-@export var resist_gold_per_damage := 0.3
+@export var resist_gold_per_damage := 0.15
 
 @export_group("Pacing: minions")
 ## Minions spawned after minion_scale_start grow by these fractions per minute.
@@ -203,6 +262,23 @@ extends Resource
 @export var guardian_fall_respawn_mult := 0.4
 ## When a Guardian falls, its Core takes no damage for this long (breathing room).
 @export var core_immunity_time := 8.0
+
+@export_group("Core last stand")
+## Lucy's last stand: while the Core's own hero is alive and stands within
+## core_guard_radius of it, on the side facing the enemy (a half circle in front, so
+## the heal pad behind the Core doesn't count), the Core takes no damage. Overtime
+## turns this off.
+@export var core_guard_radius := 8.0
+## Core stun: once its Guardian has fallen, whenever an enemy unit is within
+## core_stun_radius and the stun is ready, the Core winds up for core_stun_windup
+## seconds (a growing ring), then stuns every enemy still inside: heroes for
+## core_stun_hero, troopers for core_stun_minion. No damage. Ready again
+## core_stun_interval seconds after it lands.
+@export var core_stun_radius := 8.0
+@export var core_stun_windup := 2.5
+@export var core_stun_hero := 1.0
+@export var core_stun_minion := 2.0
+@export var core_stun_interval := 18.0
 
 @export_group("Pacing: overtime")
 ## Overtime starts at overtime_time if no Guardian has fallen, else at overtime_late_time.

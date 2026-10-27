@@ -65,6 +65,8 @@ const RECIPES := {
 	# --- Map ----------------------------------------------------------------------
 	&"candle_lit": [{"wave": "sine", "f": 1046.0, "dur": 0.5, "vol": 0.2, "curve": 2.5}, {"wave": "noise", "f": 6000.0, "dur": 0.2, "vol": 0.08, "lp": 0.2, "attack": 0.05}],
 	&"candle_taken": [{"wave": "tri", "f": 1046.0, "notes": [0, 4, 7, 11, 12], "step": 0.05, "dur": 0.4, "vol": 0.3, "curve": 1.3}],
+	&"phase_two": [{"wave": "sine", "f": 392.0, "notes": [0, 4, 7, 12], "step": 0.14, "dur": 1.4, "vol": 0.3, "curve": 1.8}, {"wave": "tri", "f": 196.0, "dur": 1.6, "vol": 0.25, "attack": 0.3, "curve": 1.5}, {"wave": "noise", "f": 8000.0, "dur": 0.8, "vol": 0.06, "lp": 0.15, "attack": 0.3}],
+	&"moon": [{"wave": "sine", "f": 1318.0, "notes": [0, 7, 12, 19], "step": 0.08, "dur": 0.9, "vol": 0.18, "curve": 2.0, "vib": 0.01, "vib_rate": 6.0}, {"wave": "sine", "f": 659.0, "dur": 1.0, "vol": 0.15, "attack": 0.2, "curve": 2.0}],
 	&"relay_spawn": [{"wave": "sine", "f": 784.0, "dur": 0.6, "vol": 0.35, "curve": 2.0}, {"wave": "sine", "f": 1046.0, "delay": 0.18, "dur": 0.7, "vol": 0.3, "curve": 2.0}],
 	&"relay_warn": [{"wave": "square", "f": 523.0, "dur": 0.1, "vol": 0.12, "duty": 0.3}, {"wave": "square", "f": 523.0, "delay": 0.2, "dur": 0.1, "vol": 0.12, "duty": 0.3}],
 	&"relay_pick": [{"wave": "tri", "f": 523.0, "f1": 1046.0, "dur": 0.2, "vol": 0.35}],

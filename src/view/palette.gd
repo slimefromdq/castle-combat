@@ -1,8 +1,8 @@
 class_name Palette
 ## Colors for the 3D view and HUD. You are always blue, the opponent always orange
 ## (blue/orange stays distinct for common color blindness). Shape carries team too.
-## The world avoids both team hues: a warm cobbled street, violet pockets, brick-red back
-## alleys, painted walls and a gold Relay. Street-occult, but bright: everything stays
+## The world avoids both team hues: a warm cobbled street opening into a sandstone
+## diamond, violet Relay spots, painted walls and a gold Relay. Street-occult, but bright: everything stays
 ## mid-tone so team colours and telegraphs pop.
 
 const ALLY := Color("3e8ef7")
@@ -23,9 +23,9 @@ const CHALK := Color(1.0, 0.98, 0.92, 0.32)
 const CENTER_LINE := Color("ffd84a")
 const POCKET := Color("6a4f9c")
 const POCKET_MORTAR := Color("4f3a78")
-## Back alleys: warm brick-red cobbles, clearly not lane and not a Relay pocket.
-const ALLEY := Color("9a5a4a")
-const ALLEY_MORTAR := Color("6e3d33")
+## The diamond: golden sandstone cobbles, clearly not lane, plaza or a Relay spot.
+const DIAMOND := Color("b59a62")
+const DIAMOND_MORTAR := Color("8a7445")
 const WALL := Color("cdbd9b")
 const WALL_CAP := Color("efe3c6")
 const TREE := Color("2f8f5b")

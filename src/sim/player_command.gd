@@ -13,6 +13,8 @@ var cast_slot := -1
 ## a target themselves (bots). Skillshots and dashes fly this way when it is set.
 var aim := Vector2.ZERO
 var drop_relay := false
+## Tarot card (0..2) from the hero's waiting altar draw, or -1.
+var tarot_pick := -1
 ## Perk choice (0 or 1) for the earliest level-up perk not yet picked, or -1.
 var perk_pick := -1
 ## Deck card slot to buy, or -1.

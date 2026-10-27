@@ -4,7 +4,11 @@ class_name MinionAI
 
 
 static func tick(sim: MatchSim, m: MinionState) -> void:
-	if not m.alive:
+	if not m.alive or m.team < 0:
+		return  # Neutral camps run their own AI (NeutralCamps).
+	if sim.time < m.stun_until:
+		if m.is_winding_up():
+			CombatSystem.cancel(sim, m)
 		return
 	if m.is_winding_up():
 		# Committed: stand still and finish (or lose) the attack.

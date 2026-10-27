@@ -163,6 +163,18 @@ var shield_until := 0.0
 ## Perk picks per tier (levels 2, 4, 7): 0 or 1 into the pair, -1 = not picked yet, and
 ## when each choice was offered (for the auto-pick).
 var perk_picks: Array[int] = [-1, -1, -1]
+## Tarot buffs (TarotAltar): Swords (more damage) and Wands (faster cooldowns) until these times.
+var tarot_swords_until := 0.0
+var tarot_wands_until := 0.0
+## Honey fruit heal over time (Fruits): healing per second until fruit_until.
+var fruit_until := 0.0
+var fruit_rate := 0.0
+## Moon buff from a phase 2 Pwee (NeutralCamps): MOON_WAXING or MOON_WANING until moon_until.
+const MOON_NONE := 0
+const MOON_WAXING := 1
+const MOON_WANING := 2
+var moon := MOON_NONE
+var moon_until := 0.0
 var perk_offered_at: Array[float] = [0.0, 0.0, 0.0]
 ## Last sim time this hero moved (Avery's Steadfast).
 var still_since := 0.0
@@ -274,6 +286,10 @@ func current_interval(_time: float) -> float:
 	if _now < frenzy_until:
 		bonus += frenzy_bonus
 	return attack_interval / (1.0 + bonus)
+
+
+func moon_at(time: float) -> int:
+	return moon if time < moon_until else MOON_NONE
 
 
 func is_stunned(time: float) -> bool:
@@ -413,6 +429,11 @@ func perk_total(property: StringName) -> float:
 ## Ends every timed effect (knockouts and respawns).
 func clear_effects() -> void:
 	stun_until = 0.0
+	tarot_swords_until = 0.0
+	tarot_wands_until = 0.0
+	fruit_until = 0.0
+	moon = MOON_NONE
+	moon_until = 0.0
 	latched_until = 0.0
 	slow_until = 0.0
 	shield_hp = 0.0

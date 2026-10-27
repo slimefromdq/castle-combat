@@ -10,9 +10,10 @@ var is_siege := false
 ## Power minion (after the enemy Guardian fell) and its speed bonus.
 var is_power := false
 var speed_mult := 1.0
-## The wave this minion came with (0 = placed by hand), and whether a banner buffed it.
+## Stunned (Core stun) until this sim time: no moving, no attacking.
+var stun_until := 0.0
+## The wave this minion came with (0 = placed by hand).
 var spawn_wave := 0
-var bannered := false
 ## Shieldbearer: enemy skillshots this minion still stops.
 var shield_left := 0
 

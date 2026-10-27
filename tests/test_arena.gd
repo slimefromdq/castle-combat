@@ -41,8 +41,8 @@ func test_spawns_are_clear() -> void:
 		check(not Movement.is_blocked(sim, h, h.pos), "hero %d spawns inside something" % h.team)
 
 
-func test_pillars_block_line_of_sight_between_pocket_and_lane() -> void:
+func test_rubble_blocks_line_of_sight() -> void:
 	var a := MatchController.ARENA
-	check(not ArenaGeometry.has_line_of_sight(a, Vector2(-8, 0), Vector2(0, 0)), "left pillar should block sight")
-	check(ArenaGeometry.has_line_of_sight(a, Vector2(-8, 4), Vector2(0, 4)), "pocket entrance should not block sight")
+	check(not ArenaGeometry.has_line_of_sight(a, Vector2(-12, -6), Vector2(-12, -2)), "rubble by the Relay spot blocks sight")
+	check(ArenaGeometry.has_line_of_sight(a, Vector2(-8, 0), Vector2(0, 0)), "the Relay spot is open to the lane")
 	check(ArenaGeometry.has_line_of_sight(a, Vector2(0, -20), Vector2(0, 20)), "lane should be open end to end")

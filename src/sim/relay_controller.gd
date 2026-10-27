@@ -4,6 +4,8 @@ extends RefCounted
 ##   DORMANT -> SPAWNED -> CARRIED <-> DROPPED -> (delivered or expired) -> DORMANT
 ## Delivered and expired are moments, not states: they emit an event and go dormant.
 ## Either hero may pick it up; both deliver to the same pocket, opposite the pickup.
+## In phase 2 each hero may instead carry it to their long drop deep in the enemy half
+## for a bigger reward (Lucy's long Relay; see long_rect and MatchConfig "Phase 2").
 
 enum State { DORMANT, SPAWNED, CARRIED, DROPPED }
 
@@ -31,6 +33,12 @@ var pickup_progress: Array[float] = [0.0, 0.0]
 var deliver_progress := 0.0
 ## True on ticks where an enemy hero in the delivery pocket is blocking delivery.
 var contested := false
+## Fought over too long (Lucy): knock-offs this activation, and when the first one
+## happened. The Relay fizzles out on relay_fizzle_knocks knock-offs, or
+## relay_fizzle_time seconds after the first, whichever comes first.
+var knocks := 0
+var first_knock_at := -1.0
+var fizzle_warned := false
 ## Times of enemy-hero hits on the current carrier, for the interception rule.
 var _hits: Array[float] = []
 var _hit_keys: Array[int] = []
@@ -45,6 +53,7 @@ func setup(sim: MatchSim) -> void:
 	_hits.clear()
 	_hit_keys.clear()
 	_reset_progress()
+	_reset_fight()
 	_choose_pockets(sim)
 	pos = origin
 	prev_pos = origin
@@ -64,6 +73,16 @@ func delivery_rect(sim: MatchSim) -> Rect2:
 	return sim.arena.pockets[delivery_pocket]
 
 
+## The long drop for a team (phase 2): a square deep in the enemy half, or an empty
+## Rect2 when the map has none or phase 2 hasn't started.
+func long_rect(sim: MatchSim, team: int) -> Rect2:
+	if sim.phase < 2 or sim.arena.long_drop == Vector2.ZERO:
+		return Rect2()
+	var c := sim.arena.long_drop if team == MatchSim.BLUE else -sim.arena.long_drop
+	var size := Vector2.ONE * sim.config.relay_long_size
+	return Rect2(c - size * 0.5, size)
+
+
 func pickup_rect(sim: MatchSim) -> Rect2:
 	return sim.arena.pockets[pickup_pocket]
 
@@ -72,6 +91,14 @@ func pickup_rect(sim: MatchSim) -> Rect2:
 func tick(sim: MatchSim) -> void:
 	prev_pos = pos
 	var cfg := sim.config
+	if first_knock_at >= 0.0 and state != State.DORMANT:
+		var left := first_knock_at + cfg.relay_fizzle_time - sim.time
+		if not fizzle_warned and left <= cfg.relay_fizzle_warning:
+			fizzle_warned = true
+			sim.emit_event(&"relay_fizzling", {"at": first_knock_at + cfg.relay_fizzle_time})
+		if left <= 0.0001:
+			_fizzle(sim)
+			return
 	match state:
 		State.DORMANT:
 			if not warned and sim.time + 0.0001 >= next_spawn_time - cfg.relay_warning_time:
@@ -107,6 +134,13 @@ func request_drop(sim: MatchSim, hero: HeroState) -> void:
 func on_hero_killed(sim: MatchSim, hero: HeroState) -> void:
 	if state == State.CARRIED and carrier_id == hero.id:
 		_drop(sim, &"knocked_out")
+
+
+## Any damage from the enemy hero knocks the Relay off its carrier (Lucy): basic attacks,
+## skillshots, abilities, traps, damage over time. Troopers and towers never do.
+func on_enemy_damage(sim: MatchSim, attacker: HeroState, victim: HeroState) -> void:
+	if state == State.CARRIED and victim.id == carrier_id and attacker.team != victim.team:
+		_drop(sim, &"intercepted")
 
 
 ## Interception: enough enemy-hero hits on the carrier inside the rolling window.
@@ -172,6 +206,10 @@ func _tick_carried(sim: MatchSim) -> void:
 		return
 	pos = h.pos
 	var pocket := delivery_rect(sim)
+	var far := long_rect(sim, h.team)
+	var long := far.has_area() and far.has_point(h.pos)
+	if long:
+		pocket = far
 	var enemy := sim.heroes[1 - h.team]
 	contested = enemy.alive and pocket.has_point(enemy.pos)
 	if not pocket.has_point(h.pos):
@@ -181,9 +219,9 @@ func _tick_carried(sim: MatchSim) -> void:
 		return  # Paused, not reset: the carrier keeps what they have built up.
 	deliver_progress += sim.dt
 	if deliver_progress + 0.0001 >= sim.config.relay_deliver_time:
-		Pacing.on_relay_delivered(sim, h, activations)
+		Pacing.on_relay_delivered(sim, h, activations, long)
 		_release_carrier(sim)
-		_finish(sim, &"relay_delivered", h.team)
+		_finish(sim, &"relay_delivered", h.team, long)
 
 
 func _drop(sim: MatchSim, reason: StringName) -> void:
@@ -191,6 +229,14 @@ func _drop(sim: MatchSim, reason: StringName) -> void:
 	if h != null:
 		pos = h.pos
 	_release_carrier(sim)
+	if reason != &"manual":
+		knocks += 1
+		if first_knock_at < 0.0:
+			first_knock_at = sim.time
+		if knocks >= sim.config.relay_fizzle_knocks:
+			sim.emit_event(&"relay_dropped", {"reason": reason, "pos": pos})
+			_fizzle(sim)
+			return
 	state = State.DROPPED
 	lock_until = sim.time + sim.config.relay_drop_lockout
 	return_at = sim.time + sim.config.relay_drop_return_time
@@ -208,13 +254,14 @@ func _release_carrier(sim: MatchSim) -> void:
 
 
 ## Ends this activation (delivered or expired) and schedules the next one on the other side.
-func _finish(sim: MatchSim, event: StringName, team: int) -> void:
+func _finish(sim: MatchSim, event: StringName, team: int, long := false) -> void:
 	state = State.DORMANT
 	activations += 1
 	next_spawn_time = sim.time + sim.config.relay_interval
 	warned = false
 	_reset_progress()
-	sim.emit_event(event, {"team": team})
+	_reset_fight()
+	sim.emit_event(event, {"team": team, "long": long})
 	_choose_pockets(sim)
 
 
@@ -225,6 +272,20 @@ func _choose_pockets(sim: MatchSim) -> void:
 	pickup_pocket = (sim.config.relay_first_pocket + activations) % n
 	delivery_pocket = (pickup_pocket + 1) % n
 	origin = sim.arena.pockets[pickup_pocket].get_center()
+
+
+## Fought over too long: the Relay vanishes and the next one is scheduled as usual.
+func _fizzle(sim: MatchSim) -> void:
+	_release_carrier(sim)
+	var at := pos
+	_finish(sim, &"relay_expired", -1)
+	sim.emit_event(&"relay_fizzled", {"pos": at})
+
+
+func _reset_fight() -> void:
+	knocks = 0
+	first_knock_at = -1.0
+	fizzle_warned = false
 
 
 func _reset_progress() -> void:

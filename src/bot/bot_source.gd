@@ -284,6 +284,8 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 			cmd.masterwork_slot = -1
 	if last_hit:
 		cmd.target_id = _last_hit_target(sim, me)
+	if not sim.altar.offers[team].is_empty():
+		cmd.tarot_pick = 0
 
 	# 1. Low on health: walk to the healing pad behind the Core, then come back.
 	#    A carrier keeps going unless it is nearly dead.
@@ -297,7 +299,7 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		if me.pos.distance_to(pad) > 1.0:
 			cmd.move = _toward(me, _around_core(sim, me, pad))
 		return cmd
-	_healing = false  # The pad is off once our Guardian falls: fight on.
+	_healing = false
 
 	# 2. Never tank a tower: leave its range if it is shooting us or nothing of ours is there.
 	if their_front != null and me.pos.distance_to(their_front.pos) < their_front.attack_range + their_front.radius + 0.8:
@@ -316,6 +318,11 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	if me.carrying_relay:
 		# R1. Carry it to the delivery pocket and stand in the middle until it lands.
 		var drop_off := relay.delivery_rect(sim).get_center()
+		# Phase 2: the long drop pays more; take it when the way looks safe.
+		var far := relay.long_rect(sim, me.team)
+		if far.has_area() and me.hp > me.max_hp * 0.6 \
+				and (not them.alive or them.pos.distance_to(far.get_center()) > 14.0):
+			drop_off = far.get_center()
 		if me.pos.distance_to(drop_off) > 0.6:
 			cmd.move = _toward(me, drop_off)
 		return cmd
@@ -326,9 +333,15 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		goal = them.pos
 		cmd.target_id = them.id
 	elif threat != null:
-		# 3. Defend the front structure.
+		# 3. Defend the front structure. At the Core, stay inside its guard half circle so
+		#    it can't take damage while we live.
 		engage = threat
 		goal = threat.pos
+		if home.tier == 2:
+			var off := threat.pos - home.pos
+			if off.dot(fwd) < 0.5:
+				off = fwd * 3.0
+			goal = home.pos + off.normalized() * minf(off.length(), sim.config.core_guard_radius - 1.5)
 	elif relay.is_available(sim.time) and me.hp > me.max_hp * 0.5 and relay_dist < 26.0 \
 			and relay_dist <= their_relay_dist + 2.0:
 		# R3. Go for the Relay when we would get there first (or tie).
@@ -336,17 +349,18 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		if relay_dist < 3.0:
 			cmd.move = _toward(me, relay.pos) if relay_dist > 0.3 else Vector2.ZERO
 			return cmd
-	elif _banner_to_take(sim, me, their_front) != null:
-		# R4. A banner close by and out of their tower's reach: grab it for our next wave.
-		var banner: Dictionary = _banner_to_take(sim, me, their_front)
-		cmd.move = _toward(me, banner.pos)
+	elif _loot_spot(sim, me, them, seen) != Vector2.INF:
+		# R5. A pickup, ripe fruit (when hurt) or the Tarot altar close by, nobody
+		#     fighting us for it: walk over (and stand on the altar or fruit).
+		var spot := _loot_spot(sim, me, them, seen)
+		var off := me.pos.distance_to(spot)
+		cmd.move = _toward(me, spot) if off > 0.3 else Vector2.ZERO
 		return cmd
-	elif _candle_to_take(sim, me, them, seen) != null:
-		# R5. A lit candle close by, nobody fighting us for it: take it (XP + gold).
-		var candle: PickupController.Candle = _candle_to_take(sim, me, them, seen)
-		var off := me.pos.distance_to(candle.pos)
-		cmd.move = _toward(me, candle.pos) if off > 0.3 else Vector2.ZERO
-		return cmd
+	elif _camp_to_clear(sim, me, them, seen) != null:
+		# R6. Our side's Pwee, while their hero isn't around: take it.
+		engage = _camp_to_clear(sim, me, them, seen)
+		goal = engage.pos
+		cmd.target_id = engage.id
 	elif seen and them.hp < them.max_hp * 0.35 and me.hp > me.max_hp * 0.5 \
 			and (their_front == null or them.pos.distance_to(their_front.pos) > their_front.attack_range + 1.0):
 		# 4. Punish a weak hero who is away from their tower, whatever their minions do.
@@ -437,51 +451,74 @@ func _clear(sim: MatchSim, a: Vector2, b: Vector2, r: float) -> bool:
 	for wall in sim.arena.walls:
 		if ArenaGeometry.segment_hits_rect(a, b, wall.grow(r + 0.1)):
 			return false
-	return true
+	return ArenaGeometry.segment_in_bounds(sim.arena, a, b, r * 0.5)
 
 
-## A lit candle worth walking to: on our half or in a pocket, near enough, with the
-## enemy hero not standing over it and not in a fight with us.
-func _candle_to_take(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> PickupController.Candle:
-	if me.hp < me.max_hp * 0.5:
-		return null
-	if seen and me.pos.distance_to(them.pos) < 7.0:
-		return null
-	var best: PickupController.Candle = null
-	var best_d := 18.0
-	for c in sim.pickups.lit_candles():
-		var local := MatchSim.to_team_space(team, c.pos)
-		if local.y > 8.0:
-			continue  # Deep in their half: not worth the walk.
-		if seen and them.pos.distance_to(c.pos) < me.pos.distance_to(c.pos):
+## Something on the ground worth walking to (Vector2.INF if nothing): the Tarot altar,
+## a ripe fruit when hurt, or a coin or spark on our half. Skipped when their hero is
+## close or would get there first.
+func _loot_spot(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> Vector2:
+	if me.hp < me.max_hp * 0.3 or (seen and me.pos.distance_to(them.pos) < 7.0):
+		return Vector2.INF
+	var best := Vector2.INF
+	var best_d := INF
+	var spots: Array[Vector2] = []
+	var reach: Array[float] = []
+	if sim.altar.up:
+		spots.append(sim.altar.pos)
+		reach.append(22.0)
+	if me.hp < me.max_hp * 0.7:
+		for f in sim.fruits.ripe():
+			spots.append(f.pos)
+			reach.append(14.0)
+	for p in sim.pickups.active():
+		if MatchSim.to_team_space(team, p.pos).y <= 4.0:
+			spots.append(p.pos)
+			reach.append(7.0)
+	for i in spots.size():
+		var d := me.pos.distance_to(spots[i])
+		if d > reach[i] or d >= best_d:
 			continue
-		var d := me.pos.distance_to(c.pos)
-		if d < best_d:
-			best_d = d
-			best = c
+		if seen and them.pos.distance_to(spots[i]) < d:
+			continue
+		best_d = d
+		best = spots[i]
 	return best
 
 
-## Two points per pocket entrance and per alley gap: one just inside, one out in the lane.
+## The Pwee on our side of the diamond, if it's up, we're healthy, and their hero is
+## nowhere near (or out of sight).
+func _camp_to_clear(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> SimEntity:
+	if me.hp < me.max_hp * 0.6 or (seen and them.pos.distance_to(me.pos) < 12.0):
+		return null
+	for c in sim.camps.camps:
+		var m := sim.camps.monster_of(sim, c)
+		if m == null or MatchSim.to_team_space(team, c.home).y > 0.0:
+			continue
+		if me.pos.distance_to(m.pos) < 14.0:
+			return m
+	return null
+
+
+## Route points: just inside each shoulder where the diamond meets the lane, and around
+## the corners of every wall standing on open ground (rubble).
 func _waypoints(sim: MatchSim) -> Array[Vector2]:
 	if _points.is_empty():
-		for alley in sim.arena.alleys:
-			var side := signf(alley.get_center().x)
-			var inner_x := side * (sim.arena.lane_half_width + 1.7)
-			var outer_x := side * (sim.arena.lane_half_width - 1.5)
-			var g := sim.arena.alley_gap / 2.0
-			for y: float in [alley.position.y + g, alley.end.y - g]:
-				_points.append(Vector2(inner_x, y))
-				_points.append(Vector2(outer_x, y))
-		for pocket in sim.arena.pockets:
-			var c := pocket.get_center()
-			var side := signf(c.x)
-			var inner_x := c.x - side * 0.5
-			var outer_x := side * (sim.arena.lane_half_width - 1.5)
+		var a := sim.arena
+		var s := a.shoulder_y()
+		for sx in [-1.0, 1.0]:
 			for sy in [-1.0, 1.0]:
-				var y: float = sy * (pocket.size.y / 2.0 + 1.5) / 2.0
-				_points.append(Vector2(inner_x, y))
-				_points.append(Vector2(outer_x, y))
+				_points.append(Vector2(sx * (a.lane_half_width - 1.0), sy * (s - 0.5)))
+		for wall in a.walls:
+			var c := wall.get_center()
+			if absf(c.y) > s and absf(c.x) >= a.lane_half_width:
+				continue  # Lane edge walls beyond the diamond.
+			if absf(c.y) >= a.half_length:
+				continue  # End caps.
+			var g := wall.grow(1.0)
+			for p in [g.position, Vector2(g.end.x, g.position.y), g.end, Vector2(g.position.x, g.end.y)]:
+				if a.in_bounds(p, 0.6):
+					_points.append(p)
 	return _points
 
 
@@ -534,21 +571,6 @@ func _shop(sim: MatchSim, me: HeroState) -> Vector2i:
 			return Vector2i(-1, sell)
 		return Vector2i(-1, -1)
 	return Vector2i(-1, -1)
-
-
-## The nearest banner within 10 m that we can take safely, or null.
-func _banner_to_take(sim: MatchSim, me: HeroState, their_front: StructureState) -> Variant:
-	if me.hp < me.max_hp * 0.4:
-		return null
-	var best: Variant = null
-	for b in sim.banners:
-		var d := me.pos.distance_to(b.pos)
-		if d > 10.0 or (best != null and d >= me.pos.distance_to(best.pos)):
-			continue
-		if their_front != null and b.pos.distance_to(their_front.pos) < their_front.attack_range + their_front.radius + 1.0:
-			continue
-		best = b
-	return best
 
 
 ## True once no wishlist item is still worth saving for.
