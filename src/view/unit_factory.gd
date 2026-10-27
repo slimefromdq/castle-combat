@@ -471,24 +471,6 @@ static func make_minion(m: MinionState, is_ally: bool) -> Node3D:
 			part(body, cylinder(m.radius * 0.55, m.radius * 0.55, 0.08, 16), Palette.ACCENT, Vector3(0, m.radius * 0.94, 0))
 	root.set_meta("bar_height", m.radius * 2.6 + 0.3)
 	_aggro_mark(root)
-	# Banner wave: a small gold flag on every trooper of the buffed wave.
-	var flag := Node3D.new()
-	flag.name = "Flag"
-	flag.visible = false
-	root.add_child(flag)
-	part(flag, cylinder(0.03, 0.03, 0.9, 6), Color("6b4a2b"), Vector3(0.25, m.radius * 1.4 + 0.45, 0.2))
-	part(flag, box(Vector3(0.36, 0.24, 0.03)), Color("f5d76e"), Vector3(0.44, m.radius * 1.4 + 0.75, 0.2), Vector3.ZERO, true)
-	return root
-
-
-## A banner on the ground (dropped by a special trooper): a pole with a gold flag.
-static func make_banner(parent: Node3D) -> Node3D:
-	var root := Node3D.new()
-	parent.add_child(root)
-	part(root, cylinder(0.07, 0.08, 2.4, 8), Color("6b4a2b"), Vector3(0, 1.2, 0))
-	part(root, box(Vector3(1.1, 0.8, 0.05)), Color("f5d76e"), Vector3(0.56, 2.0, 0), Vector3.ZERO, true)
-	part(root, box(Vector3(1.1, 0.12, 0.06)), Palette.ACCENT, Vector3(0.56, 1.62, 0), Vector3.ZERO, true)
-	part(root, cylinder(1.0, 1.0, 0.03, 32), Color(0.96, 0.84, 0.43, 0.35), Vector3(0, 0.03, 0), Vector3.ZERO, true)
 	return root
 
 

@@ -14,7 +14,6 @@ var _rings: Array = []
 var _pillars: Array = []
 const MARKER_HEIGHT := 2.6
 ## Banner id -> node.
-var _banners: Dictionary = {}
 ## Trap id -> node.
 var _traps: Dictionary = {}
 ## Wave meeting marker: an arrow on each lane edge, and the smoothed drift (m/s, sim y).
@@ -46,6 +45,10 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 			var g: SimEntity = view.sim.get_entity(data.id)
 			if g != null:
 				_spawn_ring(g.pos, data.radius + 1.0, Color(1.0, 0.35, 0.2))
+		&"core_stun":
+			var c: SimEntity = view.sim.get_entity(data.id)
+			if c != null:
+				_spawn_ring(c.pos, data.radius + 0.5, Color(1.0, 0.85, 0.25))
 		&"sprint_started":
 			var sh: HeroState = view.sim.get_entity(data.hero) as HeroState
 			if sh != null:
@@ -73,10 +76,6 @@ func on_sim_event(type: StringName, data: Dictionary) -> void:
 				_spawn_pillar(uh.id, Palette.team_color(uh.team == view.local_seat).lightened(0.5))
 		&"shield_blocked":
 			_spawn_ring(data.pos, 1.2, Color(0.85, 0.95, 1.0), 0.4)
-		&"banner_taken":
-			var bh: SimEntity = view.sim.get_entity(data.hero)
-			if bh != null:
-				_spawn_ring(bh.pos, 2.0, Color("f5d76e"), 0.5)
 		&"masterwork":
 			var mh: SimEntity = view.sim.get_entity(data.hero)
 			if mh != null:
@@ -175,12 +174,13 @@ func render() -> void:
 	for st in sim.structures:
 		if st.is_guardian():
 			_render_guardian(st)
+		elif st.tier == 2:
+			_render_core(st)
 	_render_skillshots(sim)
 	_render_traps(sim)
 	_render_clouds(sim)
 	_update_rings()
 	_update_pillars()
-	_render_banners(sim)
 	_render_wave_marker(sim)
 	_update_streaks(sim)
 
@@ -229,6 +229,65 @@ func _render_skillshots(sim: MatchSim) -> void:
 		if not live.has(id):
 			_shots[id].queue_free()
 			_shots.erase(id)
+
+
+## Core last stand: the guard half circle in front of an exposed Core (bright while its
+## hero guards it), a "Guarded" tag, and the stun telegraph (a gold disc filling in).
+func _render_core(s: StructureState) -> void:
+	var sim := view.sim
+	if not _parts.has(s.id):
+		var team_c := Palette.team_color(s.team == view.local_seat)
+		var zone := MeshInstance3D.new()
+		zone.mesh = _half_disc(sim.config.core_guard_radius)
+		zone.material_override = UnitFactory.material(Color(team_c, 0.18), true)
+		add_child(zone)
+		var tag := UnitFactory.label(self, "Guarded", 0.0, 40)
+		tag.modulate = team_c.lightened(0.3)
+		_parts[s.id] = {
+			"zone": zone,
+			"tag": tag,
+			"tele": UnitFactory.part(self, UnitFactory.cylinder(1.0, 1.0, 0.02, 48), Color(1.0, 0.85, 0.2, 0.3), Vector3.ZERO, Vector3.ZERO, true),
+			"edge": UnitFactory.part(self, _ring_mesh, Color(1.0, 0.85, 0.25, 0.95), Vector3.ZERO, Vector3.ZERO, true),
+		}
+	var p: Dictionary = _parts[s.id]
+	var center := MatchView.to_world(s.pos, 0.0)
+	var exposed := s.alive and sim.is_exposed(s)
+	p.zone.visible = exposed and not sim.overtime
+	if p.zone.visible:
+		p.zone.position = center + Vector3(0, 0.04, 0)
+		p.zone.rotation.y = 0.0 if s.team == MatchSim.BLUE else PI
+		(p.zone.material_override as StandardMaterial3D).albedo_color.a = 0.32 if s.guarded else 0.12
+	p.tag.visible = exposed and s.guarded
+	p.tag.position = center + Vector3(0, 3.6, 0)
+	var winding := exposed and s.stun_at >= 0.0
+	p.tele.visible = winding
+	p.edge.visible = winding
+	if winding:
+		var rad := sim.config.core_stun_radius
+		var k := clampf(1.0 - (s.stun_at - sim.time) / maxf(0.01, sim.config.core_stun_windup), 0.0, 1.0)
+		p.tele.position = center + Vector3(0, 0.06, 0)
+		p.tele.scale = Vector3(rad * k, 1.0, rad * k)
+		(p.tele.material_override as StandardMaterial3D).albedo_color.a = lerpf(0.12, 0.4, k)
+		p.edge.position = center + Vector3(0, 0.11, 0)
+		p.edge.scale = Vector3(rad, 0.06, rad)
+		(p.edge.material_override as StandardMaterial3D).albedo_color.a = 0.6 + 0.4 * sin(Time.get_ticks_msec() / 90.0)
+
+
+## A flat half disc facing world -Z (blue's forward), for the Core's guard zone.
+static func _half_disc(radius: float, segments := 32) -> ArrayMesh:
+	var verts := PackedVector3Array()
+	for i in segments:
+		var a0 := PI * float(i) / segments
+		var a1 := PI * float(i + 1) / segments
+		verts.append(Vector3.ZERO)
+		verts.append(Vector3(cos(a1) * radius, 0, -sin(a1) * radius))
+		verts.append(Vector3(cos(a0) * radius, 0, -sin(a0) * radius))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 
 ## Guardian beam (always visible while it has a target, hotter as it ramps, with a
@@ -533,23 +592,6 @@ func _update_rings() -> void:
 		var r: float = lerpf(0.3, g.r, k)
 		g.node.scale = Vector3(r, 0.04, r)
 		(g.node.material_override as StandardMaterial3D).albedo_color.a = 1.0 - k
-
-
-## Banners on the ground: they bob, and blink in their last 4 seconds.
-func _render_banners(sim: MatchSim) -> void:
-	var live := {}
-	for b in sim.banners:
-		live[b.id] = true
-		if not _banners.has(b.id):
-			_banners[b.id] = UnitFactory.make_banner(self)
-		var node: Node3D = _banners[b.id]
-		node.position = MatchView.to_world(b.pos, 0.1 * sin(Time.get_ticks_msec() / 200.0))
-		var left: float = b.expires_at - sim.time
-		node.visible = left > 4.0 or int(Time.get_ticks_msec() / 150) % 2 == 0
-	for id: int in _banners.keys():
-		if not live.has(id):
-			_banners[id].queue_free()
-			_banners.erase(id)
 
 
 ## Where the waves meet: an arrow on each lane edge pointing the way the fight is

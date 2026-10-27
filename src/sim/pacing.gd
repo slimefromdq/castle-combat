@@ -134,6 +134,63 @@ static func tick(sim: MatchSim) -> void:
 	for s in sim.structures:
 		if s.alive and s.is_guardian():
 			_tick_slam(sim, s)
+		elif s.tier == 2:
+			s.guarded = s.alive and core_guarded(sim, s)
+			if s.alive and sim.is_exposed(s):
+				_tick_core_stun(sim, s)
+
+
+## Core last stand: the Core's own hero, alive, within core_guard_radius and on the
+## enemy-facing side of it. Overtime ends it.
+static func core_guarded(sim: MatchSim, s: StructureState) -> bool:
+	if sim.overtime:
+		return false
+	var h := sim.heroes[s.team]
+	return h.alive and in_guard_zone(sim, s, h.pos)
+
+
+## True if p is inside the Core's guard half circle (in front of it, toward the enemy).
+static func in_guard_zone(sim: MatchSim, s: StructureState, p: Vector2) -> bool:
+	var off := p - s.pos
+	return off.length() <= sim.config.core_guard_radius and off.dot(MatchSim.forward(s.team)) >= 0.0
+
+
+## Core stun: slow, telegraphed, no damage. Heroes and troopers inside when it lands
+## are stunned (troopers longer), which buys the defender time without wiping a wave.
+static func _tick_core_stun(sim: MatchSim, s: StructureState) -> void:
+	var cfg := sim.config
+	var r := cfg.core_stun_radius
+	if s.stun_at < 0.0:
+		if sim.time + 0.0001 < s.stun_ready_at or not _enemy_near(sim, s, r):
+			return
+		s.stun_at = sim.time + cfg.core_stun_windup
+		sim.emit_event(&"core_stun_windup", {"id": s.id, "team": s.team, "radius": r, "at": s.stun_at})
+		return
+	if sim.time + 0.0001 < s.stun_at:
+		return
+	s.stun_at = -1.0
+	s.stun_ready_at = sim.time + cfg.core_stun_interval
+	var enemy := sim.heroes[1 - s.team]
+	var hit := enemy.alive and enemy.pos.distance_to(s.pos) <= r + enemy.radius
+	var troopers := 0
+	for m in sim.minions:
+		if m.alive and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
+			m.stun_until = maxf(m.stun_until, sim.time + cfg.core_stun_minion)
+			CombatSystem.cancel(sim, m)
+			troopers += 1
+	if hit:
+		Abilities._stun(sim, enemy, cfg.core_stun_hero)
+	sim.emit_event(&"core_stun", {"id": s.id, "team": s.team, "radius": r, "hit": hit, "troopers": troopers})
+
+
+static func _enemy_near(sim: MatchSim, s: StructureState, r: float) -> bool:
+	var enemy := sim.heroes[1 - s.team]
+	if enemy.alive and enemy.pos.distance_to(s.pos) <= r + enemy.radius:
+		return true
+	for m in sim.minions:
+		if m.alive and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
+			return true
+	return false
 
 
 ## Guardian stomp: each health threshold crossed starts a long telegraph; then every

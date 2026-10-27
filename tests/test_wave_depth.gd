@@ -1,5 +1,5 @@
 extends TestCase
-## Wave depth: last-hit bonus, special troopers, Shieldbearer shields, banners, and the
+## Wave depth: last-hit bonus, special troopers, Shieldbearer shields, and the
 ## wave meeting point.
 
 
@@ -61,41 +61,6 @@ func test_shieldbearer_stops_the_first_skillshot() -> void:
 	for i in 30:
 		Abilities._tick_skillshots(sim)
 	check(bearer.hp < bearer.max_hp, "the next shot gets through")
-
-
-func test_banner_buffs_the_takers_next_wave() -> void:
-	var sim := new_sim(true)
-	var blue := sim.heroes[0]
-	var red := sim.heroes[1]
-	place(red, Vector2(4, 30))
-	var sapper := sim.spawn_minion(MatchController.MINIONS[&"sapper"], MatchSim.RED, Vector2(0, 0))
-	sim.apply_damage(sapper, sapper.max_hp * 2.0, sim.structures_of(MatchSim.BLUE)[0])
-	check(sim.banners.size() == 1, "a dead special trooper drops a banner")
-	place(blue, Vector2(0, 0.5))
-	run_ticks(sim, 1)
-	check(sim.banners.is_empty() and sim.banner_pending[MatchSim.BLUE], "blue picked it up")
-	var plain := melee().max_hp
-	run_until(sim, func() -> bool: return sim.waves_spawned >= 1, int(20.0 / sim.dt))
-	var buffed := 0
-	for m in sim.minions:
-		if m.team == MatchSim.BLUE and m.data == melee():
-			check(m.bannered, "blue's next wave carries the banner")
-			check_near(m.max_hp, plain * (1.0 + _cfg().banner_hp_bonus), 0.5, "+20% HP (no time scaling this early)")
-			buffed += 1
-		elif m.team == MatchSim.RED:
-			check(not m.bannered, "red's wave is plain")
-	check(buffed > 0, "blue melee troopers found")
-	check(not sim.banner_pending[MatchSim.BLUE], "used up")
-
-
-func test_banner_expires_if_nobody_takes_it() -> void:
-	var sim := new_sim()
-	place(sim.heroes[0], Vector2(4, -30))
-	place(sim.heroes[1], Vector2(4, 30))
-	var bearer := sim.spawn_minion(MatchController.MINIONS[&"shieldbearer"], MatchSim.RED, Vector2(0, 0))
-	sim.apply_damage(bearer, bearer.max_hp * 2.0, sim.structures_of(MatchSim.BLUE)[0])
-	run_ticks(sim, int((_cfg().banner_lifetime + 0.5) / sim.dt))
-	check(sim.banners.is_empty() and sim.banner_pending == [false, false], "gone, and nobody got the buff")
 
 
 func test_meeting_point_is_between_the_wave_fronts() -> void:

@@ -186,7 +186,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			node.get_node("Body").visible = e.alive
 			node.get_node("Rubble").visible = not e.alive
 			var locked := not sim.is_exposed(e)
-			node.get_node("Body/Dome").visible = locked or sim.time < e.immune_until
+			node.get_node("Body/Dome").visible = locked or sim.time < e.immune_until or e.guarded
 			continue
 		node.visible = e.alive
 		if e is HeroState and e.team != local_seat and sim.is_hidden(e):
@@ -195,7 +195,6 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			node.scale = Vector3.ONE * 1.3
 		if e is MinionState:
 			_minion_step(e, node.get_node("Body"))
-			node.get_node("Flag").visible = e.bannered
 			var shield: Node3D = node.get_node_or_null("Body/Shield")
 			if shield != null:
 				shield.visible = e.shield_left > 0

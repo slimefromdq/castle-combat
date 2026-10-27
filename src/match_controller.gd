@@ -220,7 +220,8 @@ func fast_forward(seconds: float) -> void:
 	view.render(1.0, 0.0, true)
 
 
-## Dev: set up a moment for screenshots. "duel" / "perk" see below; "guardian" = your wave beside the enemy
+## Dev: set up a moment for screenshots. "duel" / "perk" see below; "laststand" = guarding your
+## Core while its stun winds up; "guardian" = your wave beside the enemy
 ## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
@@ -306,8 +307,7 @@ func stage(what: String) -> void:
 		view.render(1.0, 0.0, true)
 		return
 	if what == "waves":
-		# Special troopers mid-lane (a Shieldbearer and a Sapper each side), a banner on
-		# the ground in front of you, and a banner-buffed wave of yours.
+		# Special troopers mid-lane (a Shieldbearer and a Sapper each side).
 		for h in sim.heroes:
 			h.pos = MatchSim.to_team_space(h.team, Vector2(1.2, -8.0 if h.team == local_seat else -22.0))
 			h.prev_pos = h.pos
@@ -324,9 +324,6 @@ func stage(what: String) -> void:
 				m.max_hp *= 30.0
 				m.hp = m.max_hp
 				made.append(m)
-				if team == local_seat:
-					m.bannered = true
-		sim.banners.append({"id": sim.new_id(), "pos": MatchSim.to_team_space(local_seat, Vector2(-1.6, -6.0)), "expires_at": 1000.0})
 		fast_forward(0.4)
 		return
 	if what == "aim" or what == "shop":
@@ -379,6 +376,27 @@ func stage(what: String) -> void:
 		for h in sim.heroes:
 			h.prev_pos = h.pos
 		fast_forward(0.1)
+		return
+	if what == "laststand":
+		# Your Guardian just fell. You guard your Core from its front half circle while the
+		# enemy and a wave close in, and the Core's stun is winding up.
+		var me_l := sim.heroes[local_seat]
+		var them_l := sim.heroes[enemy]
+		var mine_l := sim.structures_of(local_seat)
+		sim.next_wave_time = 1000.0
+		sim.apply_damage(mine_l[0], mine_l[0].max_hp * 10.0, them_l)
+		sim.apply_damage(mine_l[1], mine_l[1].max_hp * 10.0, them_l)
+		mine_l[2].immune_until = 0.0
+		var fwd_l := MatchSim.forward(local_seat)
+		me_l.pos = mine_l[2].pos + fwd_l * 3.0 + Vector2(1.2, 0)
+		them_l.pos = mine_l[2].pos + fwd_l * 7.0 + Vector2(-1.5, 0)
+		for i in 3:
+			var m := sim.spawn_minion(MINIONS[&"melee"], enemy, mine_l[2].pos + fwd_l * (5.0 + 0.8 * i) + Vector2(1.6 - 1.2 * i, 0))
+			m.max_hp *= 20.0
+			m.hp = m.max_hp
+		for h in sim.heroes:
+			h.prev_pos = h.pos
+		fast_forward(1.6)
 		return
 	if what == "sprint":
 		# Start in the lane in front of your tower (pair with --walk-up to see a sprint).

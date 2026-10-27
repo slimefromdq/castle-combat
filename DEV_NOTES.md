@@ -495,3 +495,15 @@ Plan: [Occult Expansion Plan](https://claude.ai/artifact/8cY8YgQfxRdwM9Koj3BefU)
 - Dev: `--perf` with `--screenshot` prints draw calls, visible objects and node count. A busy mid-lane fight is about 150 draw calls and an alley about 240, with about 4.8k nodes (most are static scenery parts).
 - Listen outside the game: `godot --headless --path . -s tools/export_sounds.gd -- <folder>` writes every sound as a .wav.
 - Tests: `tests/test_audio.gd` (every recipe renders, is audible and doesn't clip; event mapping; distance falloff; volume and mute).
+
+## Diamond map rework, part 1: Core last stand and pacing
+
+Plan: [The Diamond Map](https://claude.ai/artifact/9QsLceWMzyf4wTLAmwZML2).
+
+- **Heal pad** stays on all match (it used to switch off when your Guardian fell). It sits behind the Core.
+- **Core last stand** (`Pacing.core_guarded`, `StructureState.guarded`): while the Core's own hero is alive and inside an 8 m half circle in front of the Core (toward the enemy), the Core takes no damage. The heal pad is behind the Core, so it never counts: healing means leaving the Core open. Overtime turns the guard off. The view shows the half circle on the ground (brighter while guarded), the Core's dome and a "Guarded" tag; the HUD structure line says "(guarded)".
+- **Core stun** (`Pacing._tick_core_stun`): once the Guardian has fallen, an enemy hero or trooper within 8 m starts a 2.5 s gold telegraph; everyone still inside is stunned (heroes 1 s, troopers 2 s, `MinionState.stun_until`), no damage. Ready again 18 s after it lands. Numbers: `core_guard_radius`, `core_stun_*` in MatchConfig.
+- **Pacing via resist only** (Lucy: no floors, no HP changes): resist starts higher (Outer Tower 45%, Guardian 35%, Core 30%), decays from 2:30 instead of 2:00 and reaches −30% at 10:00 instead of 12:00, so early structure damage counts for less and late damage for more. Gold for soaked damage halved to 0.15 per point, so the higher resist doesn't pay the leader more.
+- **Banners removed** (Lucy: too snowbally). Special troopers stay.
+- Bot: defends its Core from inside the guard half circle.
+- Dev: `--stage=laststand`. Tests: `tests/test_last_stand.gd`.

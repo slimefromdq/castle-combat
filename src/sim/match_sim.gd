@@ -43,10 +43,6 @@ var instruments: Array = []
 var kill_gold_mult := 1.0
 ## Team of the first hero to reach the ultimate level (Lv6), or -1 while nobody has.
 var ult_race_winner := -1
-## Banners dropped by special troopers: {"id", "pos", "expires_at"} (see Waves).
-var banners: Array[Dictionary] = []
-## Per team: a banner was taken, so that team's next wave spawns buffed.
-var banner_pending: Array[bool] = [false, false]
 ## Siege minions each team has earned (Relay deliveries) for its next wave.
 var pending_siege: Array[int] = [0, 0]
 var over := false
@@ -76,8 +72,6 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 	clouds.clear()
 	vipers.clear()
 	instruments.clear()
-	banners.clear()
-	banner_pending = [false, false]
 	kill_gold_mult = 1.0
 	ult_race_winner = -1
 	next_wave_time = cfg.first_wave_time
@@ -119,7 +113,6 @@ func step(commands: Array) -> void:
 	Economy.tick(self)
 	Items.tick(self)
 	Leveling.tick(self)
-	Waves.tick(self)
 	Pacing.tick(self)
 	for team in [BLUE, RED]:
 		var cmd: PlayerCommand = commands[team] if team < commands.size() else null
@@ -215,7 +208,7 @@ func front_structure(team: int) -> StructureState:
 func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &"basic") -> float:
 	if not target.alive or amount <= 0.0:
 		return 0.0
-	if target is StructureState and (not is_exposed(target) or time < target.immune_until):
+	if target is StructureState and (not is_exposed(target) or time < target.immune_until or target.guarded):
 		return 0.0
 	var hero_src := source as HeroState
 	if hero_src != null:
@@ -328,8 +321,6 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	emit_event(&"unit_killed", {"id": target.id, "kind": target.kind, "team": target.team, "killer": source.id if source != null else 0, "killer_team": killer_team})
 	Economy.on_kill(self, target, source)
 	Kits.on_kill(self, target, source)
-	if target is MinionState:
-		Waves.on_minion_killed(self, target)
 	if target is HeroState:
 		target.deaths += 1
 		target.respawn_at = time + Pacing.respawn_delay(self, target)
@@ -364,14 +355,10 @@ func _heal_at_base() -> void:
 			heal(h, h.max_hp * config.base_heal_per_second * dt)
 
 
-## True while this hero stands on its own healing pad and its Guardian still stands.
+## True while this hero stands on its own healing pad. The pad stays on all match
+## (Lucy's last stand); it sits behind the Core, outside the Core's guard zone.
 func can_heal_at_base(h: HeroState) -> bool:
-	if h.pos.distance_to(to_team_space(h.team, arena.heal_pad)) > arena.heal_pad_radius:
-		return false
-	for s in structures_of(h.team):
-		if s.is_guardian() and not s.alive:
-			return false
-	return true
+	return h.pos.distance_to(to_team_space(h.team, arena.heal_pad)) <= arena.heal_pad_radius
 
 
 func _apply_target_command(hero: HeroState, cmd: PlayerCommand) -> void:
@@ -426,12 +413,6 @@ func _spawn_wave() -> void:
 			var m := spawn_minion(siege, team, to_team_space(team, spawn + Vector2(0.0, -2.6)))
 			m.is_siege = true
 			emit_event(&"siege_spawned", {"id": m.id, "team": team})
-		if banner_pending[team]:
-			banner_pending[team] = false
-			for m in minions:
-				if m.team == team and m.spawn_wave == waves_spawned:
-					Waves.apply_banner(self, m)
-			emit_event(&"banner_wave", {"team": team})
 	emit_event(&"wave_spawned", {"wave": waves_spawned})
 
 
@@ -470,7 +451,7 @@ func reveal(h: HeroState) -> void:
 	h.revealed_until = maxf(h.revealed_until, time + config.bush_reveal_time)
 
 
-## A fresh id for something that is not an entity (banners).
+## A fresh id for something that is not an entity.
 func new_id() -> int:
 	_next_id += 1
 	return _next_id - 1

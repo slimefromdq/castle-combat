@@ -8,7 +8,7 @@ extends Resource
 ## Base respawn time; it grows over the match (see Pacing: respawn).
 @export var respawn_time := 4.0
 ## Heroes on their own healing pad (ArenaData.heal_pad, behind the Core) heal this
-## fraction of max HP per second, until their Guardian falls.
+## fraction of max HP per second, all match (the pad sits behind the Core).
 @export var base_heal_per_second := 0.12
 
 @export_group("Waves")
@@ -18,12 +18,6 @@ extends Resource
 @export var wave_ranged := 1
 ## Every special_wave_every-th wave adds a special trooper (Sapper, then Shieldbearer).
 @export var special_wave_every := 4
-## A banner (dropped by a dead special trooper) lasts banner_lifetime seconds; a hero who
-## walks within banner_pickup_radius takes it, and their next wave gets these bonuses.
-@export var banner_lifetime := 15.0
-@export var banner_pickup_radius := 1.0
-@export var banner_hp_bonus := 0.2
-@export var banner_damage_bonus := 0.2
 ## Minions notice enemies this close (metres) and leave the lane to fight them.
 @export var minion_aggro_range := 5.0
 
@@ -177,11 +171,11 @@ extends Resource
 ## Structure resist starts at StructureData.resist_start and falls in a straight line to
 ## resist_end between resist_decay_start and resist_end_time seconds. Damage taken is
 ## x (1 - resist), so -30% resist means +30% damage.
-@export var resist_decay_start := 120.0
-@export var resist_end_time := 720.0
+@export var resist_decay_start := 150.0
+@export var resist_end_time := 600.0
 @export var resist_end := -0.3
 ## Gold a hero earns for each point of its damage that structure resist soaks up.
-@export var resist_gold_per_damage := 0.3
+@export var resist_gold_per_damage := 0.15
 
 @export_group("Pacing: minions")
 ## Minions spawned after minion_scale_start grow by these fractions per minute.
@@ -203,6 +197,23 @@ extends Resource
 @export var guardian_fall_respawn_mult := 0.4
 ## When a Guardian falls, its Core takes no damage for this long (breathing room).
 @export var core_immunity_time := 8.0
+
+@export_group("Core last stand")
+## Lucy's last stand: while the Core's own hero is alive and stands within
+## core_guard_radius of it, on the side facing the enemy (a half circle in front, so
+## the heal pad behind the Core doesn't count), the Core takes no damage. Overtime
+## turns this off.
+@export var core_guard_radius := 8.0
+## Core stun: once its Guardian has fallen, whenever an enemy unit is within
+## core_stun_radius and the stun is ready, the Core winds up for core_stun_windup
+## seconds (a growing ring), then stuns every enemy still inside: heroes for
+## core_stun_hero, troopers for core_stun_minion. No damage. Ready again
+## core_stun_interval seconds after it lands.
+@export var core_stun_radius := 8.0
+@export var core_stun_windup := 2.5
+@export var core_stun_hero := 1.0
+@export var core_stun_minion := 2.0
+@export var core_stun_interval := 18.0
 
 @export_group("Pacing: overtime")
 ## Overtime starts at overtime_time if no Guardian has fallen, else at overtime_late_time.

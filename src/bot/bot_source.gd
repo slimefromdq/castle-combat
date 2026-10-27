@@ -297,7 +297,7 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		if me.pos.distance_to(pad) > 1.0:
 			cmd.move = _toward(me, _around_core(sim, me, pad))
 		return cmd
-	_healing = false  # The pad is off once our Guardian falls: fight on.
+	_healing = false
 
 	# 2. Never tank a tower: leave its range if it is shooting us or nothing of ours is there.
 	if their_front != null and me.pos.distance_to(their_front.pos) < their_front.attack_range + their_front.radius + 0.8:
@@ -326,9 +326,15 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		goal = them.pos
 		cmd.target_id = them.id
 	elif threat != null:
-		# 3. Defend the front structure.
+		# 3. Defend the front structure. At the Core, stay inside its guard half circle so
+		#    it can't take damage while we live.
 		engage = threat
 		goal = threat.pos
+		if home.tier == 2:
+			var off := threat.pos - home.pos
+			if off.dot(fwd) < 0.5:
+				off = fwd * 3.0
+			goal = home.pos + off.normalized() * minf(off.length(), sim.config.core_guard_radius - 1.5)
 	elif relay.is_available(sim.time) and me.hp > me.max_hp * 0.5 and relay_dist < 26.0 \
 			and relay_dist <= their_relay_dist + 2.0:
 		# R3. Go for the Relay when we would get there first (or tie).
@@ -336,11 +342,6 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 		if relay_dist < 3.0:
 			cmd.move = _toward(me, relay.pos) if relay_dist > 0.3 else Vector2.ZERO
 			return cmd
-	elif _banner_to_take(sim, me, their_front) != null:
-		# R4. A banner close by and out of their tower's reach: grab it for our next wave.
-		var banner: Dictionary = _banner_to_take(sim, me, their_front)
-		cmd.move = _toward(me, banner.pos)
-		return cmd
 	elif _candle_to_take(sim, me, them, seen) != null:
 		# R5. A lit candle close by, nobody fighting us for it: take it (XP + gold).
 		var candle: PickupController.Candle = _candle_to_take(sim, me, them, seen)
@@ -534,21 +535,6 @@ func _shop(sim: MatchSim, me: HeroState) -> Vector2i:
 			return Vector2i(-1, sell)
 		return Vector2i(-1, -1)
 	return Vector2i(-1, -1)
-
-
-## The nearest banner within 10 m that we can take safely, or null.
-func _banner_to_take(sim: MatchSim, me: HeroState, their_front: StructureState) -> Variant:
-	if me.hp < me.max_hp * 0.4:
-		return null
-	var best: Variant = null
-	for b in sim.banners:
-		var d := me.pos.distance_to(b.pos)
-		if d > 10.0 or (best != null and d >= me.pos.distance_to(best.pos)):
-			continue
-		if their_front != null and b.pos.distance_to(their_front.pos) < their_front.attack_range + their_front.radius + 1.0:
-			continue
-		best = b
-	return best
 
 
 ## True once no wishlist item is still worth saving for.

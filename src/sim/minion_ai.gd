@@ -6,6 +6,10 @@ class_name MinionAI
 static func tick(sim: MatchSim, m: MinionState) -> void:
 	if not m.alive:
 		return
+	if sim.time < m.stun_until:
+		if m.is_winding_up():
+			CombatSystem.cancel(sim, m)
+		return
 	if m.is_winding_up():
 		# Committed: stand still and finish (or lose) the attack.
 		CombatSystem.tick_attack(sim, m, true, func() -> SimEntity: return null)

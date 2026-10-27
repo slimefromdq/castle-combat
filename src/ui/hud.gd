@@ -432,6 +432,8 @@ func _refresh_details(sim: MatchSim, seat: int) -> void:
 				state += " (locked)"
 			if s.alive and sim.time < s.immune_until:
 				state += " (immune %d)" % ceili(s.immune_until - sim.time)
+			elif s.alive and s.guarded:
+				state += " (guarded)"
 			parts.append("%s %s" % [s.data.display_name, state])
 		t += "  ·  ".join(parts) + "\n\n"
 	_details_text.text = t.strip_edges()
@@ -488,10 +490,6 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 			if data.team != seat:
 				text = "Enemy Sapper incoming: kill it before it reaches your tower" if data.kind == &"sapper" \
 						else "Enemy Shieldbearer: its shield stops your first skillshot"
-		&"banner_dropped":
-			text = "A banner dropped: walk over it to buff your next wave"
-		&"banner_taken":
-			text = "Banner taken: your next wave is stronger" if data.team == seat else "The enemy took the banner: their next wave is stronger"
 		&"ult_race_won":
 			if data.team == seat:
 				text = "You reached Lv%d first! Ultimate ready (R): go fight" % Leveling.ULT_LEVEL
@@ -506,7 +504,10 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 		&"siege_scroll":
 			text = "Siege scroll: a siege trooper joins your next wave" if data.team == seat else "Enemy read a siege scroll: a siege trooper is coming"
 		&"guardian_fallen":
-			text = "Your Guardian fell!" if data.team == seat else "Enemy Guardian down! Your minions are powered up"
+			text = "Your Guardian fell! Stand in front of your Core to guard it" if data.team == seat else "Enemy Guardian down! Kill their hero or drive them off their Core"
+		&"core_stun_windup":
+			if data.team != seat and _sim_for_text != null and _sim_for_text.heroes[seat].pos.distance_to(_sim_for_text.get_entity(data.id).pos) < data.radius + 1.5:
+				text = "Core stun! Get out!"
 		&"guardian_slam_windup":
 			if data.team != seat and _sim_for_text != null and _sim_for_text.heroes[seat].pos.distance_to(_sim_for_text.get_entity(data.id).pos) < data.radius + 1.5:
 				text = "Guardian slam! Get out!"
@@ -997,7 +998,7 @@ class StructPips extends Control:
 			if s.hp < _last_hp[i] - 0.01:
 				_flash_until[i] = now + 900
 			_last_hp[i] = s.hp
-			states.append([s.alive, sim.is_exposed(s), s.alive and sim.time < s.immune_until, now < _flash_until[i]])
+			states.append([s.alive, sim.is_exposed(s), s.alive and (sim.time < s.immune_until or s.guarded), now < _flash_until[i]])
 		if states != _states:
 			_states = states
 			queue_redraw()

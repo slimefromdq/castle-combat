@@ -34,6 +34,7 @@ const SIMPLE := {
 	&"reentry_started": [&"reentry_whistle", 0.0], &"reentry_landed": [&"boom", 0.0],
 	&"candle_lit": [&"candle_lit", 0.3], &"candle_taken": [&"candle_taken", 0.0],
 	&"guardian_slam_windup": [&"slam_windup", 0.0], &"guardian_slam": [&"slam", 0.0],
+	&"core_stun_windup": [&"slam_windup", 0.0], &"core_stun": [&"immune", 0.0],
 	&"core_immune": [&"immune", 0.0], &"siege_spawned": [&"wave", 0.0],
 }
 
