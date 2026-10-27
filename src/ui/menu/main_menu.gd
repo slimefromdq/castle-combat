@@ -23,6 +23,8 @@ const SWIPE_MIN := 110.0
 var hero_index := 0
 ## Indices into MatchController.ITEMS (kept between matches).
 var deck: Array[int] = []
+## Index into Tricks.IDS: the Trick you bring (kept between matches).
+var trick_index := 0
 var current_tab := Tab.BATTLE
 
 var _pager: Control
@@ -46,6 +48,7 @@ var _hero_cards: Array[Button] = []
 var _kit_label: RichTextLabel
 var _deck_title: Label
 var _deck_slots: GridContainer
+var _trick_buttons: Array[Button] = []
 var _item_buttons: Array[Button] = []
 var _item_detail: Label
 
@@ -557,6 +560,17 @@ func _build_heroes_page() -> Control:
 	_kit_label.add_theme_color_override("default_color", Zine.INK)
 	kit.add_child(_kit_label)
 	v.add_child(kit)
+	v.add_child(_section("YOUR TRICK", Zine.LILAC, 76))
+	var trick_row := GridContainer.new()
+	trick_row.columns = 4
+	trick_row.add_theme_constant_override("h_separation", 8)
+	v.add_child(trick_row)
+	for i in Tricks.IDS.size():
+		var b := _trick_card(i)
+		b.pressed.connect(pick_trick.bind(i))
+		trick_row.add_child(b)
+		_trick_buttons.append(b)
+	_refresh_tricks()
 	_deck_title = Zine.label("", Zine.DISPLAY, 1)  # text set in _refresh_deck
 	v.add_child(_section("YOUR DECK", Zine.PINK, 73, _deck_title))
 	_deck_slots = GridContainer.new()
@@ -677,6 +691,52 @@ func _item_card(i: int, slot: bool) -> Button:
 		check.rotation_degrees = -7
 		b.add_child(check)
 	return b
+
+
+## One Trick sticker: name on the Trick's colour, a PICKED tag on the chosen one.
+func _trick_card(i: int) -> Button:
+	var id: StringName = Tricks.IDS[i]
+	var cfg := MatchController.CONFIG
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, 92)
+	b.tooltip_text = "%s (%d s)\n%s" % [Tricks.display_name(id), roundi(Tricks.cooldown(cfg, id)), Tricks.summary(cfg, id)]
+	Zine.style_button(b, Tricks.COLORS[id], 760 + i, 6.0)
+	var n := Zine.label(Tricks.display_name(id), Zine.MARKER, 20)
+	n.set_anchors_preset(Control.PRESET_FULL_RECT)
+	n.offset_bottom = -8
+	n.offset_right = -8
+	n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	n.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(n)
+	var tag := Zine.panel(Zine.PINK, 780 + i, 2)
+	tag.name = "Picked"
+	var tb := tag.get_theme_stylebox("panel") as ZineBox
+	tb.shadow = Vector2(2, 3)
+	tb.border = 3
+	tb.content_margin_left = 6
+	tb.content_margin_right = 8
+	tag.add_child(Zine.label("PICKED", Zine.DISPLAY, 13, Zine.WHITE, 4))
+	tag.position = Vector2(-4, -8)
+	tag.rotation_degrees = -7
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(tag)
+	return b
+
+
+func pick_trick(i: int) -> void:
+	trick_index = clampi(i, 0, Tricks.IDS.size() - 1)
+	var id: StringName = Tricks.IDS[trick_index]
+	if _item_detail != null:
+		_item_detail.text = "%s  (Trick · %d s cooldown)\n%s" % [Tricks.display_name(id), roundi(Tricks.cooldown(MatchController.CONFIG, id)), Tricks.summary(MatchController.CONFIG, id)]
+	_refresh_tricks()
+
+
+func _refresh_tricks() -> void:
+	for i in _trick_buttons.size():
+		_trick_buttons[i].get_node("Picked").visible = i == trick_index
 
 
 func _show_detail(i: int) -> void:

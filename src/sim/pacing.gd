@@ -197,7 +197,7 @@ static func _tick_core_stun(sim: MatchSim, s: StructureState) -> void:
 			CombatSystem.cancel(sim, m)
 			troopers += 1
 	if hit:
-		Abilities._stun(sim, enemy, cfg.core_stun_hero)
+		Abilities._stun(sim, enemy, cfg.core_stun_hero, false)
 	sim.emit_event(&"core_stun", {"id": s.id, "team": s.team, "radius": r, "hit": hit, "troopers": troopers})
 
 
@@ -243,5 +243,5 @@ static func _tick_slam(sim: MatchSim, s: StructureState) -> void:
 	if enemy.alive:
 		var away := enemy.pos - s.pos
 		away = away.normalized() if away.length() > 0.01 else MatchSim.forward(s.team)
-		Abilities._force(sim, enemy, away * d.slam_knockback, 0.3, false)
-		Abilities._stun(sim, enemy, d.slam_stun)
+		Abilities._stun(sim, enemy, d.slam_stun, false)
+		Abilities.displace(sim, enemy, away * d.slam_knockback, 0.3, false)

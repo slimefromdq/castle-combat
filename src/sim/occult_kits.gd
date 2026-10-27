@@ -306,7 +306,7 @@ static func _brass(sim: MatchSim, h: HeroState, a: AbilityData, move: Vector2, k
 			continue
 		var away := to.normalized() if to.length() > 0.01 else dir
 		if e is HeroState:
-			Abilities.force(sim, e, away * push, a.travel_time, false)
+			Abilities.displace(sim, e, away * push, a.travel_time)
 			Abilities.interrupt(sim, e)
 		else:
 			e.pos = Abilities.free_spot(sim, e, e.pos + away * push, e.pos)
@@ -360,7 +360,7 @@ static func _tick_finale(sim: MatchSim, h: HeroState) -> void:
 		var to := e.pos - h.pos
 		var away := to.normalized() if to.length() > 0.01 else h.facing
 		if e is HeroState:
-			Abilities.force(sim, e, away * a.distance, 0.2, false)
+			Abilities.displace(sim, e, away * a.distance, 0.2)
 			Abilities.interrupt(sim, e)
 		else:
 			e.pos = Abilities.free_spot(sim, e, e.pos + away * a.distance, e.pos)

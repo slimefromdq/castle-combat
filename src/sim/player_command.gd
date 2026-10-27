@@ -23,3 +23,6 @@ var sell_slot := -1
 var buy_scroll := false
 ## Deck card slot whose owned item to make a Masterwork (level 8+), or -1.
 var masterwork_slot := -1
+## Use the hero's Trick (Blink, Cleanse, Barrier or Brand) this tick. Blink goes the way
+## of `aim`, else `move`.
+var use_trick := false

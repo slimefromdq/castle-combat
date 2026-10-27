@@ -33,6 +33,8 @@ const SIMPLE := {
 	&"drone_zap": [&"drone_zap", 0.1], &"drone_pulse": [&"drone_pulse", 0.0],
 	&"reentry_started": [&"reentry_whistle", 0.0], &"reentry_landed": [&"boom", 0.0],
 	&"fruit_eaten": [&"candle_taken", 0.08],
+	&"cc_resisted": [&"immune", 0.2], &"interrupted": [&"snap", 0.0], &"brand_landed": [&"hiss", 0.0],
+	&"shutdown": [&"coin", 0.0],
 	&"phase_two": [&"phase_two", 0.0],
 	&"guardian_slam_windup": [&"slam_windup", 0.0], &"guardian_slam": [&"slam", 0.0],
 	&"core_stun_windup": [&"slam_windup", 0.0], &"core_stun": [&"immune", 0.0],
@@ -62,6 +64,10 @@ func sound_for(type: StringName, data: Dictionary) -> Array:
 				return [&"tower_shot", _db_at(a.pos, data.target == me.id) - 3.0, 0.05]
 			if a != null:
 				return [&"trooper_hit", _db_at(a.pos, false) - 6.0, 0.07]
+		&"trick_used":
+			var th := sim.get_entity(data.hero) as HeroState
+			var tsound: StringName = {&"blink": &"teleport", &"cleanse": &"heal", &"barrier": &"shield", &"brand": &"cast_q"}.get(data.trick, &"cast_q")
+			return [tsound, _db_at(data.pos, th == me), 0.0]
 		&"ability_cast":
 			var h := sim.get_entity(data.hero) as HeroState
 			if h == null:

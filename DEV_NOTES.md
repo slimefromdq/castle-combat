@@ -543,3 +543,17 @@ Plan: [Duel First](https://claude.ai/artifact/KSBvYVRL9jjjUqzxHatHkS). Lucy: neu
 - **Bushes:** the 6 lane bushes stay; the 4 diamond bushes moved inside the new edges.
 - **Income (G1):** troopers pay about 18% more XP and 10% more gold (melee/ranged 26 XP, 22/33 gold; specials 35 XP, 38 gold; siege 70 XP, 66 gold). Passive XP 0.35 -> 0.8 per second.
 - Part 2 (after Lucy's playtest): Tricks, CC grace, interrupt refunds, shutdown bounty.
+
+## Duel First, part 2: duel kit (Lucy, 2026-10-27)
+
+- **Tricks** (`src/sim/tricks.gd`, MatchConfig "Tricks"): one per hero, picked on the Heroes & Items page ("YOUR TRICK", `MainMenu.trick_index`), ready from the start. Button above E (drag to aim a Blink), keyboard T, dev `--trick=brand`.
+  - Blink: 4 m hop the way you aim or move, 40 s. Not while stunned, rooted, dashing or carrying the Relay.
+  - Cleanse: ends stuns, roots and slows, then 1 s of hard-CC immunity, 45 s. Works while stunned.
+  - Barrier: shield of 15% max HP for 2 s, 40 s.
+  - Brand: arms for 5 s; the next hit on the enemy hero burns (40 + 12/level over 3 s) and halves their healing for 4 s, 40 s.
+  - Bot Tricks per hero: `MatchController.BOT_TRICKS`; use rules in `BotSource._use_trick`.
+- **CC grace** (`Abilities.take_hard_cc`, `cc_blocked`, `displace`): stuns, roots and enemy knockbacks/pulls are hard CC. Once one ends, new hard CC slides off for `cc_grace_time` (1 s), starting 0.1 s after the end so a combo's own follow-up (a fling into a wall) still lands. CC stacking during an active CC works as before. Enemy pushes now go through `Abilities.displace`; self-dashes still use `force`.
+- **Interrupt refund** (`Abilities._reward_interrupt`): breaking a channel, a charge or a dash (stuns now stop dashes) gives the enemy hero 30% of their last-cast ability's cooldown back, if they cast within 4 s. Core and Guardian stuns refund nothing. "Interrupted!" pop.
+- **Shutdown bounty** (`Economy.shutdown_bounty`, `HeroState.streak`): 2+ knockouts without dying make you worth 200 gold at 0:00, rising to 1000 at 11:00 (no gold ramp on top), paid to whoever knocks you out. Shown on the name plate ("Lv 5 · Bounty 420g"), plus HUD lines when a streak starts and on a shutdown.
+- No enemy cooldown pips (Lucy said no). Fervor is parked for later.
+- Tests: `tests/test_duel_kit.gd`.

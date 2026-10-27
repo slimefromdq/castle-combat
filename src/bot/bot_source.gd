@@ -65,11 +65,37 @@ func build_command(sim: MatchSim) -> PlayerCommand:
 	if me.alive and not sim.over:
 		cmd.cast_slot = _choose_ability(sim, me, cmd)
 		_dodge_slam(sim, me, cmd)
+		cmd.use_trick = _use_trick(sim, me, cmd)
 	var tier := me.pending_perk_tier()
 	if tier >= 0:
 		var picks: Array = perk_choices if perk_choices.size() == 3 else PERK_PICKS.get(me.data.id, [0, 0, 0])
 		cmd.perk_pick = picks[tier]
 	return cmd
+
+
+## When to use the Trick: Blink away when low and hunted, Cleanse a stun or root in a
+## fight, Barrier when the enemy hero is hurting us, Brand before trading on a hurt enemy.
+func _use_trick(sim: MatchSim, me: HeroState, cmd: PlayerCommand) -> bool:
+	if Tricks.problem(sim, me) != "":
+		return false
+	var them := sim.heroes[1 - team]
+	var seen := them.alive and not sim.is_hidden(them)
+	var d := me.pos.distance_to(them.pos) if seen else INF
+	var my_hp := me.hp / me.max_hp
+	var hurt_recently := sim.time - me.last_hero_damage_time < 1.0
+	match me.trick:
+		&"blink":
+			if my_hp < 0.3 and seen and d < 6.0:
+				var away := me.pos - them.pos
+				cmd.move = away.normalized() if away.length() > 0.01 else -MatchSim.forward(team)
+				return true
+		&"cleanse":
+			return seen and d < 9.0 and ((me.is_stunned(sim.time) and me.stun_until - sim.time > 0.4) or me.is_rooted())
+		&"barrier":
+			return hurt_recently and my_hp < 0.55 and seen and d < 8.0
+		&"brand":
+			return seen and CombatSystem.in_range(sim, me, them) and them.hp / them.max_hp < 0.7
+	return false
 
 
 ## A Guardian winding up a slam nearby: walk straight out of it (baiting the slam and

@@ -59,7 +59,7 @@ var _next_cast_key := 1
 
 
 ## decks[team] is that hero's six-card item deck (an empty deck means no shopping).
-func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData], tiers: Array[StructureData], minion_data: Dictionary = {}, decks: Array = []) -> void:
+func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData], tiers: Array[StructureData], minion_data: Dictionary = {}, decks: Array = [], tricks: Array = []) -> void:
 	config = cfg
 	arena = arena_data
 	minion_types = minion_data
@@ -96,6 +96,8 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 		h.gold = cfg.starting_gold
 		if team < decks.size():
 			h.deck.assign(decks[team])
+		if team < tricks.size() and Tricks.IDS.has(tricks[team]):
+			h.trick = tricks[team]
 		_register(h)
 		heroes.append(h)
 	relay.setup(self)
@@ -137,6 +139,8 @@ func step(commands: Array) -> void:
 		hero.aim = cmd.aim.normalized() if cmd.aim.length() > 0.01 else Vector2.ZERO
 		if cmd.cast_slot >= 0:
 			Abilities.try_cast(self, hero, cmd.cast_slot, cmd.move)
+		if cmd.use_trick:
+			Tricks.try_use(self, hero, cmd.move)
 		Sprint.tick(self, hero, cmd)
 		if Abilities.move_forced(self, hero):
 			hero.moving = true  # Dashing or knocked back: no attacking meanwhile.
@@ -146,6 +150,7 @@ func step(commands: Array) -> void:
 		else:
 			Movement.move_hero(self, hero, cmd.move, dt)
 	Abilities.tick(self)
+	Tricks.tick(self)
 	if minion_types.size() > 0 and time + 0.0001 >= next_wave_time:
 		_spawn_wave()
 	for m in minions:
@@ -240,6 +245,7 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 			_kill(target, source)
 	if hero_src != null and target is HeroState and hero_src.team != target.team and dealt > 0.0:
 		relay.on_enemy_damage(self, hero_src, target)
+		Tricks.on_hero_damage(self, hero_src, target)
 	if hero_src != null:
 		Items.after_hit(self, hero_src, target, dealt, raw, kind)
 		Kits.after_damage(self, hero_src, target, dealt, kind)

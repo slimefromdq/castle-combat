@@ -179,7 +179,28 @@ static func on_kill(sim: MatchSim, target: SimEntity, source: SimEntity) -> void
 			_award(sim, hero, target.data.gold_bounty * share, &"denied" if denied else &"nearby")
 			Leveling.gain(sim, hero, target.data.xp_bounty * share)
 	elif target is HeroState:
-		_award(sim, sim.heroes[1 - target.team], sim.config.hero_ko_gold, &"knockout")
+		var killer := sim.heroes[1 - target.team]
+		_award(sim, killer, sim.config.hero_ko_gold, &"knockout")
+		var bounty := shutdown_bounty(sim, target)
+		if bounty > 0.0:
+			killer.gold += bounty
+			sim.emit_event(&"gold_awarded", {"hero": killer.id, "team": killer.team, "amount": bounty, "reason": &"shutdown"})
+			sim.emit_event(&"shutdown", {"hero": killer.id, "team": killer.team, "victim": target.id, "streak": target.streak, "amount": bounty, "pos": target.pos})
+		target.streak = 0
+		killer.streak += 1
+		if killer.streak == sim.config.shutdown_streak:
+			sim.emit_event(&"bounty_up", {"hero": killer.id, "team": killer.team, "amount": shutdown_bounty(sim, killer)})
+
+
+## Duel First: what knocking this hero out is worth on top of the usual knockout gold.
+## 0 until they have shutdown_streak knockouts in a row, then shutdown_gold_start at 0:00
+## rising to shutdown_gold_end at shutdown_gold_end_time.
+static func shutdown_bounty(sim: MatchSim, h: HeroState) -> float:
+	var cfg := sim.config
+	if h.streak < cfg.shutdown_streak:
+		return 0.0
+	var k := clampf(sim.time / maxf(1.0, cfg.shutdown_gold_end_time), 0.0, 1.0)
+	return lerpf(cfg.shutdown_gold_start, cfg.shutdown_gold_end, k)
 
 
 ## Siege Banner: an allied hero's aura boosts a minion's damage to structures.

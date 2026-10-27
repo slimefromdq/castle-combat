@@ -99,6 +99,44 @@ extends Resource
 @export var fruit_heal := 0.12
 @export var fruit_heal_time := 3.0
 
+@export_group("Tricks")
+## Duel First: one Trick per hero, picked before the match (see Tricks). Ready at the start.
+## Blink: hop trick_blink_distance metres the way you aim or move.
+@export var trick_blink_distance := 4.0
+@export var trick_blink_cooldown := 40.0
+## Cleanse: end stuns, roots and slows, then shrug off hard CC for trick_cleanse_immunity s.
+@export var trick_cleanse_immunity := 1.0
+@export var trick_cleanse_cooldown := 45.0
+## Barrier: a shield of trick_barrier_shield of max HP for trick_barrier_time seconds.
+@export var trick_barrier_shield := 0.15
+@export var trick_barrier_time := 2.0
+@export var trick_barrier_cooldown := 40.0
+## Brand: arms for trick_brand_window s; your next hit on the enemy hero burns them for
+## trick_brand_burn + trick_brand_burn_per_level x your level over trick_brand_burn_time s
+## and cuts their healing by trick_brand_wounds for trick_brand_wounds_time s.
+@export var trick_brand_window := 5.0
+@export var trick_brand_burn := 40.0
+@export var trick_brand_burn_per_level := 12.0
+@export var trick_brand_burn_time := 3.0
+@export var trick_brand_wounds := 0.5
+@export var trick_brand_wounds_time := 4.0
+@export var trick_brand_cooldown := 40.0
+
+@export_group("Duel rules")
+## CC grace: once a stun, root or knockback on a hero ends, new ones slide off for this long.
+@export var cc_grace_time := 1.0
+## Interrupting a channel, a charge or a dash refunds this fraction of the interrupting
+## hero's last-cast ability cooldown (cast within interrupt_refund_window seconds).
+@export var interrupt_refund := 0.3
+@export var interrupt_refund_window := 4.0
+## Shutdown bounty: a hero on a streak of shutdown_streak+ knockouts (without dying) is
+## worth extra gold to whoever knocks them out: shutdown_gold_start at 0:00, rising in a
+## straight line to shutdown_gold_end at shutdown_gold_end_time. No gold ramp on top.
+@export var shutdown_streak := 2
+@export var shutdown_gold_start := 200.0
+@export var shutdown_gold_end := 1000.0
+@export var shutdown_gold_end_time := 660.0
+
 @export_group("Levels")
 ## Total XP needed to reach each level (index 0 = level 1). See Leveling for what each
 ## level unlocks (abilities 1, 3, 6; perks 2, 4, 7; passives 3, 8).

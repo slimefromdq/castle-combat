@@ -136,6 +136,8 @@ static func try_cast(sim: MatchSim, h: HeroState, slot: int, move: Vector2) -> b
 			start_cooldown = Kits.cast(sim, h, slot, a, move, recast, key, info)
 	if start_cooldown:
 		h.cooldowns[slot] = h.ability_cooldown(slot)
+	h.last_cast_slot = slot
+	h.last_cast_time = sim.time
 	if h.data.abilities[slot].effect == &"encore":
 		info.copied = a.id
 		_stage_presence(sim, h)
@@ -260,7 +262,7 @@ static func after_basic(sim: MatchSim, h: HeroState, t: SimEntity) -> void:
 		var away := t.pos - h.pos
 		away = away.normalized() if away.length() > 0.01 else h.facing
 		var victim := t as HeroState
-		_force(sim, victim, away * h.has_special(&"charge"), 0.25, false)
+		displace(sim, victim, away * h.has_special(&"charge"), 0.25)
 		_interrupt(sim, victim)
 	var encore := h.has_special(&"encore")
 	if encore > 0.0:
@@ -307,7 +309,7 @@ static func _judgment_hit(sim: MatchSim, s: Skillshot, e: HeroState) -> void:
 	var from_me := e.pos - h.pos
 	var dir := from_me.normalized() if from_me.length() > 0.01 else h.facing
 	var spot := h.pos + dir * (h.radius + e.radius + 0.6)
-	_force(sim, e, spot - e.pos, 0.3, false)
+	displace(sim, e, spot - e.pos, 0.3)
 	var judgment := h.perk_with(&"judgment")
 	if judgment != null:
 		e.judged_until = sim.time + judgment.special_duration
@@ -554,19 +556,85 @@ static func _hit(sim: MatchSim, h: HeroState, e: SimEntity, a: AbilityData, key:
 	return dealt
 
 
-static func _stun(sim: MatchSim, e: HeroState, seconds: float) -> void:
+static func _stun(sim: MatchSim, e: HeroState, seconds: float, by_hero := true) -> void:
+	if not take_hard_cc(sim, e, seconds):
+		return
 	e.stun_until = maxf(e.stun_until, sim.time + seconds)
-	_interrupt(sim, e)
+	_interrupt(sim, e, by_hero)
 
 
-## Stuns and knockbacks cut off attacks, channels and charges.
-static func _interrupt(sim: MatchSim, e: HeroState) -> void:
+const CC_COMBO_SLACK := 0.1
+
+## CC grace (Duel First): true while new hard CC (stuns, roots, knockbacks, pulls) slides
+## off this hero: for cc_grace_time after the last one ended, or while Cleanse protects.
+static func cc_blocked(sim: MatchSim, e: HeroState) -> bool:
+	if sim.time < e.cc_immune_until:
+		return true
+	# A follow-up that lands as the CC ends (a fling hitting a wall) still counts: the grace
+	# starts CC_COMBO_SLACK after.
+	var from := e.hard_cc_until + CC_COMBO_SLACK
+	return e.hard_cc_until > 0.0 and sim.time >= from and sim.time < from + sim.config.cc_grace_time
+
+
+## Asks to put `seconds` of hard CC on a hero. False (and a "cc_resisted" event) if it
+## slides off; otherwise the hero's hard-CC window grows to cover it.
+static func take_hard_cc(sim: MatchSim, e: HeroState, seconds: float) -> bool:
+	if cc_blocked(sim, e):
+		sim.emit_event(&"cc_resisted", {"hero": e.id, "team": e.team, "pos": e.pos})
+		return false
+	var end := sim.time + seconds
+	e.hard_cc_until = maxf(e.hard_cc_until, end) if sim.time < e.hard_cc_until else end
+	return true
+
+
+## Knocks, pulls or flings an enemy hero: like force, but it is hard CC (CC grace may
+## stop it) and it cuts off a dash in progress. Returns false if it slid off.
+static func displace(sim: MatchSim, e: HeroState, offset: Vector2, seconds: float, by_hero := true) -> bool:
+	if not take_hard_cc(sim, e, seconds):
+		return false
+	var dashing := e.forced_ticks > 0 and e.forced_self
+	_force(sim, e, offset, seconds, false)
+	e.forced_self = false
+	if dashing:
+		_reward_interrupt(sim, e, by_hero)
+	return true
+
+
+## Stuns and knockbacks cut off attacks, channels, charges and dashes. Breaking a channel,
+## charge or dash pays the enemy hero an interrupt refund (Duel First).
+static func _interrupt(sim: MatchSim, e: HeroState, by_hero := true) -> void:
+	if cc_blocked(sim, e):
+		return
+	var broke := e.channel != null or e.is_charging() or (e.forced_ticks > 0 and e.forced_self)
 	CombatSystem.cancel(sim, e)
 	_end_channel(sim, e)
 	if e.is_charging():
 		e.charging_since = -1.0
 		e.cooldowns[1] = e.ability_cooldown(1) * 0.5
 		sim.emit_event(&"charge_cancelled", {"hero": e.id})
+	if e.forced_ticks > 0 and e.forced_self:
+		e.forced_ticks = 0
+		e.forced_vel = Vector2.ZERO
+		e.forced_volley = null
+	if broke:
+		_reward_interrupt(sim, e, by_hero)
+
+
+## The enemy hero broke `e`'s channel, charge or dash: "Interrupted!", and if a hero did
+## it, interrupt_refund of their last-cast ability's cooldown comes back.
+static func _reward_interrupt(sim: MatchSim, e: HeroState, by_hero: bool) -> void:
+	if e.last_interrupt_time == sim.time:
+		return
+	e.last_interrupt_time = sim.time
+	var them := sim.heroes[1 - e.team]
+	var info := {"hero": e.id, "team": e.team, "by": them.id if by_hero else 0, "pos": e.pos, "refund": 0.0}
+	if by_hero and them.last_cast_slot >= 0 and sim.time - them.last_cast_time <= sim.config.interrupt_refund_window:
+		var slot := them.last_cast_slot
+		var refund := minf(them.cooldowns[slot], them.ability_cooldown(slot) * sim.config.interrupt_refund)
+		them.cooldowns[slot] -= refund
+		info.refund = refund
+		info.slot = slot
+	sim.emit_event(&"interrupted", info)
 
 
 ## Starts a dash or knockback: cover `offset` in `seconds`.
@@ -575,6 +643,7 @@ static func _force(sim: MatchSim, h: HeroState, offset: Vector2, seconds: float,
 	h.forced_vel = offset / (ticks * sim.dt)
 	h.forced_ticks = ticks
 	h.forced_volley = null
+	h.forced_self = true
 	if turn and offset.length() > 0.01:
 		h.facing = offset.normalized()
 	CombatSystem.cancel(sim, h)

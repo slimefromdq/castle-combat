@@ -77,6 +77,12 @@ const BOT_DECKS := {
 	&"fermata": [18, 1, 17, 21, 23, 26, 28, 6],
 	&"kosmonaut": [17, 1, 19, 21, 25, 28, 7, 9],
 }
+## The bot's Trick for each hero it plays (Duel First).
+const BOT_TRICKS := {
+	&"avery": &"cleanse", &"jose": &"blink", &"jack": &"blink", &"ahab": &"barrier",
+	&"slayer": &"brand", &"huddle": &"barrier", &"poppet": &"brand", &"tot": &"cleanse",
+	&"serpent": &"blink", &"fermata": &"barrier", &"kosmonaut": &"blink",
+}
 const TIERS: Array[StructureData] = [
 	preload("res://data/structures/outer_tower.tres"),
 	preload("res://data/structures/guardian.tres"),
@@ -87,6 +93,8 @@ const TIERS: Array[StructureData] = [
 var hero_index := 0
 ## The local player's six-card deck (from the menu); empty = DEFAULT_DECK.
 var deck: Array[ItemData] = []
+## The local player's Trick (from the menu).
+var trick: StringName = &"blink"
 var local_seat := MatchSim.BLUE
 var touch_mode := false
 ## Dev: the bot also drives the local hero (for screenshots and soak tests).
@@ -114,7 +122,9 @@ func _ready() -> void:
 	var mine := deck if deck.size() == CONFIG.deck_size else deck_from(DEFAULT_DECK)
 	var theirs := bot_deck(picks[1])
 	var decks := [mine, theirs] if local_seat == MatchSim.BLUE else [theirs, mine]
-	sim.setup(CONFIG, ARENA, picks, TIERS, MINIONS, decks)
+	var their_trick: StringName = BOT_TRICKS.get(picks[1].id, &"barrier")
+	var tricks := [trick, their_trick] if local_seat == MatchSim.BLUE else [their_trick, trick]
+	sim.setup(CONFIG, ARENA, picks, TIERS, MINIONS, decks, tricks)
 	view = MatchView.new()
 	add_child(view)
 	view.build(sim, local_seat)
@@ -126,6 +136,9 @@ func _ready() -> void:
 	hud.menu_pressed.connect(func() -> void: exit_requested.emit())
 	hud.restart_pressed.connect(func() -> void: restart_requested.emit())
 	hud.drop_pressed.connect(func() -> void: player.pending_drop = true)
+	hud.trick_aimed.connect(func(screen_dir: Vector2) -> void:
+		player.pending_trick = true
+		player.pending_trick_aim = LocalPlayerSource.screen_to_sim(screen_dir, local_seat))
 	hud.buy_pressed.connect(func(slot: int) -> void: player.pending_buy = slot)
 	hud.sell_pressed.connect(func(slot: int) -> void: player.pending_sell = slot)
 	hud.cast_aimed.connect(func(slot: int, screen_dir: Vector2) -> void:
@@ -480,6 +493,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_touch()
 	elif event.is_action_pressed("drop_relay"):
 		player.pending_drop = true
+	elif event.is_action_pressed("use_trick"):
+		player.pending_trick = true
 	elif event.is_action_pressed("show_deck"):
 		hud.toggle_details()
 	elif event.is_action_pressed("toggle_debug"):
