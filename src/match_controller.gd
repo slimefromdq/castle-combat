@@ -105,6 +105,7 @@ var _mouse_seen := false
 var _intro: MatchIntro
 var _victory: MatchVictory
 var _victory_started := false
+var _audio: MatchAudio
 
 
 func _ready() -> void:
@@ -143,6 +144,10 @@ func _ready() -> void:
 	# Real touch screens get the joystick by default; desktop can opt in with F3.
 	touch_mode = DisplayServer.is_touchscreen_available()
 	hud.set_touch_mode(touch_mode, not DisplayServer.is_touchscreen_available())
+	_audio = MatchAudio.new()
+	_audio.name = "Audio"
+	add_child(_audio)
+	_audio.setup(sim, local_seat)
 	if play_intro:
 		_intro = MatchIntro.new()
 		_intro.setup(sim.heroes[local_seat].data, sim.heroes[1 - local_seat].data)
@@ -173,6 +178,7 @@ func _start_victory() -> void:
 	_victory_started = true
 	var w := sim.heroes[sim.winner]
 	view.celebrate(sim.winner)
+	Sfx.play(&"victory" if sim.winner == local_seat else &"defeat")
 	_victory = MatchVictory.new()
 	_victory.setup(sim.winner == local_seat, w.data, Palette.team_color(sim.winner == local_seat))
 	_victory.finished.connect(func() -> void: _victory = null)
@@ -459,6 +465,7 @@ func toggle_seat() -> void:
 	player.team = local_seat
 	bot.team = 1 - local_seat
 	bot.reset()
+	_audio.seat = local_seat
 	view.set_local_seat(local_seat)
 
 

@@ -31,6 +31,7 @@ const BINDINGS := {
 	"toggle_touch": [KEY_F3],
 	"back": [KEY_ESCAPE],
 	"toggle_fullscreen": [KEY_F11],
+	"toggle_mute": [KEY_M],
 }
 
 
@@ -38,10 +39,13 @@ func _enter_tree() -> void:
 	register()
 
 
-## F11 anywhere (menus too). On the web this must come from a key or click, which it does.
+## F11 (fullscreen) and M (mute) anywhere, menus too. On the web this must come from a key or click, which it does.
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_fullscreen"):
 		UiKit.toggle_fullscreen()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("toggle_mute"):
+		Sfx.toggle_mute()
 		get_viewport().set_input_as_handled()
 
 

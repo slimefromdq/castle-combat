@@ -118,7 +118,13 @@ func _process(delta: float) -> void:
 func advance(delta: float) -> void:
 	if _done:
 		return
+	var before := _t
 	_t += delta
+	# Paper slaps as the flyers land, then the VS hit.
+	if before < 0.25 and _t >= 0.25:
+		Sfx.play(&"slap")
+	if before < SLIDE + 0.05 and _t >= SLIDE + 0.05:
+		Sfx.play(&"vs")
 	var vp := _screen()
 	# Slide in from off-screen sides, then fly out the way they came.
 	var into := _ease(clampf(_t / SLIDE, 0.0, 1.0))

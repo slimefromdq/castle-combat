@@ -1,7 +1,7 @@
 class_name DoodleIcon
 extends Control
 ## Hand-drawn style tab icons, drawn with ink lines and flat fills.
-## Kinds: shop, heroes, battle, clan, tournaments.
+## Kinds: shop, heroes, battle, clan, tournaments, coin, gem, trophy, speaker, speaker_off.
 
 var kind := "battle"
 var line := 4.0
@@ -88,6 +88,14 @@ func _draw() -> void:
 			draw_arc(u.call(0.75, 0.3), s * 0.1, -PI * 0.5, PI * 0.5, 12, Zine.INK, line, true)
 			_shape(PackedVector2Array([u.call(0.45, 0.6), u.call(0.55, 0.6), u.call(0.57, 0.74), u.call(0.43, 0.74)]), Zine.SUN)
 			_shape(PackedVector2Array([u.call(0.3, 0.74), u.call(0.7, 0.74), u.call(0.72, 0.88), u.call(0.28, 0.88)]), Zine.PINK)
+		"speaker", "speaker_off":
+			_shape(PackedVector2Array([u.call(0.12, 0.38), u.call(0.3, 0.38), u.call(0.52, 0.18), u.call(0.52, 0.82), u.call(0.3, 0.62), u.call(0.12, 0.62)]), Zine.SUN)
+			if kind == "speaker":
+				draw_arc(u.call(0.52, 0.5), s * 0.16, -0.8, 0.8, 10, Zine.INK, line, true)
+				draw_arc(u.call(0.52, 0.5), s * 0.3, -0.8, 0.8, 12, Zine.INK, line, true)
+			else:
+				draw_line(u.call(0.64, 0.36), u.call(0.9, 0.64), Zine.PINK.darkened(0.2), line * 1.2, true)
+				draw_line(u.call(0.9, 0.36), u.call(0.64, 0.64), Zine.PINK.darkened(0.2), line * 1.2, true)
 		"coin":
 			draw_circle(u.call(0.53, 0.53), s * 0.42, Zine.INK)
 			draw_circle(u.call(0.48, 0.48), s * 0.42, Zine.SUN)
