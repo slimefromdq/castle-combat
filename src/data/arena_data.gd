@@ -18,17 +18,11 @@ extends Resource
 @export var floors: Array[Rect2] = []
 ## The two Relay spots (the half moons on Lucy's sketch). Not mirrored: both are listed.
 @export var pockets: Array[Rect2] = []
-## Solid walls. They block movement and line of sight.
+## Solid walls. They block movement and line of sight. Includes the pillars on the
+## diamond's flanks, which give duels something to fight around.
 @export var walls: Array[Rect2] = []
 ## Bushes: a hero standing in one is hidden from the enemy (see MatchSim.is_hidden).
 @export var bushes: Array[Rect2] = []
-## Walk-over pickups (coins and sparks, see PickupController). Blue-side positions; each
-## is mirrored for red.
-@export var pickups: Array[Vector2] = []
-## Neutral camps (see NeutralCamps). Blue-side positions, mirrored for red.
-@export var camps: Array[Vector2] = []
-## Tarot altar spots (see TarotAltar). Blue-side positions, mirrored for red.
-@export var altars: Array[Vector2] = []
 ## Honey fruit bushes (see Fruits). Blue-side positions, mirrored for red.
 @export var fruits: Array[Vector2] = []
 ## Centre of blue's long Relay drop, deep in red's half (phase 2); red's is the mirror.

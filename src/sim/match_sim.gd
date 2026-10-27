@@ -5,7 +5,7 @@ extends RefCounted
 
 ## Fired for things views, HUD and metrics care about: windup_started, windup_cancelled,
 ## attack_fired, unit_killed, hero_respawned, wave_spawned, match_over, aggro_called,
-## the relay_* events from RelayController and pickup_spawned / pickup_taken (PickupController).
+## and the relay_* events from RelayController.
 signal sim_event(type: StringName, data: Dictionary)
 
 const BLUE := 0
@@ -27,11 +27,7 @@ var minions: Array[MinionState] = []
 var next_wave_time := 0.0
 var waves_spawned := 0
 var relay := RelayController.new()
-## Walk-over coins and sparks.
-var pickups := PickupController.new()
-## Neutral camps (Pwees), the Tarot altar and honey fruit on the diamond.
-var camps := NeutralCamps.new()
-var altar := TarotAltar.new()
+## Honey fruit on the diamond.
 var fruits := Fruits.new()
 ## Skillshots in flight (Abilities).
 var skillshots: Array[Skillshot] = []
@@ -103,9 +99,6 @@ func setup(cfg: MatchConfig, arena_data: ArenaData, hero_picks: Array[HeroData],
 		_register(h)
 		heroes.append(h)
 	relay.setup(self)
-	pickups.setup(self)
-	camps.setup(self)
-	altar.setup(self)
 	fruits.setup(self)
 
 
@@ -141,8 +134,6 @@ func step(commands: Array) -> void:
 			Economy.try_siege_scroll(self, hero)
 		if cmd.perk_pick >= 0:
 			Leveling.pick_perk(self, hero, cmd.perk_pick)
-		if cmd.tarot_pick >= 0:
-			altar.pick(self, hero, cmd.tarot_pick)
 		hero.aim = cmd.aim.normalized() if cmd.aim.length() > 0.01 else Vector2.ZERO
 		if cmd.cast_slot >= 0:
 			Abilities.try_cast(self, hero, cmd.cast_slot, cmd.move)
@@ -168,10 +159,7 @@ func step(commands: Array) -> void:
 		var previous := s.attack_target
 		# Locked structures stay dormant: no attacks until the one in front falls.
 		CombatSystem.tick_attack(self, s, s.alive and is_exposed(s) and not s.is_busy(time), func() -> SimEntity: return Targeting.for_structure(self, s, previous))
-	camps.tick(self)
 	relay.tick(self)
-	pickups.tick(self)
-	altar.tick(self)
 	fruits.tick(self)
 	_remove_dead_minions()
 	tick += 1
@@ -237,8 +225,6 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 	if target is HeroState:
 		amount = Items.incoming(self, source, target, amount, kind)
 		amount = Abilities.modify_hero_damage(self, source, target, amount)
-		if hero_src != null and hero_src.team != target.team and target.moon_at(time) == HeroState.MOON_WANING:
-			amount *= 1.0 - config.moon_waning_guard
 		amount = Items.cheat_death(self, target, amount)
 		if hero_src != null and hero_src.team != target.team:
 			target.last_hero_damage_time = time
@@ -252,8 +238,6 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 		target.hp = maxf(0.0, target.hp - amount)
 		if target.hp <= 0.0:
 			_kill(target, source)
-	if hero_src != null and target is MinionState and target.team < 0 and dealt > 0.0:
-		camps.on_damaged(self, target, hero_src, dealt)
 	if hero_src != null and target is HeroState and hero_src.team != target.team and dealt > 0.0:
 		relay.on_enemy_damage(self, hero_src, target)
 	if hero_src != null:
@@ -339,8 +323,6 @@ func _kill(target: SimEntity, source: SimEntity) -> void:
 	target.attack_target = 0
 	var killer_team := source.team if source != null else -1
 	emit_event(&"unit_killed", {"id": target.id, "kind": target.kind, "team": target.team, "killer": source.id if source != null else 0, "killer_team": killer_team})
-	if target is MinionState and target.team < 0:
-		camps.on_killed(self, target, source)
 	Economy.on_kill(self, target, source)
 	Kits.on_kill(self, target, source)
 	if target is HeroState:
@@ -477,11 +459,6 @@ func reveal(h: HeroState) -> void:
 func new_id() -> int:
 	_next_id += 1
 	return _next_id - 1
-
-
-## Adds an entity made outside spawn_minion (neutral camps).
-func register(e: SimEntity) -> void:
-	_register(e)
 
 
 func _register(e: SimEntity) -> void:

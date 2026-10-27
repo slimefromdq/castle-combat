@@ -284,8 +284,6 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 			cmd.masterwork_slot = -1
 	if last_hit:
 		cmd.target_id = _last_hit_target(sim, me)
-	if not sim.altar.offers[team].is_empty():
-		cmd.tarot_pick = 0
 
 	# 1. Low on health: walk to the healing pad behind the Core, then come back.
 	#    A carrier keeps going unless it is nearly dead.
@@ -350,17 +348,11 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 			cmd.move = _toward(me, relay.pos) if relay_dist > 0.3 else Vector2.ZERO
 			return cmd
 	elif _loot_spot(sim, me, them, seen) != Vector2.INF:
-		# R5. A pickup, ripe fruit (when hurt) or the Tarot altar close by, nobody
-		#     fighting us for it: walk over (and stand on the altar or fruit).
+		# R5. Ripe fruit close by when hurt, nobody fighting us for it: walk over and eat.
 		var spot := _loot_spot(sim, me, them, seen)
 		var off := me.pos.distance_to(spot)
 		cmd.move = _toward(me, spot) if off > 0.3 else Vector2.ZERO
 		return cmd
-	elif _camp_to_clear(sim, me, them, seen) != null:
-		# R6. Our side's Pwee, while their hero isn't around: take it.
-		engage = _camp_to_clear(sim, me, them, seen)
-		goal = engage.pos
-		cmd.target_id = engage.id
 	elif seen and them.hp < them.max_hp * 0.35 and me.hp > me.max_hp * 0.5 \
 			and (their_front == null or them.pos.distance_to(their_front.pos) > their_front.attack_range + 1.0):
 		# 4. Punish a weak hero who is away from their tower, whatever their minions do.
@@ -454,9 +446,8 @@ func _clear(sim: MatchSim, a: Vector2, b: Vector2, r: float) -> bool:
 	return ArenaGeometry.segment_in_bounds(sim.arena, a, b, r * 0.5)
 
 
-## Something on the ground worth walking to (Vector2.INF if nothing): the Tarot altar,
-## a ripe fruit when hurt, or a coin or spark on our half. Skipped when their hero is
-## close or would get there first.
+## A ripe fruit worth walking to when hurt (Vector2.INF if nothing). Skipped when their
+## hero is close or would get there first.
 func _loot_spot(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> Vector2:
 	if me.hp < me.max_hp * 0.3 or (seen and me.pos.distance_to(them.pos) < 7.0):
 		return Vector2.INF
@@ -464,17 +455,10 @@ func _loot_spot(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> Ve
 	var best_d := INF
 	var spots: Array[Vector2] = []
 	var reach: Array[float] = []
-	if sim.altar.up:
-		spots.append(sim.altar.pos)
-		reach.append(22.0)
 	if me.hp < me.max_hp * 0.7:
 		for f in sim.fruits.ripe():
 			spots.append(f.pos)
 			reach.append(14.0)
-	for p in sim.pickups.active():
-		if MatchSim.to_team_space(team, p.pos).y <= 4.0:
-			spots.append(p.pos)
-			reach.append(7.0)
 	for i in spots.size():
 		var d := me.pos.distance_to(spots[i])
 		if d > reach[i] or d >= best_d:
@@ -484,20 +468,6 @@ func _loot_spot(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> Ve
 		best_d = d
 		best = spots[i]
 	return best
-
-
-## The Pwee on our side of the diamond, if it's up, we're healthy, and their hero is
-## nowhere near (or out of sight).
-func _camp_to_clear(sim: MatchSim, me: HeroState, them: HeroState, seen: bool) -> SimEntity:
-	if me.hp < me.max_hp * 0.6 or (seen and them.pos.distance_to(me.pos) < 12.0):
-		return null
-	for c in sim.camps.camps:
-		var m := sim.camps.monster_of(sim, c)
-		if m == null or MatchSim.to_team_space(team, c.home).y > 0.0:
-			continue
-		if me.pos.distance_to(m.pos) < 14.0:
-			return m
-	return null
 
 
 ## Route points: just inside each shoulder where the diamond meets the lane, and around

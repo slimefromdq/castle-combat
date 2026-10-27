@@ -28,8 +28,6 @@ var _streak_mesh := BoxMesh.new()
 var _next_streak := {}
 
 
-const MOON_WAXING := Color("fff0a8")
-const MOON_WANING := Color("b99cff")
 
 func _ready() -> void:
 	_streak_mesh.size = Vector3(0.14, 0.06, 1.4)
@@ -165,13 +163,6 @@ func render() -> void:
 		p.frenzy.visible = h.alive and (h.frenzy_left > 0 or sim.time < h.frenzy_until)
 		p.frenzy.position = at + Vector3(0, 0.14, 0)
 		p.frenzy.scale = Vector3.ONE * (0.6 + 0.06 * sin(Time.get_ticks_msec() / 45.0))
-		# Moon buff (phase 2 Pwee): a little moon circling the hero's head.
-		var moon := h.moon_at(sim.time) if h.alive else HeroState.MOON_NONE
-		p.moon.visible = moon != HeroState.MOON_NONE
-		if p.moon.visible:
-			var a := Time.get_ticks_msec() / 400.0
-			p.moon.position = at + Vector3(cos(a) * 0.8, 2.8 + 0.1 * sin(a * 2.0), sin(a) * 0.8)
-			(p.moon.material_override as StandardMaterial3D).albedo_color = MOON_WAXING if moon == HeroState.MOON_WAXING else MOON_WANING
 		p.crown.visible = h.alive and h.level >= Leveling.CROWN_LEVEL
 		p.crown.position = at + Vector3(0, 0.05, 0)
 		_render_latch(h, p, at)
@@ -387,7 +378,6 @@ func _parts_for(h: HeroState) -> Dictionary:
 		"swarm": UnitFactory.part(self, bubble, Color(1.0, 0.82, 0.2, 0.35), Vector3.ZERO, Vector3.ZERO, true),
 		"rule": UnitFactory.part(self, _ring_mesh, Color("e8c35a"), Vector3.ZERO, Vector3.ZERO, true),
 		"borrowed": UnitFactory.part(self, _ring_mesh, Color(0.6, 0.05, 0.12, 0.9), Vector3.ZERO, Vector3.ZERO, true),
-		"moon": UnitFactory.part(self, bubble, MOON_WAXING, Vector3.ZERO, Vector3.ZERO, true),
 	}
 	parts.latch = _latch_swarm()
 	# Max level: a gold crown ring at the hero's feet for the rest of the match.
@@ -396,7 +386,6 @@ func _parts_for(h: HeroState) -> Dictionary:
 	parts.buzz = UnitFactory.label(self, "", 0.0, 44)
 	parts.buzz.modulate = Color("ffd23a")
 	parts.buzz.outline_modulate = Color(0.15, 0.1, 0.0)
-	parts.moon.scale = Vector3.ONE * 0.24
 	parts.root.scale = Vector3(0.7, 0.12, 0.7)
 	parts.borrowed.scale = Vector3(1.15, 0.03, 1.15)
 	parts.hidden.scale = Vector3(0.85, 0.03, 0.85)

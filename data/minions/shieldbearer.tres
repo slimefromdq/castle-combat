@@ -17,5 +17,5 @@ attack_interval = 1.0
 structure_damage_mult = 1.0
 special = &"shieldbearer"
 shield_blocks = 1
-gold_bounty = 35.0
-xp_bounty = 30.0
+gold_bounty = 38.0
+xp_bounty = 35.0

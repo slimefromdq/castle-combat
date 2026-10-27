@@ -81,8 +81,8 @@ func test_camera_keeps_the_hero_on_screen_in_the_side_pockets() -> void:
 	var rig := CameraRig.new()
 	rig.half_width = ArenaGeometry.half_width(MatchController.ARENA)
 	var hw := rig.half_view_width()
-	check(rig.half_width > 11.0, "the side pockets reach past 11 m (got %.2f)" % rig.half_width)
-	for x in [-11.0, -6.0, 0.0, 4.0, 11.0]:
+	check(rig.half_width > 9.5, "the side pockets reach past 9.5 m (got %.2f)" % rig.half_width)
+	for x in [-9.5, -6.0, 0.0, 4.0, 9.5]:
 		var cam: float = rig._clamp_side(x)
 		check(absf(x - cam) <= hw - CameraRig.HERO_SIDE_MARGIN + 0.001, "hero at x=%.1f stays on screen (camera %.2f)" % [x, cam])
 		check(absf(cam) + hw <= rig.half_width + CameraRig.EDGE_MARGIN + 0.001, "the view stays inside the map's sides at x=%.1f" % x)

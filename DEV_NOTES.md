@@ -530,3 +530,16 @@ Plan: [The Diamond Map](https://claude.ai/artifact/9QsLceWMzyf4wTLAmwZML2).
 - **Long Relay** (`RelayController.long_rect`, `ArenaData.long_drop`): in phase 2 the carrier can deliver to the usual pocket, or to their long drop, a 3.2 m square about 9 m past the enemy Outer Tower toward their Guardian. It pays 1.75x gold and one more siege minion. An enemy hero standing on it blocks it like the pocket. Shown as a square in your team colour ("Long drop x1.75") plus the enemy's dimmer one, and on the minimap; the HUD carry line says "or the long drop".
 - Bot: takes the long drop when it's above 60% health and the enemy hero is at least 14 m from it.
 - Dev: `--stage=phase2`. Tests: `tests/test_phase_two.gd`.
+
+## Duel First, part 1: leaner map (Lucy, 2026-10-27)
+
+Plan: [Duel First](https://claude.ai/artifact/KSBvYVRL9jjjUqzxHatHkS). Lucy: neutrals suit big multi-player MOBAs; a 1v1 wants fewer objectives and more fighting.
+
+- **Removed:** the Tarot altar, the Pwee camps, the moon buffs and the 20 coin/spark pickups (sim, views, HUD, minimap, sounds, bot, tests, G/H/J keys, `--stage=camp|altar`). The notes above about them are history.
+- **Kept:** the Relay (short + long), phase 2 (now only opens the long drop), the heal pad, the Core last stand, Guardians, special waves, siege scrolls.
+- **Diamond:** 22 m wide instead of 32 (`diamond_half_width` 11). Relay pockets moved in (3.5 x 6 m at x 6.3 to 9.8) and lost their stub walls. Lane side walls now start at the shoulder (y 23.5). Long drop moved to (3.4, 24.5) so it stays on the lane.
+- **Pillars:** four 1.3 m blocks on the diamond's flanks (two per half, mirrored), off the lane so troopers never snag. They block movement and shots, for juking.
+- **Honey fruit:** still 4, spread along the lane: (-6.6, -14) and (7.6, -8.2) on blue's half, mirrored. Fruit eaten now plays the old pickup chime.
+- **Bushes:** the 6 lane bushes stay; the 4 diamond bushes moved inside the new edges.
+- **Income (G1):** troopers pay about 18% more XP and 10% more gold (melee/ranged 26 XP, 22/33 gold; specials 35 XP, 38 gold; siege 70 XP, 66 gold). Passive XP 0.35 -> 0.8 per second.
+- Part 2 (after Lucy's playtest): Tricks, CC grace, interrupt refunds, shutdown bounty.

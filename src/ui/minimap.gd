@@ -1,8 +1,8 @@
 class_name Minimap
 extends Control
 ## A small map in the corner (Lucy's K1): the lane and diamond, structures, both heroes
-## (the enemy only while you can see them), the Relay, the Tarot altar, Pwee camps,
-## honey fruit, pickups and (phase 2) the long Relay drops. Your base is at the bottom, like the camera.
+## (the enemy only while you can see them), the Relay, honey fruit and (phase 2) the
+## long Relay drops. Your base is at the bottom, like the camera.
 
 const SCALE := 1.9  # Pixels per metre.
 
@@ -59,18 +59,8 @@ func _draw() -> void:
 			var p1 := to_px(far.end)
 			var lc := Palette.team_color(team == seat).lightened(0.3)
 			draw_rect(Rect2(p0, p1 - p0).abs(), Color(lc, 0.85 if team == seat else 0.45), false, 1.5)
-	for p in sim.pickups.active():
-		draw_circle(to_px(p.pos), 1.6, Color("8fe9ff") if p.kind == PickupController.SPARK else Color("ffcf3f"))
 	for f in sim.fruits.ripe():
 		draw_circle(to_px(f.pos), 2.4, Color("ff9f1c"))
-	for c in sim.camps.camps:
-		var m := sim.camps.monster_of(sim, c)
-		if m != null:
-			draw_circle(to_px(m.pos), 3.6, Color("ffd23f"))
-			draw_arc(to_px(m.pos), 3.6, 0, TAU, 12, Color(0.1, 0.08, 0.1), 1.0)
-	if sim.altar.up:
-		var ap := to_px(sim.altar.pos)
-		draw_rect(Rect2(ap - Vector2(3, 4.5), Vector2(6, 9)), Color("b48cff"))
 	for s in sim.structures:
 		if not s.alive:
 			continue
