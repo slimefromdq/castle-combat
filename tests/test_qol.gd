@@ -47,7 +47,7 @@ func test_sprint_ends_on_stop_damage_cast_and_combat() -> void:
 	var sim := _sim()
 	var blue := sim.heroes[0]
 	var red := sim.heroes[1]
-	place(blue, Vector2(0, 0))
+	place(blue, Vector2(3.0, 0))  # Beside the lane's centre, clear of the towers.
 	_walk(sim, Vector2(0, -1), sim.config.sprint_build_time + 0.2)
 	check(blue.sprinting, "sprinting")
 	run_ticks(sim, 1)
@@ -57,9 +57,10 @@ func test_sprint_ends_on_stop_damage_cast_and_combat() -> void:
 	var m := sim.spawn_minion(melee(), MatchSim.RED, Vector2(5, 0))
 	sim.apply_damage(blue, 1.0, m)
 	check(not blue.sprinting, "any damage ends it")
+	place(m, Vector2(0, 40))  # Out of the way so it can't hit again.
 	_walk(sim, Vector2(0, -1), sim.config.sprint_build_time + 0.2)
 	check(not blue.sprinting, "no build-up for a while after being hit")
-	_walk(sim, Vector2(0, 1), sim.config.sprint_build_time + 0.2)
+	_walk(sim, Vector2(0, 1), sim.config.sprint_combat_delay + 0.2)
 	check(blue.sprinting, "back to sprinting once out of combat")
 	sim.apply_damage(red, 1.0, blue)
 	_walk(sim, Vector2(0, 1), 0.1)

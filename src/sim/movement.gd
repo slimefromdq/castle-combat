@@ -40,6 +40,8 @@ static func slide(sim: MatchSim, mover: SimEntity, from: Vector2, delta: Vector2
 
 
 static func is_blocked(sim: MatchSim, mover: SimEntity, p: Vector2) -> bool:
+	if not sim.arena.in_bounds(p, mover.radius):
+		return true
 	for wall in sim.arena.walls:
 		if ArenaGeometry.circle_hits_rect(p, mover.radius, wall):
 			return true

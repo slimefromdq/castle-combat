@@ -27,7 +27,7 @@ static func special_offset(data: MinionData) -> Vector2:
 static func meeting_y(sim: MatchSim) -> float:
 	var fronts := [NAN, NAN]
 	for m in sim.minions:
-		if not m.alive:
+		if not m.alive or m.team < 0:
 			continue
 		var f: float = fronts[m.team]
 		# Blue advances toward +y, red toward -y.

@@ -32,7 +32,7 @@ func test_releasing_input_stops_the_hero() -> void:
 func test_lane_walls_stop_the_hero() -> void:
 	var sim := new_sim()
 	var hero := sim.heroes[0]
-	hero.pos = Vector2(0, -15)
+	hero.pos = Vector2(0, -40)  # Behind the diamond, where the lane has walls.
 	run_ticks(sim, 120, Vector2.LEFT)
 	check_near(hero.pos.x, -sim.arena.lane_half_width + hero.radius, 0.05, "rests against the left lane wall")
 

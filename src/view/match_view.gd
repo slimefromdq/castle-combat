@@ -11,7 +11,7 @@ var _unit_root: Node3D
 var _arena_view: ArenaView
 var _fx: CombatFx
 var _bars: UnitBars
-var _candle_view: CandleView
+var _diamond_view: DiamondView
 var _relay_view: RelayView
 var _status: StatusFx
 var _occult: OccultFx
@@ -58,10 +58,10 @@ func build(match_sim: MatchSim, seat: int) -> void:
 	_relay_view.name = "Relay"
 	_relay_view.view = self
 	add_child(_relay_view)
-	_candle_view = CandleView.new()
-	_candle_view.name = "Candles"
-	_candle_view.view = self
-	add_child(_candle_view)
+	_diamond_view = DiamondView.new()
+	_diamond_view.name = "Diamond"
+	_diamond_view.view = self
+	add_child(_diamond_view)
 	_fx = CombatFx.new()
 	_fx.view = self
 	add_child(_fx)
@@ -217,7 +217,7 @@ func render(alpha: float, delta: float, snap := false) -> void:
 			body3.scale = Vector3.ONE * (want if snap else lerpf(body3.scale.x, want, 1.0 - exp(-14.0 * delta)))
 	_update_helpers()
 	_relay_view.render(alpha)
-	_candle_view.render()
+	_diamond_view.render()
 	_status.render()
 	_occult.render(alpha)
 	var me := sim.heroes[local_seat]
@@ -260,6 +260,15 @@ func _celebration_time() -> float:
 func _minion_step(m: MinionState, body: Node3D) -> void:
 	var moving := m.pos.distance_squared_to(m.prev_pos) > 0.0001
 	var t := Time.get_ticks_msec() / 1000.0 * 9.0 + m.id
+	if m.team < 0:
+		# Pwee hovers and buzzes its wings.
+		body.position.y = 0.2 + 0.1 * sin(t * 0.5)
+		body.rotation.x = deg_to_rad(-18.0 * m.windup_progress()) if m.is_winding_up() else 0.0
+		for side in [["WingL", -1.0], ["WingR", 1.0]]:
+			var wing: Node3D = body.get_node_or_null(side[0])
+			if wing != null:
+				wing.rotation.z = side[1] * deg_to_rad(20.0 + 35.0 * sin(t * 6.0))
+		return
 	body.position.y = absf(sin(t)) * 0.07 if moving else 0.0
 	body.rotation.z = sin(t) * 0.08 if moving else 0.0
 	body.rotation.x = deg_to_rad(12.0 * m.windup_progress()) if m.is_winding_up() else 0.0

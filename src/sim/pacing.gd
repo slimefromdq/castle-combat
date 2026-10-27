@@ -174,7 +174,7 @@ static func _tick_core_stun(sim: MatchSim, s: StructureState) -> void:
 	var hit := enemy.alive and enemy.pos.distance_to(s.pos) <= r + enemy.radius
 	var troopers := 0
 	for m in sim.minions:
-		if m.alive and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
+		if m.alive and m.team >= 0 and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
 			m.stun_until = maxf(m.stun_until, sim.time + cfg.core_stun_minion)
 			CombatSystem.cancel(sim, m)
 			troopers += 1
@@ -188,7 +188,7 @@ static func _enemy_near(sim: MatchSim, s: StructureState, r: float) -> bool:
 	if enemy.alive and enemy.pos.distance_to(s.pos) <= r + enemy.radius:
 		return true
 	for m in sim.minions:
-		if m.alive and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
+		if m.alive and m.team >= 0 and m.team != s.team and m.pos.distance_to(s.pos) <= r + m.radius:
 			return true
 	return false
 
@@ -214,7 +214,7 @@ static func _tick_slam(sim: MatchSim, s: StructureState) -> void:
 	var hit := enemy.alive and enemy.pos.distance_to(s.pos) <= d.slam_radius + enemy.radius
 	sim.emit_event(&"guardian_slam", {"id": s.id, "team": s.team, "radius": d.slam_radius, "hit": hit})
 	for m in sim.minions:
-		if m.alive and m.team != s.team and m.pos.distance_to(s.pos) <= d.slam_radius + m.radius:
+		if m.alive and m.team >= 0 and m.team != s.team and m.pos.distance_to(s.pos) <= d.slam_radius + m.radius:
 			sim.apply_damage(m, m.max_hp * d.slam_minion_fraction, s)
 			if m.alive:
 				var push := m.pos - s.pos

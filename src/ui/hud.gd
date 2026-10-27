@@ -23,6 +23,7 @@ signal sell_pressed(slot: int)
 ## for a tap.
 signal cast_aimed(slot: int, screen_dir: Vector2)
 signal perk_pressed(choice: int)
+signal tarot_pressed(choice: int)
 signal masterwork_pressed(slot: int)
 signal scroll_pressed
 
@@ -75,6 +76,11 @@ var _ability_offsets: Array = []
 var _perk_box: Control
 var _perk_title: Label
 var _perk_buttons: Array[Button] = []
+var _minimap: Minimap
+var _minimap_inset := 0.0
+var _tarot_box: Control
+var _tarot_title: Label
+var _tarot_buttons: Array[Button] = []
 var _details: PanelContainer
 var _details_text: RichTextLabel
 var _menu_box: VBoxContainer
@@ -113,8 +119,14 @@ func _ready() -> void:
 	_build_tray()
 	_build_thumbs()
 	_build_perk_picker()
+	_build_tarot_picker()
 	_build_details(inset)
 	_build_status()
+	_minimap = Minimap.new()
+	_minimap.anchor_left = 1.0
+	_minimap.anchor_right = 1.0
+	_minimap_inset = inset
+	_root.add_child(_minimap)
 	_place_thumbs(BOTTOM_BAND)
 	set_debug_visible(false)
 
@@ -158,6 +170,12 @@ func aim_drag() -> Array:
 func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_sim_for_text = sim
 	_fit_column()
+	if _minimap.sim != sim or _minimap.seat != seat:
+		_minimap.setup(sim, seat)
+		_minimap.offset_right = -MARGIN
+		_minimap.offset_left = -MARGIN - _minimap.size.x
+		_minimap.offset_top = TOP_BAND + _minimap_inset + 60.0
+		_minimap.offset_bottom = _minimap.offset_top + _minimap.size.y
 	var me := sim.heroes[seat]
 	var them := sim.heroes[1 - seat]
 	_me = me
@@ -174,6 +192,7 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 	_refresh_clock(sim, seat)
 	_refresh_abilities(sim, me)
 	_refresh_perks(sim, me)
+	_refresh_tarot(sim, me)
 	_refresh_tray(sim, me)
 	_refresh_spikes(sim, me)
 	if _details.visible:
@@ -280,6 +299,34 @@ func _refresh_perks(sim: MatchSim, me: HeroState) -> void:
 		b.visible = k < options.size()
 		if b.visible:
 			b.text = "%s  %s\n%s" % [["Z", "X"][k], options[k].display_name, options[k].summary]
+
+
+## The Tarot draw: three cards while a pick is waiting (G / H / J on a keyboard).
+func _refresh_tarot(sim: MatchSim, me: HeroState) -> void:
+	var offer: Array = sim.altar.offers[me.team]
+	_tarot_box.visible = not offer.is_empty() and not sim.over
+	if not _tarot_box.visible:
+		return
+	var left := maxf(0.0, sim.config.tarot_pick_time - (sim.time - sim.altar.offered_at[me.team]))
+	_tarot_title.text = "Tarot: draw a card (%ds)" % ceili(left)
+	for k in _tarot_buttons.size():
+		var b := _tarot_buttons[k]
+		b.visible = k < offer.size()
+		if b.visible:
+			b.text = "%s  %s\n%s" % [["G", "H", "J"][k], String(offer[k]).capitalize(), tarot_summary(sim.config, offer[k])]
+
+
+static func tarot_summary(cfg: MatchConfig, suit: StringName) -> String:
+	match suit:
+		&"swords":
+			return "+%d%% damage for %ds" % [roundi(cfg.tarot_swords_bonus * 100.0), roundi(cfg.tarot_buff_time)]
+		&"cups":
+			return "Heal %d%% of your health" % roundi(cfg.tarot_cups_heal * 100.0)
+		&"pentacles":
+			return "+%d gold" % roundi(cfg.tarot_pentacles_gold)
+		&"wands":
+			return "Cooldowns %d%% faster for %ds" % [roundi(cfg.tarot_wands_haste * 100.0), roundi(cfg.tarot_buff_time)]
+	return ""
 
 
 # ------------------------------------------------------------------ shop tray
@@ -474,6 +521,22 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 			text = "Delivered! A siege minion joins your next wave" if data.team == seat else "Enemy delivered: their siege minion is coming"
 		&"relay_expired":
 			text = "The Relay faded"
+		&"relay_fizzling":
+			text = "Fought over too long: the Relay is fizzling!"
+		&"relay_fizzled":
+			text = "The Relay fizzled out"
+		&"altar_appeared":
+			text = "A Tarot altar appeared on %s side" % ("your" if MatchSim.to_team_space(seat, data.pos).y < 0.0 else "their")
+		&"altar_taken":
+			text = "Draw a Tarot card!" if data.team == seat else "The enemy took the Tarot altar"
+		&"tarot_picked":
+			if data.team != seat:
+				text = "Enemy drew %s" % String(data.suit).capitalize()
+		&"camp_cleared":
+			if data.team == seat:
+				text = "Pwee cleared! It comes back in %d s" % roundi(data.back_at - _sim_for_text.time) if _sim_for_text != null else "Pwee cleared!"
+			elif data.team >= 0:
+				text = "The enemy cleared a Pwee"
 		&"item_bought":
 			if data.team == seat:
 				text = "Bought %s" % _item_name(data.item)
@@ -880,6 +943,8 @@ func _place_thumbs(base: float) -> void:
 	_drop.offset_top = _drop.offset_bottom - 96
 	_perk_box.offset_bottom = -base - 330
 	_perk_box.offset_top = _perk_box.offset_bottom - 150
+	_tarot_box.offset_bottom = -base - 490
+	_tarot_box.offset_top = _tarot_box.offset_bottom - 150
 
 
 func _build_perk_picker() -> void:
@@ -905,6 +970,31 @@ func _build_perk_picker() -> void:
 		b.pressed.connect(func() -> void: perk_pressed.emit(k))
 		row.add_child(b)
 		_perk_buttons.append(b)
+
+
+func _build_tarot_picker() -> void:
+	_tarot_box = VBoxContainer.new()
+	_tarot_box.anchor_left = 0.03
+	_tarot_box.anchor_right = 0.97
+	_tarot_box.anchor_top = 1.0
+	_tarot_box.anchor_bottom = 1.0
+	_tarot_box.add_theme_constant_override("separation", 6)
+	_tarot_box.visible = false
+	_root.add_child(_tarot_box)
+	_tarot_title = _outlined(UiKit.label("", 24, Color("d9c2ff")))
+	_tarot_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tarot_box.add_child(_tarot_title)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	_tarot_box.add_child(row)
+	for k in 3:
+		var b := UiKit.button("", Vector2(0, 112))
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.add_theme_font_size_override("font_size", 16)
+		b.pressed.connect(func() -> void: tarot_pressed.emit(k))
+		row.add_child(b)
+		_tarot_buttons.append(b)
 
 
 func _build_details(inset: float) -> void:

@@ -147,8 +147,9 @@ static func try_cast(sim: MatchSim, h: HeroState, slot: int, move: Vector2) -> b
 ## Per-tick upkeep after movement: cooldowns, expiring effects, channel pulses, skillshots.
 static func tick(sim: MatchSim) -> void:
 	for h in sim.heroes:
+		var cd_rate := 1.0 + (sim.config.tarot_wands_haste if sim.time < h.tarot_wands_until else 0.0)
 		for i in h.cooldowns.size():
-			h.cooldowns[i] = maxf(0.0, h.cooldowns[i] - sim.dt)
+			h.cooldowns[i] = maxf(0.0, h.cooldowns[i] - sim.dt * cd_rate)
 		if sim.time >= h.shield_until:
 			h.shield_hp = 0.0
 			h.shatter_armed = false

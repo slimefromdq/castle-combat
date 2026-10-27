@@ -15,6 +15,7 @@ var pending_sell := -1
 var pending_cast := -1
 ## Perk choice (Z/X or a tapped card), -1 for none.
 var pending_perk := -1
+var pending_tarot := -1
 ## Deck slot to make a Masterwork (C/V/B or a tapped button), -1 for none.
 var pending_masterwork := -1
 ## Buy a siege scroll (N or the button).
@@ -47,6 +48,8 @@ func build_command(_sim: MatchSim) -> PlayerCommand:
 	pending_cast = -1
 	cmd.perk_pick = pending_perk
 	pending_perk = -1
+	cmd.tarot_pick = pending_tarot
+	pending_tarot = -1
 	cmd.drop_relay = pending_drop
 	pending_drop = false
 	cmd.buy_slot = pending_buy

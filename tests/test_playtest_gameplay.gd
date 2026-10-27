@@ -19,10 +19,8 @@ func test_bushes_are_point_symmetric_and_on_the_ground() -> void:
 			if c.position.is_equal_approx(-b.position - b.size) and c.size.is_equal_approx(b.size):
 				twin = true
 		check(twin, "bush %s has a mirrored twin" % b)
-		var on_floor := false
-		for f in arena.floors:
-			if f.encloses(b):
-				on_floor = true
+		var on_floor := arena.in_bounds(b.position) and arena.in_bounds(b.end) \
+				and arena.in_bounds(Vector2(b.position.x, b.end.y)) and arena.in_bounds(Vector2(b.end.x, b.position.y))
 		check(on_floor, "bush %s sits on walkable ground" % b)
 
 

@@ -192,8 +192,9 @@ func test_delivery_queues_a_siege_minion() -> void:
 func test_enemy_in_the_pocket_contests_delivery() -> void:
 	var sim := _blue_carrying()
 	var rect := sim.relay.delivery_rect(sim)
-	place(sim.heroes[0], rect.get_center() + Vector2(0, -4))
-	place(sim.heroes[1], rect.get_center() + Vector2(0, 4))
+	place(sim.heroes[0], rect.get_center() + Vector2(0, -2))
+	place(sim.heroes[1], rect.get_center() + Vector2(0, 2))
+	sim.heroes[1].stun_until = sim.time + 10.0  # Standing in the way, not hitting (a hit would knock the Relay off).
 	run_ticks(sim, _ticks(2.0, sim))
 	check(sim.relay.state == RelayController.State.CARRIED and sim.relay.contested, "contested: no delivery")
 	place(sim.heroes[1], Vector2(0, 30))

@@ -433,6 +433,9 @@ static func make_minion(m: MinionState, is_ally: bool) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Minion%d" % m.id
 	var c := Palette.team_color(is_ally)
+	if m.team < 0:
+		_make_pwee(root, m)
+		return root
 	if is_ally:
 		part(root, cylinder(m.radius + 0.12, m.radius + 0.12, 0.03, 20), Color(c, 0.5), Vector3(0, 0.02, 0), Vector3.ZERO, true)
 	else:
@@ -472,6 +475,41 @@ static func make_minion(m: MinionState, is_ally: bool) -> Node3D:
 	root.set_meta("bar_height", m.radius * 2.6 + 0.3)
 	_aggro_mark(root)
 	return root
+
+
+## The neutral camp creature: Pwee, the round bee from Lucy's sketchbook. A striped
+## yellow body, big eyes, two antennae with balls on top and wings that MatchView flaps.
+static func _make_pwee(root: Node3D, m: MinionState) -> void:
+	var r := m.radius
+	part(root, cylinder(r + 0.25, r + 0.25, 0.03, 24), Color(1.0, 0.82, 0.25, 0.4), Vector3(0, 0.02, 0), Vector3.ZERO, true)
+	var body := Node3D.new()
+	body.name = "Body"
+	root.add_child(body)
+	var yellow := Color("ffd23f")
+	var ball := SphereMesh.new()
+	ball.radius = r
+	ball.height = r * 1.9
+	part(body, ball, yellow, Vector3(0, r * 1.15, 0))
+	for k in 2:
+		part(body, cylinder(r * (0.97 - 0.1 * k), r * (0.97 - 0.1 * k), 0.12, 24), Color("3b2f2f"), Vector3(0, r * (0.85 + 0.45 * k), 0))
+	for sx in [-1.0, 1.0]:
+		var eye := SphereMesh.new()
+		eye.radius = r * 0.26
+		eye.height = r * 0.52
+		part(body, eye, Color.WHITE, Vector3(sx * r * 0.36, r * 1.35, -r * 0.82))
+		var pupil := SphereMesh.new()
+		pupil.radius = r * 0.12
+		pupil.height = r * 0.24
+		part(body, pupil, Color("1d1a22"), Vector3(sx * r * 0.36, r * 1.35, -r * 1.04))
+		part(body, cylinder(0.025, 0.025, r * 0.7, 6), Color("1d1a22"), Vector3(sx * r * 0.3, r * 2.25, -r * 0.2), Vector3(sx * 15.0, 0, 0))
+		var tip := SphereMesh.new()
+		tip.radius = r * 0.13
+		tip.height = r * 0.26
+		part(body, tip, Color("1d1a22"), Vector3(sx * r * 0.39, r * 2.6, -r * 0.2))
+		var wing := part(body, box(Vector3(r * 0.9, 0.04, r * 0.6)), Color(0.92, 0.97, 1.0, 0.75), Vector3(sx * r * 0.9, r * 1.75, r * 0.2), Vector3(0, 0, sx * 20.0), true)
+		wing.name = "WingL" if sx < 0.0 else "WingR"
+	root.set_meta("bar_height", r * 2.9 + 0.3)
+	_aggro_mark(root)
 
 
 ## Hidden "!" that MatchView shows while the unit is called by hero-hit aggro.

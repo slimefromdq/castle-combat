@@ -133,6 +133,7 @@ func _ready() -> void:
 		player.pending_aim = LocalPlayerSource.screen_to_sim(screen_dir, local_seat))
 	hud.fullscreen_pressed.connect(func() -> void: UiKit.toggle_fullscreen())
 	hud.perk_pressed.connect(func(choice: int) -> void: player.pending_perk = choice)
+	hud.tarot_pressed.connect(func(choice: int) -> void: player.pending_tarot = choice)
 	hud.masterwork_pressed.connect(func(slot: int) -> void: player.pending_masterwork = slot)
 	hud.scroll_pressed.connect(func() -> void: player.pending_scroll = true)
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
@@ -225,28 +226,38 @@ func fast_forward(seconds: float) -> void:
 ## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
-	if what == "candles" or what == "alley":
-		# "candles": just after the candles light, you walk into your right-hand back
-		# alley toward its candle; the pocket candles' edge arrows show. "alley": the
-		# same alley from further back, with its candle snuffed and relighting.
-		sim.tick = int(round(sim.config.candle_first_time / sim.dt)) + 3
-		sim.time = sim.tick * sim.dt
+	if what == "diamond" or what == "camp" or what == "altar":
+		# "diamond": 2:05 in, standing on your side of the diamond with coins, sparks, fruit,
+		# your Pwee and the Tarot altar all up. "camp": fighting your Pwee. "altar": standing
+		# on the altar with the card choice open.
 		sim.next_wave_time = 1000.0
+		sim.tick = int(round(125.0 / sim.dt))
+		sim.time = sim.tick * sim.dt
+		var me_d := sim.heroes[local_seat]
+		var them_d := sim.heroes[enemy]
+		me_d.pos = MatchSim.to_team_space(local_seat, Vector2(0.5, -9.0))
+		them_d.pos = MatchSim.to_team_space(enemy, Vector2(0, -30))
+		for h in sim.heroes:
+			h.prev_pos = h.pos
+		sim.camps.tick(sim)
+		sim.fruits.tick(sim)
+		sim.altar.activations = 0 if local_seat == MatchSim.BLUE else 1
+		sim.altar.tick(sim)
 		sim.pickups.tick(sim)
-		var mine: PickupController.Candle = null
-		for c in sim.pickups.candles:
-			var local := MatchSim.to_team_space(local_seat, c.pos)
-			if local.y < -20.0 and local.x > 0.0:
-				mine = c
-		var me_s := sim.heroes[local_seat]
-		me_s.pos = mine.pos + MatchSim.to_team_space(local_seat, Vector2(-1.6, -2.2) if what == "candles" else Vector2(-1.2, -3.5))
-		me_s.prev_pos = me_s.pos
-		if what == "alley":
-			mine.lit = false
-			mine.lit_at = sim.time + sim.config.candle_respawn_time * 0.35
-		var them_s := sim.heroes[enemy]
-		them_s.pos = MatchSim.to_team_space(enemy, Vector2(0, -30))
-		them_s.prev_pos = them_s.pos
+		if what == "camp":
+			var camp := sim.camps.camps[0 if local_seat == MatchSim.BLUE else 1]
+			me_d.pos = camp.home + MatchSim.to_team_space(local_seat, Vector2(-2.2, 1.4))
+			me_d.prev_pos = me_d.pos
+			var pwee := sim.camps.monster_of(sim, camp)
+			me_d.preferred_target = pwee.id
+			sim.apply_damage(pwee, pwee.max_hp * 0.35, me_d)
+			fast_forward(1.2)
+			return
+		if what == "altar":
+			me_d.pos = sim.altar.pos
+			me_d.prev_pos = me_d.pos
+			fast_forward(1.3)
+			return
 		view.render(1.0, 0.0, true)
 		return
 	if what == "duel" or what == "perk":
@@ -450,6 +461,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	for i in 2:
 		if event.is_action_pressed("perk_%d" % (i + 1)):
 			player.pending_perk = i
+			return
+	for i in 3:
+		if event.is_action_pressed("tarot_%d" % (i + 1)):
+			player.pending_tarot = i
 			return
 	for i in 3:
 		if event.is_action_pressed("master_%d" % (i + 1)):

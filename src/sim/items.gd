@@ -10,6 +10,8 @@ class_name Items
 ## Bonuses the attacking hero's items add (and Spark Band, and shred on the target).
 static func outgoing(sim: MatchSim, src: HeroState, target: SimEntity, amount: float, kind: StringName) -> float:
 	var mult := 1.0
+	if sim.time < src.tarot_swords_until:
+		mult += sim.config.tarot_swords_bonus
 	if kind == &"ability":
 		if sim.time < src.power_until:
 			mult += src.power_bonus
