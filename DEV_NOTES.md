@@ -493,4 +493,5 @@ Plan: [Occult Expansion Plan](https://claude.ai/artifact/8cY8YgQfxRdwM9Koj3BefU)
 - **Stingers:** paper slaps and a VS hit in the intro, a fanfare on victory and a falling line on defeat.
 - **Settings:** a speaker button and volume slider on the Battle page, Sound on/off and a slider in the in-match ☰ menu, and M mutes anywhere.
 - Dev: `--perf` with `--screenshot` prints draw calls, visible objects and node count. A busy mid-lane fight is about 150 draw calls and an alley about 240, with about 4.8k nodes (most are static scenery parts).
+- Listen outside the game: `godot --headless --path . -s tools/export_sounds.gd -- <folder>` writes every sound as a .wav.
 - Tests: `tests/test_audio.gd` (every recipe renders, is audible and doesn't clip; event mapping; distance falloff; volume and mute).
