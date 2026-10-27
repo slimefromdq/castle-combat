@@ -1,8 +1,8 @@
 class_name HeroStage
 extends Control
-## A little 3D stage for the menu: the hero's match model (your blue) on a paper
-## pedestal, inked with a cel outline, slowly turning. Transparent, so the paper
-## collage behind it shows through.
+## A little 3D stage for the menu: the hero's match model (your blue) on a white
+## pedestal, inked with a cel outline, slowly turning. Transparent, so the skyline
+## behind it shows through.
 
 const OUTLINE := 0.045
 
@@ -51,11 +51,11 @@ func _init() -> void:
 	cam.look_at_from_position(cam.position, Vector3(0, 0.45, 0))
 	_turntable = Node3D.new()
 	world.add_child(_turntable)
-	# Pedestal: a kraft-paper drum with an inked rim.
+	# Pedestal: a white drum with a black rim, like a spotlit plinth.
 	var ped := Node3D.new()
 	world.add_child(ped)
-	UnitFactory.part(ped, UnitFactory.cylinder(1.08, 1.12, 0.26, 40), Zine.INK, Vector3(0, -0.14, 0))
-	UnitFactory.part(ped, UnitFactory.cylinder(1.0, 1.0, 0.28, 40), Zine.KRAFT, Vector3(0, -0.12, 0))
+	UnitFactory.part(ped, UnitFactory.cylinder(1.08, 1.12, 0.26, 40), Noir.INK, Vector3(0, -0.14, 0))
+	UnitFactory.part(ped, UnitFactory.cylinder(1.0, 1.0, 0.28, 40), Noir.WHITE, Vector3(0, -0.12, 0))
 	UnitFactory.part(ped, UnitFactory.cylinder(0.78, 0.78, 0.02, 40), Color(Palette.ALLY, 0.75), Vector3(0, 0.025, 0), Vector3.ZERO, true)
 
 
@@ -89,7 +89,7 @@ func _ink(root: Node3D) -> void:
 			var hull := MeshInstance3D.new()
 			hull.mesh = mi.mesh
 			var m := StandardMaterial3D.new()
-			m.albedo_color = Zine.INK
+			m.albedo_color = Noir.INK
 			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			m.cull_mode = BaseMaterial3D.CULL_FRONT
 			m.grow = true
