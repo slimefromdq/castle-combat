@@ -36,9 +36,6 @@ func _draw() -> void:
 		var color := Palette.team_color(e.team == view.local_seat)
 		if e is StructureState and not view.sim.is_exposed(e):
 			color = Color(0.6, 0.62, 0.66)
-		if e.team < 0:
-			color = Color("ffd23f")  # Neutral camp.
-			size = Vector2(56, 7)
 		var r := Rect2(p - Vector2(size.x / 2.0, size.y), size)
 		draw_rect(r.grow(1.5), Color(0, 0, 0, 0.7))
 		# Your own minions you could deny get a white frame.

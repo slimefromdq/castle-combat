@@ -149,7 +149,7 @@ func pick_enemy(screen_pos: Vector2, radius_px := 56.0) -> int:
 	var me := sim.heroes[local_seat]
 	for id: int in _units:
 		var e: SimEntity = sim.get_entity(id)
-		if e == null or not e.alive or e.team < 0:
+		if e == null or not e.alive:
 			continue
 		var deny := e.team == local_seat
 		if deny and not CombatSystem.can_deny(sim, me, e):
@@ -260,15 +260,6 @@ func _celebration_time() -> float:
 func _minion_step(m: MinionState, body: Node3D) -> void:
 	var moving := m.pos.distance_squared_to(m.prev_pos) > 0.0001
 	var t := Time.get_ticks_msec() / 1000.0 * 9.0 + m.id
-	if m.team < 0:
-		# Pwee hovers and buzzes its wings.
-		body.position.y = 0.2 + 0.1 * sin(t * 0.5)
-		body.rotation.x = deg_to_rad(-18.0 * m.windup_progress()) if m.is_winding_up() else 0.0
-		for side in [["WingL", -1.0], ["WingR", 1.0]]:
-			var wing: Node3D = body.get_node_or_null(side[0])
-			if wing != null:
-				wing.rotation.z = side[1] * deg_to_rad(20.0 + 35.0 * sin(t * 6.0))
-		return
 	body.position.y = absf(sin(t)) * 0.07 if moving else 0.0
 	body.rotation.z = sin(t) * 0.08 if moving else 0.0
 	body.rotation.x = deg_to_rad(12.0 * m.windup_progress()) if m.is_winding_up() else 0.0

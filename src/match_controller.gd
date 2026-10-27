@@ -133,7 +133,6 @@ func _ready() -> void:
 		player.pending_aim = LocalPlayerSource.screen_to_sim(screen_dir, local_seat))
 	hud.fullscreen_pressed.connect(func() -> void: UiKit.toggle_fullscreen())
 	hud.perk_pressed.connect(func(choice: int) -> void: player.pending_perk = choice)
-	hud.tarot_pressed.connect(func(choice: int) -> void: player.pending_tarot = choice)
 	hud.masterwork_pressed.connect(func(slot: int) -> void: player.pending_masterwork = slot)
 	hud.scroll_pressed.connect(func() -> void: player.pending_scroll = true)
 	sim.sim_event.connect(func(type: StringName, data: Dictionary) -> void: hud.on_sim_event(type, data, local_seat))
@@ -227,8 +226,8 @@ func fast_forward(seconds: float) -> void:
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
 	if what == "phase2":
-		# 6:05 in, phase 2: you carry the Relay across the centre toward your long drop with
-		# a Waxing moon; the enemy hero is back at their Guardian.
+		# 6:05 in, phase 2: you carry the Relay across the centre toward your long drop;
+		# the enemy hero is back at their Guardian.
 		sim.next_wave_time = 1000.0
 		sim.tick = int(round(365.0 / sim.dt))
 		sim.time = sim.tick * sim.dt
@@ -242,45 +241,23 @@ func stage(what: String) -> void:
 			sim.relay.tick(sim)
 			sim.time += sim.dt
 		me_p.pos = MatchSim.to_team_space(local_seat, Vector2(3.0, 18.0))
-		me_p.moon = HeroState.MOON_WAXING
-		me_p.moon_until = sim.time + sim.config.moon_time
 		for h in sim.heroes:
 			h.prev_pos = h.pos
 		sim.relay.tick(sim)
 		view.render(1.0, 0.0, true)
 		return
-	if what == "diamond" or what == "camp" or what == "altar":
-		# "diamond": 2:05 in, standing on your side of the diamond with coins, sparks, fruit,
-		# your Pwee and the Tarot altar all up. "camp": fighting your Pwee. "altar": standing
-		# on the altar with the card choice open.
+	if what == "diamond":
+		# "diamond": 2:05 in, standing on your side of the diamond with the fruit up.
 		sim.next_wave_time = 1000.0
 		sim.tick = int(round(125.0 / sim.dt))
 		sim.time = sim.tick * sim.dt
 		var me_d := sim.heroes[local_seat]
 		var them_d := sim.heroes[enemy]
-		me_d.pos = MatchSim.to_team_space(local_seat, Vector2(0.5, -9.0))
+		me_d.pos = MatchSim.to_team_space(local_seat, Vector2(-3.5, -7.5))
 		them_d.pos = MatchSim.to_team_space(enemy, Vector2(0, -30))
 		for h in sim.heroes:
 			h.prev_pos = h.pos
-		sim.camps.tick(sim)
 		sim.fruits.tick(sim)
-		sim.altar.activations = 0 if local_seat == MatchSim.BLUE else 1
-		sim.altar.tick(sim)
-		sim.pickups.tick(sim)
-		if what == "camp":
-			var camp := sim.camps.camps[0 if local_seat == MatchSim.BLUE else 1]
-			me_d.pos = camp.home + MatchSim.to_team_space(local_seat, Vector2(-2.2, 1.4))
-			me_d.prev_pos = me_d.pos
-			var pwee := sim.camps.monster_of(sim, camp)
-			me_d.preferred_target = pwee.id
-			sim.apply_damage(pwee, pwee.max_hp * 0.35, me_d)
-			fast_forward(1.2)
-			return
-		if what == "altar":
-			me_d.pos = sim.altar.pos
-			me_d.prev_pos = me_d.pos
-			fast_forward(1.3)
-			return
 		view.render(1.0, 0.0, true)
 		return
 	if what == "duel" or what == "perk":
@@ -484,10 +461,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	for i in 2:
 		if event.is_action_pressed("perk_%d" % (i + 1)):
 			player.pending_perk = i
-			return
-	for i in 3:
-		if event.is_action_pressed("tarot_%d" % (i + 1)):
-			player.pending_tarot = i
 			return
 	for i in 3:
 		if event.is_action_pressed("master_%d" % (i + 1)):

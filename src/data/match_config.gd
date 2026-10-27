@@ -77,65 +77,16 @@ extends Resource
 ## Expiry timer after a dropped Relay returns home, so it never vanishes without warning.
 @export var relay_return_expire_time := 12.0
 
-@export_group("Pickups")
-## Walk-over coins and sparks (ArenaData.pickups, see PickupController). All appear at
-## pickup_first_time; a taken one comes back pickup_respawn_time later, as a coin or a
-## spark (pickup_spark_chance). Coins pay pickup_gold, sparks pickup_xp.
-@export var pickup_first_time := 30.0
-@export var pickup_respawn_time := 35.0
-@export var pickup_radius := 0.7
-@export var pickup_spark_chance := 0.5
-@export var pickup_gold := 12.0
-@export var pickup_xp := 18.0
-
-@export_group("Neutral camps")
-## Pwees (see NeutralCamps): first appear at camp_first_time, come back camp_respawn_time
-## after dying. A full kill is worth camp_gold and camp_xp; hits pay up to
-## camp_damage_share of that, the killer gets the rest. A Pwee chases its attacker until
-## they leave camp_leash metres of its home or stop hitting it for camp_reset_time, then
-## walks home, healing camp_regen_per_second of its max HP per second.
-@export var camp_first_time := 60.0
-@export var camp_respawn_time := 60.0
-@export var camp_gold := 80.0
-@export var camp_xp := 110.0
-@export var camp_damage_share := 0.5
-@export var camp_leash := 8.0
-@export var camp_reset_time := 5.0
-@export var camp_regen_per_second := 0.25
-
 @export_group("Phase 2")
 ## Phase 2 starts when the first Outer Tower falls, or at phase_two_time at the latest.
-## It unlocks the moon buffs from Pwees and the long Relay drop.
+## It unlocks the long Relay drop.
 @export var phase_two_time := 360.0
-## Killing a Pwee in phase 2 gives a moon buff for moon_time seconds (ends on death).
-## The Pwee on your own half gives Waxing: more damage and faster cooldowns.
-## The one on the enemy's half gives Waning: lifesteal on basic attacks and less damage
-## taken from the enemy hero.
-@export var moon_time := 75.0
-@export var moon_waxing_damage := 0.12
-@export var moon_waxing_haste := 0.15
-@export var moon_waning_lifesteal := 0.15
-@export var moon_waning_guard := 0.10
 ## The long Relay drop (phase 2): a square of this size deep in the enemy half
 ## (ArenaData.long_drop). Delivering there pays relay_long_gold_mult x the gold and
 ## relay_long_extra_siege more siege minions.
 @export var relay_long_size := 3.2
 @export var relay_long_gold_mult := 1.75
 @export var relay_long_extra_siege := 1
-
-@export_group("Tarot altar")
-## See TarotAltar.
-@export var tarot_first_time := 120.0
-@export var tarot_interval := 90.0
-@export var tarot_expire_time := 40.0
-@export var tarot_radius := 1.0
-@export var tarot_take_time := 1.0
-@export var tarot_pick_time := 8.0
-@export var tarot_buff_time := 60.0
-@export var tarot_swords_bonus := 0.15
-@export var tarot_cups_heal := 0.25
-@export var tarot_pentacles_gold := 90.0
-@export var tarot_wands_haste := 0.25
 
 @export_group("Honey fruit")
 ## Fruit bushes out on the diamond (see Fruits): stand on a ripe one for fruit_eat_time
@@ -152,7 +103,7 @@ extends Resource
 ## Total XP needed to reach each level (index 0 = level 1). See Leveling for what each
 ## level unlocks (abilities 1, 3, 6; perks 2, 4, 7; passives 3, 8).
 @export var level_xp: Array[int] = [0, 110, 260, 470, 760, 1200, 1650, 2150, 2700]
-@export var passive_xp_per_second := 0.35
+@export var passive_xp_per_second := 0.8
 ## XP to the opposing hero for a knockout, plus this much per level the victim is above them.
 @export var ko_xp := 90.0
 @export var ko_xp_per_level_above := 25.0

@@ -1,5 +1,5 @@
 extends TestCase
-## Phase 2 (diamond rework, part 3): the switch, moon buffs from Pwees and the long Relay.
+## Phase 2 (diamond rework, part 3): the switch and the long Relay.
 
 
 func _cfg() -> MatchConfig:
@@ -49,78 +49,6 @@ func test_phase_two_starts_when_the_first_tower_falls() -> void:
 	run_ticks(sim, 1)
 	check(sim.phase == 2, "a fallen Outer Tower starts phase 2 early")
 	check(got.size() == 1 and got[0].tower, "the event says a tower did it")
-
-
-# ------------------------------------------------------------------ moon buffs
-
-func _kill_pwee(sim: MatchSim, camp_index: int, hero: HeroState) -> void:
-	if sim.time < _cfg().camp_first_time:
-		_at(sim, _cfg().camp_first_time)
-		run_ticks(sim, 1)
-	var pwee := sim.camps.monster_of(sim, sim.camps.camps[camp_index])
-	sim.apply_damage(pwee, pwee.max_hp * 10.0, hero, &"ability")
-
-
-func test_phase_one_pwees_give_no_moon() -> void:
-	var sim := new_sim()
-	var blue := sim.heroes[0]
-	_kill_pwee(sim, 0, blue)
-	check(blue.moon_at(sim.time) == HeroState.MOON_NONE, "no moon before phase 2")
-
-
-func test_your_pwee_gives_waxing_and_theirs_gives_waning() -> void:
-	var sim := new_sim()
-	var got := _events(sim, &"moon_gained")
-	var blue := sim.heroes[0]
-	var red := sim.heroes[1]
-	sim.phase = 2
-	check(sim.camps.side_of(sim.camps.camps[0]) == MatchSim.BLUE, "the first camp is on blue's half")
-	_kill_pwee(sim, 0, blue)
-	check(blue.moon_at(sim.time) == HeroState.MOON_WAXING, "blue's own Pwee: Waxing")
-	check_near(blue.moon_until - sim.time, _cfg().moon_time, 0.05, "lasts %d s" % int(_cfg().moon_time))
-	_kill_pwee(sim, 1, red)
-	check(red.moon_at(sim.time) == HeroState.MOON_WAXING, "red's own Pwee: Waxing")
-	sim.camps.camps[0].respawn_at = sim.time
-	run_ticks(sim, 1)
-	_kill_pwee(sim, 0, red)
-	check(red.moon_at(sim.time) == HeroState.MOON_WANING, "red invading blue's Pwee: Waning")
-	check(got.size() == 3, "an event per moon (%d)" % got.size())
-
-
-func test_waxing_hits_harder_and_cools_down_faster() -> void:
-	var sim := new_sim()
-	var blue := sim.heroes[0]
-	var m := sim.spawn_minion(melee(), MatchSim.RED, Vector2(0, 30))
-	var plain := Items.outgoing(sim, blue, m, 100.0, &"ability")
-	blue.moon = HeroState.MOON_WAXING
-	blue.moon_until = sim.time + 10.0
-	var waxed := Items.outgoing(sim, blue, m, 100.0, &"ability")
-	check_near(waxed - plain, 100.0 * _cfg().moon_waxing_damage, 0.01, "+%d%% damage" % roundi(_cfg().moon_waxing_damage * 100.0))
-	blue.cooldowns[0] = 10.0
-	run_ticks(sim, _ticks(1.0, sim))
-	check_near(10.0 - blue.cooldowns[0], 1.0 + _cfg().moon_waxing_haste, 0.05, "cooldowns tick %d%% faster" % roundi(_cfg().moon_waxing_haste * 100.0))
-
-
-func test_waning_takes_less_hero_damage_and_ends_on_death() -> void:
-	var sim := new_sim()
-	var blue := sim.heroes[0]
-	var red := sim.heroes[1]
-	place(blue, Vector2(0, -26))
-	place(red, Vector2(0, 26))
-	blue.max_hp = 99999.0
-	blue.hp = blue.max_hp
-	var plain := sim.apply_damage(blue, 100.0, red, &"item")
-	blue.moon = HeroState.MOON_WANING
-	blue.moon_until = sim.time + 10.0
-	var waned := sim.apply_damage(blue, 100.0, red, &"item")
-	check_near(waned / plain, 1.0 - _cfg().moon_waning_guard, 0.001, "%d%% less damage from the enemy hero" % roundi(_cfg().moon_waning_guard * 100.0))
-	var m := sim.spawn_minion(melee(), MatchSim.RED, Vector2(0, 30))
-	blue.hp = 500.0
-	var before := blue.hp
-	Items.after_hit(sim, blue, m, 100.0, 100.0, &"basic")
-	check_near(blue.hp - before, 100.0 * (_cfg().moon_waning_lifesteal + Items.hero_lifesteal(blue)), 0.5, "basic attacks heal")
-	sim.apply_damage(blue, 99999.0, red, &"item")
-	check(blue.moon_at(sim.time) == HeroState.MOON_NONE, "a knockout ends the moon")
 
 
 # ------------------------------------------------------------------ long Relay

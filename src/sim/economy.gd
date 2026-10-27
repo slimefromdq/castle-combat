@@ -163,8 +163,6 @@ static func try_sell(sim: MatchSim, hero: HeroState, slot: int) -> bool:
 ## minion_gold_radius of the minion (whoever killed it) or landed the killing blow.
 ## Knockout gold goes to the opposing hero whoever finished the knockout.
 static func on_kill(sim: MatchSim, target: SimEntity, source: SimEntity) -> void:
-	if target.team < 0:
-		return  # Neutral camps pay through NeutralCamps.
 	if target is MinionState:
 		var hero := sim.heroes[1 - target.team]
 		var denied := source is HeroState and source.team == target.team
