@@ -169,6 +169,12 @@ var tarot_wands_until := 0.0
 ## Honey fruit heal over time (Fruits): healing per second until fruit_until.
 var fruit_until := 0.0
 var fruit_rate := 0.0
+## Moon buff from a phase 2 Pwee (NeutralCamps): MOON_WAXING or MOON_WANING until moon_until.
+const MOON_NONE := 0
+const MOON_WAXING := 1
+const MOON_WANING := 2
+var moon := MOON_NONE
+var moon_until := 0.0
 var perk_offered_at: Array[float] = [0.0, 0.0, 0.0]
 ## Last sim time this hero moved (Avery's Steadfast).
 var still_since := 0.0
@@ -280,6 +286,10 @@ func current_interval(_time: float) -> float:
 	if _now < frenzy_until:
 		bonus += frenzy_bonus
 	return attack_interval / (1.0 + bonus)
+
+
+func moon_at(time: float) -> int:
+	return moon if time < moon_until else MOON_NONE
 
 
 func is_stunned(time: float) -> bool:
@@ -422,6 +432,8 @@ func clear_effects() -> void:
 	tarot_swords_until = 0.0
 	tarot_wands_until = 0.0
 	fruit_until = 0.0
+	moon = MOON_NONE
+	moon_until = 0.0
 	latched_until = 0.0
 	slow_until = 0.0
 	shield_hp = 0.0

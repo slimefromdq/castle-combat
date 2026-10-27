@@ -4,6 +4,8 @@ extends RefCounted
 ##   DORMANT -> SPAWNED -> CARRIED <-> DROPPED -> (delivered or expired) -> DORMANT
 ## Delivered and expired are moments, not states: they emit an event and go dormant.
 ## Either hero may pick it up; both deliver to the same pocket, opposite the pickup.
+## In phase 2 each hero may instead carry it to their long drop deep in the enemy half
+## for a bigger reward (Lucy's long Relay; see long_rect and MatchConfig "Phase 2").
 
 enum State { DORMANT, SPAWNED, CARRIED, DROPPED }
 
@@ -69,6 +71,16 @@ func carrier(sim: MatchSim) -> HeroState:
 
 func delivery_rect(sim: MatchSim) -> Rect2:
 	return sim.arena.pockets[delivery_pocket]
+
+
+## The long drop for a team (phase 2): a square deep in the enemy half, or an empty
+## Rect2 when the map has none or phase 2 hasn't started.
+func long_rect(sim: MatchSim, team: int) -> Rect2:
+	if sim.phase < 2 or sim.arena.long_drop == Vector2.ZERO:
+		return Rect2()
+	var c := sim.arena.long_drop if team == MatchSim.BLUE else -sim.arena.long_drop
+	var size := Vector2.ONE * sim.config.relay_long_size
+	return Rect2(c - size * 0.5, size)
 
 
 func pickup_rect(sim: MatchSim) -> Rect2:
@@ -194,6 +206,10 @@ func _tick_carried(sim: MatchSim) -> void:
 		return
 	pos = h.pos
 	var pocket := delivery_rect(sim)
+	var far := long_rect(sim, h.team)
+	var long := far.has_area() and far.has_point(h.pos)
+	if long:
+		pocket = far
 	var enemy := sim.heroes[1 - h.team]
 	contested = enemy.alive and pocket.has_point(enemy.pos)
 	if not pocket.has_point(h.pos):
@@ -203,9 +219,9 @@ func _tick_carried(sim: MatchSim) -> void:
 		return  # Paused, not reset: the carrier keeps what they have built up.
 	deliver_progress += sim.dt
 	if deliver_progress + 0.0001 >= sim.config.relay_deliver_time:
-		Pacing.on_relay_delivered(sim, h, activations)
+		Pacing.on_relay_delivered(sim, h, activations, long)
 		_release_carrier(sim)
-		_finish(sim, &"relay_delivered", h.team)
+		_finish(sim, &"relay_delivered", h.team, long)
 
 
 func _drop(sim: MatchSim, reason: StringName) -> void:
@@ -238,14 +254,14 @@ func _release_carrier(sim: MatchSim) -> void:
 
 
 ## Ends this activation (delivered or expired) and schedules the next one on the other side.
-func _finish(sim: MatchSim, event: StringName, team: int) -> void:
+func _finish(sim: MatchSim, event: StringName, team: int, long := false) -> void:
 	state = State.DORMANT
 	activations += 1
 	next_spawn_time = sim.time + sim.config.relay_interval
 	warned = false
 	_reset_progress()
 	_reset_fight()
-	sim.emit_event(event, {"team": team})
+	sim.emit_event(event, {"team": team, "long": long})
 	_choose_pockets(sim)
 
 

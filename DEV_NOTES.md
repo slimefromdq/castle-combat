@@ -522,3 +522,11 @@ Plan: [The Diamond Map](https://claude.ai/artifact/9QsLceWMzyf4wTLAmwZML2).
 - View: `src/view/diamond_view.gd` draws pickups, fruit, the altar and camp rings, and an edge arrow to the altar. Pwee is the round bee from Lucy's sketchbook (`UnitFactory._make_pwee`).
 - Bot: walks to pickups on its half, the altar, and fruit when hurt; clears its own side's Pwee when the enemy hero is away; takes the first Tarot card.
 - Dev: `--stage=diamond|camp|altar`. Tests: `tests/test_diamond.gd`.
+
+## Diamond map rework, part 3: phase 2
+
+- **Phase 2** (`Pacing._tick_phase`, `MatchSim.phase`): starts when the first Outer Tower falls, or at 6:00 (`phase_two_time`). Emits `phase_two` (banner text and a chime).
+- **Moon buffs** (`NeutralCamps.on_killed`, `HeroState.moon`): in phase 2 the hero who kills a Pwee gets a moon for 75 s; it ends on death. The Pwee on your own half gives **Waxing** (+12% damage, cooldowns 15% faster). The one on the enemy's half gives **Waning** (15% lifesteal on basic attacks, 10% less damage from the enemy hero). The plan said Waning made your next wave hit harder; I swapped that for a defensive buff because stronger waves for the player already ahead is the snowball the banners caused. A small moon circles the hero's head (pale gold or lavender).
+- **Long Relay** (`RelayController.long_rect`, `ArenaData.long_drop`): in phase 2 the carrier can deliver to the usual pocket, or to their long drop, a 3.2 m square about 9 m past the enemy Outer Tower toward their Guardian. It pays 1.75x gold and one more siege minion. An enemy hero standing on it blocks it like the pocket. Shown as a square in your team colour ("Long drop x1.75") plus the enemy's dimmer one, and on the minimap; the HUD carry line says "or the long drop".
+- Bot: takes the long drop when it's above 60% health and the enemy hero is at least 14 m from it.
+- Dev: `--stage=phase2`. Tests: `tests/test_phase_two.gd`.

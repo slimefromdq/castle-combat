@@ -17,6 +17,8 @@ var _fruits: Array[Dictionary] = []
 var _altars: Array[Dictionary] = []
 var _arrows: AltarArrow
 var _popups: Array = []
+## Long Relay drops (phase 2), one per team: {root, frame, label}.
+var _long: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -38,6 +40,36 @@ func _ready() -> void:
 		_altars.append(_build_altar(p))
 	for c in sim.camps.camps:
 		_ring(c.home, 1.6, Color("7ad67a", 0.45))
+	if sim.arena.long_drop != Vector2.ZERO:
+		for team in [MatchSim.BLUE, MatchSim.RED]:
+			_long.append(_build_long_drop(sim, team))
+
+
+## A long Relay drop: a chalk square in the team's colour with a floating tag. Hidden
+## until phase 2.
+func _build_long_drop(sim: MatchSim, team: int) -> Dictionary:
+	var c := sim.arena.long_drop if team == MatchSim.BLUE else -sim.arena.long_drop
+	var mine := team == view.local_seat
+	var color := Palette.team_color(mine)
+	var root := Node3D.new()
+	root.position = MatchView.to_world(c, 0.03)
+	root.visible = false
+	add_child(root)
+	var half := sim.config.relay_long_size * 0.5
+	var w := 0.16
+	var frame := Node3D.new()
+	root.add_child(frame)
+	for k in 4:
+		var horiz := k < 2
+		var sgn := -1.0 if k % 2 == 0 else 1.0
+		var size := Vector3(half * 2.0 + w, 0.04, w) if horiz else Vector3(w, 0.04, half * 2.0 + w)
+		var at := Vector3(0, 0, sgn * half) if horiz else Vector3(sgn * half, 0, 0)
+		UnitFactory.part(frame, UnitFactory.box(size), Color(color.lightened(0.25), 0.9 if mine else 0.55), at, Vector3.ZERO, true)
+	var fill := UnitFactory.part(root, UnitFactory.box(Vector3(half * 2.0, 0.02, half * 2.0)), Color(color, 0.16 if mine else 0.08), Vector3.ZERO, Vector3.ZERO, true)
+	var tag := UnitFactory.label(root, "Long drop x%.2f" % sim.config.relay_long_gold_mult if mine else "Their long drop", 1.4, 36)
+	tag.modulate = color.lightened(0.35) if mine else Color(color.lightened(0.2), 0.7)
+	tag.outline_modulate = Color(0.1, 0.08, 0.12)
+	return {"root": root, "frame": frame, "fill": fill, "team": team}
 
 
 func _ring(p: Vector2, r: float, color: Color) -> MeshInstance3D:
@@ -145,6 +177,14 @@ func render() -> void:
 			s.fill.scale = Vector3(fr, 1, fr)
 		else:
 			s.fill.visible = false
+	for d in _long:
+		d.root.visible = sim.phase >= 2
+		if d.root.visible:
+			# Pulse while this team's hero carries the Relay: that's when it matters.
+			var carrier := sim.relay.carrier(sim)
+			var live: bool = carrier != null and carrier.team == d.team
+			var k := 1.0 + (0.06 * sin(t * 6.0) if live else 0.0)
+			d.frame.scale = Vector3(k, 1, k)
 	_update_popups()
 	_arrows.queue_redraw()
 
@@ -160,6 +200,23 @@ func _on_sim_event(type: StringName, data: Dictionary) -> void:
 			var spark: bool = data.kind == PickupController.SPARK
 			text = "+%d XP" % int(view.sim.config.pickup_xp) if spark else "+%d g" % int(view.sim.config.pickup_gold)
 			color = SPARK if spark else COIN
+		&"moon_gained":
+			var waxing: bool = data.moon == HeroState.MOON_WAXING
+			text = "Waxing moon!" if waxing else "Waning moon!"
+			color = StatusFx.MOON_WAXING if waxing else StatusFx.MOON_WANING
+			var h: SimEntity = view.sim.get_entity(data.hero)
+			if h == null:
+				return
+			data = {"pos": h.pos, "team": data.team}
+		&"relay_delivered":
+			if not data.get("long", false):
+				return
+			text = "Long delivery!"
+			color = COIN
+			var h: HeroState = view.sim.heroes[data.team] if data.team >= 0 else null
+			if h == null:
+				return
+			data = {"pos": h.pos, "team": data.team}
 		&"fruit_eaten":
 			text = "Yum!" if mine else "Fruit eaten"
 			color = HONEY

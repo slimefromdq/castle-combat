@@ -9,6 +9,9 @@ extends RefCounted
 ## up to camp_damage_share of the total over the Pwee's life. The killer gets the rest.
 ## A Pwee healing back to full doesn't refill the damage share, so it can't be farmed.
 ##
+## Phase 2 (Lucy's moon idea): the killer also gets a moon buff. The Pwee on your own
+## half gives Waxing, the one on the enemy's half gives Waning (see MatchConfig "Phase 2").
+##
 ## The Pwee is a MinionState on team -1: abilities that hit "enemy troopers" hit it,
 ## while troopers and towers ignore it (see CombatSystem.is_valid_target).
 
@@ -132,9 +135,21 @@ func on_killed(sim: MatchSim, m: MinionState, source: SimEntity) -> void:
 	c.monster = 0
 	c.respawn_at = sim.time + sim.config.camp_respawn_time
 	var hero := source as HeroState
+	var moon := HeroState.MOON_NONE
 	if hero != null:
 		_pay(sim, hero, 1.0 - c.paid, &"camp_kill")
-	sim.emit_event(&"camp_cleared", {"camp": c.index, "hero": hero.id if hero != null else 0, "team": hero.team if hero != null else -1, "pos": m.pos, "back_at": c.respawn_at})
+		if sim.phase >= 2:
+			moon = HeroState.MOON_WAXING if side_of(c) == hero.team else HeroState.MOON_WANING
+			hero.moon = moon
+			hero.moon_until = sim.time + sim.config.moon_time
+	sim.emit_event(&"camp_cleared", {"camp": c.index, "hero": hero.id if hero != null else 0, "team": hero.team if hero != null else -1, "pos": m.pos, "back_at": c.respawn_at, "moon": moon})
+	if moon != HeroState.MOON_NONE:
+		sim.emit_event(&"moon_gained", {"hero": hero.id, "team": hero.team, "moon": moon, "until": hero.moon_until})
+
+
+## Which team's half a camp sits on: the first half of the mirrored list is blue's.
+func side_of(c: Camp) -> int:
+	return MatchSim.BLUE if c.index < camps.size() / 2 else MatchSim.RED
 
 
 func _pay(sim: MatchSim, hero: HeroState, fraction: float, reason: StringName) -> void:

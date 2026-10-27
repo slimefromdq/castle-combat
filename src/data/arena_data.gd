@@ -31,6 +31,9 @@ extends Resource
 @export var altars: Array[Vector2] = []
 ## Honey fruit bushes (see Fruits). Blue-side positions, mirrored for red.
 @export var fruits: Array[Vector2] = []
+## Centre of blue's long Relay drop, deep in red's half (phase 2); red's is the mirror.
+## Vector2.ZERO means the map has no long drop.
+@export var long_drop := Vector2.ZERO
 ## Blue positions for Outer Tower, Guardian, Core (in that order).
 @export var structure_positions: Array[Vector2] = []
 @export var hero_spawn := Vector2(2.6, -35.0)

@@ -103,6 +103,26 @@ extends Resource
 @export var camp_reset_time := 5.0
 @export var camp_regen_per_second := 0.25
 
+@export_group("Phase 2")
+## Phase 2 starts when the first Outer Tower falls, or at phase_two_time at the latest.
+## It unlocks the moon buffs from Pwees and the long Relay drop.
+@export var phase_two_time := 360.0
+## Killing a Pwee in phase 2 gives a moon buff for moon_time seconds (ends on death).
+## The Pwee on your own half gives Waxing: more damage and faster cooldowns.
+## The one on the enemy's half gives Waning: lifesteal on basic attacks and less damage
+## taken from the enemy hero.
+@export var moon_time := 75.0
+@export var moon_waxing_damage := 0.12
+@export var moon_waxing_haste := 0.15
+@export var moon_waning_lifesteal := 0.15
+@export var moon_waning_guard := 0.10
+## The long Relay drop (phase 2): a square of this size deep in the enemy half
+## (ArenaData.long_drop). Delivering there pays relay_long_gold_mult x the gold and
+## relay_long_extra_siege more siege minions.
+@export var relay_long_size := 3.2
+@export var relay_long_gold_mult := 1.75
+@export var relay_long_extra_siege := 1
+
 @export_group("Tarot altar")
 ## See TarotAltar.
 @export var tarot_first_time := 120.0

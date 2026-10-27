@@ -221,11 +221,34 @@ func fast_forward(seconds: float) -> void:
 	view.render(1.0, 0.0, true)
 
 
-## Dev: set up a moment for screenshots. "duel" / "perk" see below; "laststand" = guarding your
+## Dev: set up a moment for screenshots. "duel" / "perk" / "phase2" see below; "laststand" = guarding your
 ## Core while its stun winds up; "guardian" = your wave beside the enemy
 ## Guardian (beam active); "stomp" = the same, mid-way through a stomp telegraph.
 func stage(what: String) -> void:
 	var enemy := 1 - local_seat
+	if what == "phase2":
+		# 6:05 in, phase 2: you carry the Relay across the centre toward your long drop with
+		# a Waxing moon; the enemy hero is back at their Guardian.
+		sim.next_wave_time = 1000.0
+		sim.tick = int(round(365.0 / sim.dt))
+		sim.time = sim.tick * sim.dt
+		Pacing.tick(sim)
+		var me_p := sim.heroes[local_seat]
+		sim.heroes[enemy].pos = MatchSim.to_team_space(enemy, Vector2(0, -36))
+		sim.relay.next_spawn_time = sim.time
+		sim.relay.tick(sim)
+		me_p.pos = sim.relay.origin
+		for i in int((sim.config.relay_pickup_time + 0.1) / sim.dt):
+			sim.relay.tick(sim)
+			sim.time += sim.dt
+		me_p.pos = MatchSim.to_team_space(local_seat, Vector2(3.0, 18.0))
+		me_p.moon = HeroState.MOON_WAXING
+		me_p.moon_until = sim.time + sim.config.moon_time
+		for h in sim.heroes:
+			h.prev_pos = h.pos
+		sim.relay.tick(sim)
+		view.render(1.0, 0.0, true)
+		return
 	if what == "diamond" or what == "camp" or what == "altar":
 		# "diamond": 2:05 in, standing on your side of the diamond with coins, sparks, fruit,
 		# your Pwee and the Tarot altar all up. "camp": fighting your Pwee. "altar": standing

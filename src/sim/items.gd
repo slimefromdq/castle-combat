@@ -12,6 +12,8 @@ static func outgoing(sim: MatchSim, src: HeroState, target: SimEntity, amount: f
 	var mult := 1.0
 	if sim.time < src.tarot_swords_until:
 		mult += sim.config.tarot_swords_bonus
+	if src.moon_at(sim.time) == HeroState.MOON_WAXING:
+		mult += sim.config.moon_waxing_damage
 	if kind == &"ability":
 		if sim.time < src.power_until:
 			mult += src.power_bonus
@@ -89,6 +91,8 @@ static func _after_basic(sim: MatchSim, src: HeroState, target: SimEntity, dealt
 			if e != target:
 				sim.apply_damage(e, dealt * sword.splash_fraction, src, &"item")
 	var steal := src.item_total(&"lifesteal") + hero_lifesteal(src)
+	if src.moon_at(sim.time) == HeroState.MOON_WANING:
+		steal += sim.config.moon_waning_lifesteal
 	var rhythm := src.item_with(&"rhythm_every")
 	if rhythm != null:
 		if src.frenzy_left > 0:

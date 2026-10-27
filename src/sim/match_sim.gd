@@ -52,6 +52,8 @@ var pending_siege: Array[int] = [0, 0]
 var over := false
 ## Overtime (Pacing): structures weakened, tankier waves, longer respawns.
 var overtime := false
+## 1 until the first Outer Tower falls (or phase_two_time), then 2 (see Pacing).
+var phase := 1
 ## Per team: true once the enemy Guardian has fallen (its minions become power minions).
 var power_minions: Array[bool] = [false, false]
 ## Winning team once the match is over, else -1.
@@ -235,6 +237,8 @@ func apply_damage(target: SimEntity, amount: float, source: SimEntity, kind := &
 	if target is HeroState:
 		amount = Items.incoming(self, source, target, amount, kind)
 		amount = Abilities.modify_hero_damage(self, source, target, amount)
+		if hero_src != null and hero_src.team != target.team and target.moon_at(time) == HeroState.MOON_WANING:
+			amount *= 1.0 - config.moon_waning_guard
 		amount = Items.cheat_death(self, target, amount)
 		if hero_src != null and hero_src.team != target.team:
 			target.last_hero_damage_time = time

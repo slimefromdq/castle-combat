@@ -108,12 +108,16 @@ static func on_structure_killed(sim: MatchSim, s: StructureState) -> void:
 
 
 ## A Relay delivery: gold for the carrier and siege minions, both growing each activation.
-static func on_relay_delivered(sim: MatchSim, hero: HeroState, activation: int) -> void:
+static func on_relay_delivered(sim: MatchSim, hero: HeroState, activation: int, long := false) -> void:
 	var cfg := sim.config
 	var sieges := mini(cfg.relay_siege_max, 1 + activation / maxi(1, cfg.relay_siege_every))
+	if long:
+		sieges += cfg.relay_long_extra_siege
 	for i in sieges:
 		sim.queue_siege(hero.team)
 	var gold := cfg.relay_gold_base + cfg.relay_gold_per_activation * activation
+	if long:
+		gold *= cfg.relay_long_gold_mult
 	hero.gold += gold
 	sim.emit_event(&"gold_awarded", {"hero": hero.id, "team": hero.team, "amount": gold, "reason": &"relay"})
 
@@ -126,7 +130,21 @@ static func overtime_at(sim: MatchSim) -> float:
 	return sim.config.overtime_time
 
 
+## Phase 2: the first Outer Tower to fall, or phase_two_time, whichever comes first.
+static func _tick_phase(sim: MatchSim) -> void:
+	if sim.phase >= 2:
+		return
+	var tower_down := false
+	for s in sim.structures:
+		if s.tier == 0 and not s.alive:
+			tower_down = true
+	if tower_down or sim.time + 0.0001 >= sim.config.phase_two_time:
+		sim.phase = 2
+		sim.emit_event(&"phase_two", {"tower": tower_down})
+
+
 static func tick(sim: MatchSim) -> void:
+	_tick_phase(sim)
 	if not sim.overtime:
 		if sim.time >= overtime_at(sim):
 			sim.overtime = true

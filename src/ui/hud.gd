@@ -518,7 +518,18 @@ func on_sim_event(type: StringName, data: Dictionary, seat: int) -> void:
 		&"relay_returned":
 			text = "Relay went back to its pocket"
 		&"relay_delivered":
-			text = "Delivered! A siege minion joins your next wave" if data.team == seat else "Enemy delivered: their siege minion is coming"
+			if data.get("long", false):
+				text = "Long delivery! Big gold and an extra siege minion" if data.team == seat else "Enemy made the long delivery: extra siege minions coming"
+			else:
+				text = "Delivered! A siege minion joins your next wave" if data.team == seat else "Enemy delivered: their siege minion is coming"
+		&"phase_two":
+			text = "Phase 2! Pwees give moon buffs, and the long Relay drop is open"
+		&"moon_gained":
+			var cfg := MatchController.CONFIG
+			if data.moon == HeroState.MOON_WAXING:
+				text = ("Waxing moon: +%d%% damage, faster cooldowns for %ds" % [roundi(cfg.moon_waxing_damage * 100.0), roundi(cfg.moon_time)]) if data.team == seat else "Enemy has the Waxing moon"
+			else:
+				text = ("Waning moon: lifesteal and %d%% less hero damage for %ds" % [roundi(cfg.moon_waning_guard * 100.0), roundi(cfg.moon_time)]) if data.team == seat else "Enemy has the Waning moon"
 		&"relay_expired":
 			text = "The Relay faded"
 		&"relay_fizzling":
@@ -643,6 +654,8 @@ func _relay_text(sim: MatchSim, seat: int) -> String:
 		RelayController.State.CARRIED:
 			if me.carrying_relay:
 				var where := "Carry it to the %s pocket" % _side(sim, relay.delivery_pocket, seat)
+				if relay.long_rect(sim, seat).has_area():
+					where += " or the long drop"
 				return where + (" · blocked!" if relay.contested else "")
 			return "Enemy has the Relay! One hit knocks it loose"
 	return ""

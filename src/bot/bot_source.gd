@@ -318,6 +318,11 @@ func _decide(sim: MatchSim) -> PlayerCommand:
 	if me.carrying_relay:
 		# R1. Carry it to the delivery pocket and stand in the middle until it lands.
 		var drop_off := relay.delivery_rect(sim).get_center()
+		# Phase 2: the long drop pays more; take it when the way looks safe.
+		var far := relay.long_rect(sim, me.team)
+		if far.has_area() and me.hp > me.max_hp * 0.6 \
+				and (not them.alive or them.pos.distance_to(far.get_center()) > 14.0):
+			drop_off = far.get_center()
 		if me.pos.distance_to(drop_off) > 0.6:
 			cmd.move = _toward(me, drop_off)
 		return cmd

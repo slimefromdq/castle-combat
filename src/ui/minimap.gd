@@ -2,7 +2,7 @@ class_name Minimap
 extends Control
 ## A small map in the corner (Lucy's K1): the lane and diamond, structures, both heroes
 ## (the enemy only while you can see them), the Relay, the Tarot altar, Pwee camps,
-## honey fruit and pickups. Your base is at the bottom, like the camera.
+## honey fruit, pickups and (phase 2) the long Relay drops. Your base is at the bottom, like the camera.
 
 const SCALE := 1.9  # Pixels per metre.
 
@@ -52,6 +52,13 @@ func _draw() -> void:
 		var p0 := to_px(w.position)
 		var p1 := to_px(w.end)
 		draw_rect(Rect2(p0, p1 - p0).abs(), Color(0.95, 0.9, 0.8, 0.6))
+	for team in [MatchSim.BLUE, MatchSim.RED]:
+		var far := sim.relay.long_rect(sim, team)
+		if far.has_area():
+			var p0 := to_px(far.position)
+			var p1 := to_px(far.end)
+			var lc := Palette.team_color(team == seat).lightened(0.3)
+			draw_rect(Rect2(p0, p1 - p0).abs(), Color(lc, 0.85 if team == seat else 0.45), false, 1.5)
 	for p in sim.pickups.active():
 		draw_circle(to_px(p.pos), 1.6, Color("8fe9ff") if p.kind == PickupController.SPARK else Color("ffcf3f"))
 	for f in sim.fruits.ripe():
