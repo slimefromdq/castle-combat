@@ -131,3 +131,30 @@ static func star_points(center: Vector2, r: float, rot := 0.0) -> PackedVector2A
 		var a := rot - PI / 2.0 + TAU * i / 10.0
 		out.append(center + Vector2(cos(a), sin(a)) * (r if i % 2 == 0 else r * 0.45))
 	return out
+
+
+## A row of black city blocks standing on the line from `a` to `b` (left to right),
+## each with a white cut edge and a few lit yellow window slits. Shared by the VS
+## intro and the victory card so they echo the menu skyline.
+static func draw_city(ci: CanvasItem, a: Vector2, b: Vector2, min_h: float, max_h: float, seed_value: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var x := a.x - rng.randf_range(0, 30)
+	while x < b.x:
+		var w := rng.randf_range(30, 70)
+		var t := clampf((x + w * 0.5 - a.x) / maxf(1.0, b.x - a.x), 0.0, 1.0)
+		var base := lerpf(a.y, b.y, t) + 20.0
+		var h := rng.randf_range(min_h, max_h)
+		var r := Rect2(x, base - h, w - 5, h)
+		ci.draw_rect(r.grow(3), WHITE)
+		ci.draw_rect(r, INK)
+		var y := r.position.y + 10.0
+		while y < base - 24.0:
+			var wx := r.position.x + 5.0
+			while wx < r.end.x - 10.0:
+				var ww := rng.randf_range(5, 14)
+				if rng.randf() < 0.3:
+					ci.draw_rect(Rect2(wx, y, minf(ww, r.end.x - 5.0 - wx), 3), YELLOW)
+				wx += ww + 4.0
+			y += rng.randf_range(10, 15)
+		x += w
