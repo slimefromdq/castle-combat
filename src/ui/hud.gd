@@ -80,6 +80,7 @@ var _details_text: RichTextLabel
 var _menu_box: VBoxContainer
 var _touch_button: Button
 var _seat_button: Button
+var _sound_button: Button
 var _fullscreen_button: Button
 var _debug: Label
 var _respawn: Label
@@ -185,6 +186,7 @@ func refresh(sim: MatchSim, seat: int, fps: float) -> void:
 		_result_title.add_theme_color_override("font_color", Palette.ALLY.lightened(0.3) if sim.winner == seat else Palette.ENEMY.lightened(0.2))
 		_result.visible = true
 	_seat_button.text = "Seat: %s (F2)" % ("blue" if seat == MatchSim.BLUE else "red")
+	_sound_button.text = "Sound: %s (M)" % ("off" if Sfx.muted else "on")
 	_flash.visible = Time.get_ticks_msec() < _flash_until
 	_drop.visible = me.carrying_relay
 	if debug_visible:
@@ -711,6 +713,23 @@ func _build_menu(inset: float) -> void:
 	_seat_button = _menu_button("Seat: blue (F2)", seat_toggle_pressed)
 	_seat_button.tooltip_text = "Debug: swap seats (camera turns 180°)"
 	_menu_button("Debug readout (F1)", debug_toggle_pressed)
+	_sound_button = UiKit.button("", Vector2(260, 52))
+	_sound_button.add_theme_font_size_override("font_size", 19)
+	_sound_button.pressed.connect(func() -> void: Sfx.toggle_mute())
+	_menu_box.add_child(_sound_button)
+	var vol := HSlider.new()
+	vol.min_value = 0.0
+	vol.max_value = 1.0
+	vol.step = 0.05
+	vol.value = Sfx.volume
+	vol.custom_minimum_size = Vector2(260, 36)
+	vol.focus_mode = Control.FOCUS_NONE
+	vol.tooltip_text = "Volume"
+	vol.value_changed.connect(func(v: float) -> void:
+		Sfx.set_volume(v)
+		if Sfx.muted and v > 0.0:
+			Sfx.set_muted(false))
+	_menu_box.add_child(vol)
 	_menu_button("Hero select (Esc)", menu_pressed)
 
 

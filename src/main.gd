@@ -5,6 +5,8 @@ var _menu: MainMenu
 var _match: MatchController
 
 func _ready() -> void:
+	Sfx.load_settings()
+	Sfx.warm_up()  # Builds the sounds a few per frame while you're in the menu.
 	_menu = MainMenu.new()
 	_menu.play_requested.connect(_start_match)
 	add_child(_menu)
@@ -22,6 +24,7 @@ func _ready() -> void:
 
 ## Dev-only flags for smoke tests and screenshots, e.g.
 ## godot -- --autoplay --seat=red --touch --walk-up --screenshot=shot.png --frames=90
+## (add --perf to print draw calls and node counts with the screenshot)
 ## godot -- --autoplay --autopilot --skip=90   (bot plays you; jump 90 s into the match)
 func _apply_dev_args(args: PackedStringArray) -> void:
 	var frames := 60
@@ -52,6 +55,13 @@ func _apply_dev_args(args: PackedStringArray) -> void:
 	for i in frames:
 		await get_tree().process_frame
 	get_viewport().get_texture().get_image().save_png(shot)
+	if "--perf" in args:
+		print("PERF draw_calls=%d objects=%d primitives=%d nodes=%d fps=%d" % [
+			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+			Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
+			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+			Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+			Performance.get_monitor(Performance.TIME_FPS)])
 	get_tree().quit()
 
 

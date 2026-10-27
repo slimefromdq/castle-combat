@@ -35,6 +35,8 @@ var _pager_tween: Tween
 # Battle page
 var _stage: HeroStage
 var _hero_name: Label
+var _mute_icon: DoodleIcon
+var _volume_slider: HSlider
 var _hero_blurb: Label
 var _deck_strip: HBoxContainer
 var _play: Button
@@ -103,6 +105,8 @@ func show_tab(tab: int, animate := true) -> void:
 
 
 func pick_hero(i: int) -> void:
+	if is_inside_tree() and i != hero_index:
+		Sfx.play(&"click", -4.0)
 	hero_index = i
 	var hero := MatchController.HEROES[i]
 	_stage.show_hero(hero)
@@ -153,7 +157,8 @@ func _input(event: InputEvent) -> void:
 		return
 	if down:
 		_press_pos = pos
-		_pressing = _pager.get_global_rect().has_point(pos)
+		# Dragging the volume slider is not a page swipe.
+		_pressing = _pager.get_global_rect().has_point(pos) and not (_volume_slider != null and _volume_slider.get_global_rect().grow(12).has_point(pos))
 	elif up and _pressing:
 		_pressing = false
 		var d := pos - _press_pos
@@ -402,14 +407,78 @@ func _build_battle_page() -> Control:
 	play_row.add_child(mode)
 	v.add_child(play_row)
 	if not DisplayServer.is_touchscreen_available():
-		var help := Zine.label("WASD move · stop to attack · Q/E/R cast at the mouse · Tab details · F11 fullscreen · Esc menu", Zine.HAND, 18, Color(Zine.INK, 0.65))
+		var help := Zine.label("WASD move · stop to attack · Q/E/R cast at the mouse · Tab details · F11 fullscreen · M mute · Esc menu", Zine.HAND, 18, Color(Zine.INK, 0.65))
 		help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(help)
+	v.add_child(_sound_row())
 	return page
 
 
+## Sound: a speaker sticker that mutes, and a volume slider.
+func _sound_row() -> Control:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	var mute := Button.new()
+	mute.focus_mode = Control.FOCUS_NONE
+	mute.custom_minimum_size = Vector2(64, 56)
+	mute.tooltip_text = "Sound on/off (M)"
+	Zine.style_button(mute, Zine.WHITE, 31, 4.0)
+	var icon := DoodleIcon.make("speaker_off" if Sfx.muted else "speaker", 38)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.offset_right = -5
+	center.offset_bottom = -5
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(icon)
+	mute.add_child(center)
+	_mute_icon = icon
+	mute.pressed.connect(func() -> void:
+		Sfx.toggle_mute()
+		_refresh_sound()
+		Sfx.play(&"click"))
+	row.add_child(mute)
+	row.add_child(Zine.label("Sound", Zine.MARKER, 24))
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	slider.value = Sfx.volume
+	slider.custom_minimum_size = Vector2(240, 40)
+	slider.focus_mode = Control.FOCUS_NONE
+	# Zine look: a thick ink track that fills with sunshine yellow.
+	var track := StyleBoxFlat.new()
+	track.bg_color = Zine.WHITE
+	track.border_color = Zine.INK
+	track.set_border_width_all(3)
+	track.set_corner_radius_all(6)
+	track.content_margin_top = 7
+	track.content_margin_bottom = 7
+	var fill := track.duplicate()
+	fill.bg_color = Zine.SUN
+	slider.add_theme_stylebox_override("slider", track)
+	slider.add_theme_stylebox_override("grabber_area", fill)
+	slider.add_theme_stylebox_override("grabber_area_highlight", fill)
+	slider.value_changed.connect(func(v: float) -> void:
+		Sfx.set_volume(v)
+		if Sfx.muted and v > 0.0:
+			Sfx.set_muted(false)
+		_refresh_sound()
+		Sfx.play(&"click", 0.0, 1.0, 0.08))
+	_volume_slider = slider
+	row.add_child(slider)
+	return row
+
+
+func _refresh_sound() -> void:
+	if _mute_icon != null:
+		_mute_icon.kind = "speaker_off" if Sfx.muted else "speaker"
+		_mute_icon.queue_redraw()
+
+
 func _on_play() -> void:
+	Sfx.play(&"click")
 	if deck_full():
 		play_requested.emit()
 	else:
